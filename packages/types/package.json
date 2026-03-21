@@ -1,0 +1,13 @@
+{
+  "name": "@hairconnekt/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript interfaces for HairConnekt — used by mobile and backend",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,20 @@
+/* HairConnekt Typography - Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-playfair: 'Playfair Display', serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-dm-sans);
+}
+
+.font-heading {
+  font-family: var(--font-playfair);
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains);
+}
