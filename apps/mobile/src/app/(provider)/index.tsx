@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Keyboar
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
@@ -10,7 +11,7 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -57,10 +58,9 @@ export default function RegisterScreen() {
       });
 
       const { accessToken, refreshToken, user } = response.data;
-      
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
-      await AsyncStorage.setItem('userRole', user.role);
+
+      await tokenStorage.save(accessToken, refreshToken, user.role as 'client' | 'provider');
+      await AsyncStorage.setItem('hc_user', JSON.stringify(user));
 
       router.replace('/(client)/' as any);
     } catch (err: any) {

@@ -1,7 +1,7 @@
 import {
-  Controller, Post, Get, Body, UseGuards, Request, Put,
+  Controller, Post, Get, Body, UseGuards, Request, Put, Query,
   UseInterceptors, UploadedFile, BadRequestException, HttpCode, HttpStatus,
-  NotFoundException, Patch, Delete, Param, ParseUUIDPipe
+  NotFoundException, Patch, Delete, Param, ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -308,6 +308,17 @@ export class ProvidersController {
     @Param('id', ParseUUIDPipe) blockId: string,
   ) {
     return this.providersService.deleteTimeBlock(user.id, blockId);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  LIST — must be before /:id
+  // ═══════════════════════════════════════════════════════
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLIENT, Role.PROVIDER)
+  async findAll(@Query() query: Record<string, string>) {
+    return this.providersService.findAll(query);
   }
 
   // ═══════════════════════════════════════════════════════

@@ -22,6 +22,7 @@ export default function AddressesScreen() {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [listErrorVisible, setListErrorVisible] = useState(false);
   
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -43,21 +44,25 @@ export default function AddressesScreen() {
   const loadAddresses = async () => {
     try {
       setIsLoading(true);
+      setListErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API_URL}/users/me/addresses`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const data: any = res.ok ? await res.json() : {
-        data: [
-          { id: '1', label: 'Zuhause', street: 'Musterstraße', houseNumber: '12a', postalCode: '10115', city: 'Berlin', isDefault: true },
-          { id: '2', label: 'Arbeit', street: 'Büroweg', houseNumber: '4', postalCode: '10437', city: 'Berlin', isDefault: false },
-        ]
-      };
+      if (!res.ok) {
+        setListErrorVisible(true);
+        setAddresses([]);
+        return;
+      }
 
-      setAddresses(data.data || []);
+      const data: any = await res.json();
+      const list = data.data ?? data ?? [];
+      setAddresses(Array.isArray(list) ? list : []);
     } catch (error) {
       console.log('Error loading addresses:', error);
+      setListErrorVisible(true);
+      setAddresses([]);
     } finally {
       setIsLoading(false);
     }
@@ -99,9 +104,9 @@ export default function AddressesScreen() {
               const token = await tokenStorage.getAccessToken();
               const res = await fetch(`${API_URL}/users/me/addresses/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-              }).catch(() => ({ ok: true })); // Mock success
-              
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
               if (res.ok) {
                 setAddresses(prev => prev.filter(a => a.id !== id));
               }
@@ -153,23 +158,20 @@ export default function AddressesScreen() {
 
       const res = await fetch(url, {
         method,
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
-      }).catch(() => ({ ok: true })); // Mock success
+        body: JSON.stringify(payload),
+      });
 
-      if (res.ok) {
-        setShowModal(false);
-        // If local dev, manually update state since fetch will fail
-        if (editingId) {
-          setAddresses(prev => prev.map(a => a.id === editingId ? { ...a, ...payload } : (payload.isDefault ? { ...a, isDefault: false } : a)));
-        } else {
-          const newAddress = { id: Date.now().toString(), ...payload };
-          setAddresses(prev => payload.isDefault ? prev.map(a => ({...a, isDefault: false})).concat(newAddress) : [...prev, newAddress]);
-        }
+      if (!res.ok) {
+        Alert.alert('Fehler', 'Die Adresse konnte nicht gespeichert werden.');
+        return;
       }
+
+      setShowModal(false);
+      await loadAddresses();
     } catch (error) {
       console.log('Error saving address:', error);
       Alert.alert('Fehler', 'Die Adresse konnte nicht gespeichert werden.');
@@ -233,6 +235,14 @@ export default function AddressesScreen() {
         <Text style={styles.headerTitle}>Meine Adressen</Text>
         <View style={{ width: 40 }} />
       </View>
+
+      {listErrorVisible && !isLoading && (
+        <View style={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.sm }}>
+          <Text style={{ fontFamily: fonts.body, color: colors.error, fontSize: fontSizes.sm }}>
+            Adressen konnten nicht geladen werden. Bitte erneut versuchen.
+          </Text>
+        </View>
+      )}
 
       {isLoading ? (
         <View style={styles.centerContainer}>

@@ -10,7 +10,7 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function LoginScreen() {
   const router = useRouter();

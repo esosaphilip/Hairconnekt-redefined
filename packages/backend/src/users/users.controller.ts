@@ -1,4 +1,7 @@
-import { Controller, Get, Post, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import {
+  Controller, Get, Post, Patch, Delete, Body, Param, ParseUUIDPipe,
+  UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -22,6 +25,46 @@ export class UsersController {
   async getMe(@Request() req) {
     const userId = req.user.sub || req.user.id;
     return this.usersService.getMe(userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateMe(
+    @CurrentUser() user: User,
+    @Body() body: { firstName?: string; lastName?: string; phone?: string },
+  ) {
+    return this.usersService.updateMe(user.id, body);
+  }
+
+  @Get('me/addresses')
+  @UseGuards(JwtAuthGuard)
+  async getAddresses(@CurrentUser() user: User) {
+    return { data: await this.usersService.getAddresses(user.id) };
+  }
+
+  @Post('me/addresses')
+  @UseGuards(JwtAuthGuard)
+  async createAddress(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
+    return this.usersService.createAddress(user.id, body as any);
+  }
+
+  @Patch('me/addresses/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateAddress(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.usersService.updateAddress(user.id, id, body as any);
+  }
+
+  @Delete('me/addresses/:id')
+  @UseGuards(JwtAuthGuard)
+  async deleteAddress(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.usersService.deleteAddress(user.id, id);
   }
 
   @Post('me/avatar')

@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
 
@@ -53,7 +53,7 @@ export default function ClientSearch() {
       else setIsFetchingMore(true);
       setErrorVisible(false);
 
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       
       const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
       const categoryParam = activeCategory !== 'Alle' ? `&category=${encodeURIComponent(activeCategory)}` : '';

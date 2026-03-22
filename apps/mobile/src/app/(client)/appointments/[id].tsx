@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function AppointmentDetails() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       const response = await axios.get(`${API_URL}/bookings/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

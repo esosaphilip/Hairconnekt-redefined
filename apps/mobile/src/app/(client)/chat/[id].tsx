@@ -2,7 +2,7 @@ import { View, Text, FlatList, TextInput, Pressable,
          StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStorage } from '@/utils/token-storage';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '@/theme';
 
@@ -18,7 +18,7 @@ export default function ClientChatDetailScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const loadMessages = async () => {
-    const token = await AsyncStorage.getItem('accessToken');
+    const token = await tokenStorage.getAccessToken();
     if (!token || !id) return;
     try {
       const res = await fetch(
@@ -42,7 +42,7 @@ export default function ClientChatDetailScreen() {
   const handleSend = async () => {
     if (!inputText.trim() || isSending) return;
     setIsSending(true);
-    const token = await AsyncStorage.getItem('accessToken');
+    const token = await tokenStorage.getAccessToken();
     try {
       await fetch(`${API}/chat/conversations/${id}/messages`, {
         method: 'POST',

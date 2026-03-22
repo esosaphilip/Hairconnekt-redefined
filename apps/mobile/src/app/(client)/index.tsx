@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
+import { tokenStorage } from '../../utils/token-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ClientHome() {
   const router = useRouter();
@@ -29,22 +29,19 @@ export default function ClientHome() {
 
   const loadUser = async () => {
     try {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (token) {
-        const res = await axios.get(`${API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const u = res.data.data || res.data;
-        if (u.firstName) setFirstName(u.firstName);
-        if (u.city) setUserCity(u.city);
-        if (u.avatarUrl) setUserAvatar(u.avatarUrl);
-      } else {
-        const storedName = await AsyncStorage.getItem('firstName');
-        if (storedName) setFirstName(storedName);
-      }
-    } catch (e) {
-      const storedName = await AsyncStorage.getItem('firstName');
-      if (storedName) setFirstName(storedName);
+      const token = await tokenStorage.getAccessToken();
+      if (!token) return;
+      const res = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const u = await res.json();
+      const user = u.data ?? u;
+      setFirstName(user.firstName ?? 'Kunde');
+      setUserCity(user.city ?? 'Deutschland');
+      setUserAvatar(user.avatarUrl ?? null);
+    } catch {
+      /* keep defaults */
     }
   };
 
@@ -52,11 +49,12 @@ export default function ClientHome() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       const response = await axios.get(`${API_URL}/providers?availableToday=true&limit=5`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setProviders(response.data.data || response.data);
+      const payload = response.data?.data ?? response.data;
+      setProviders(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
       const status = err.response?.status;
       setErrorMessage(mapHttpError(status));

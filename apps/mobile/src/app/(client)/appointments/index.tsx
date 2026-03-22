@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -26,7 +26,7 @@ export default function AppointmentsList() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       let statusParam = '';
       if (activeTab === 'upcoming') statusParam = 'PENDING,CONFIRMED,IN_PROGRESS';
       if (activeTab === 'completed') statusParam = 'COMPLETED';

@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 const RATING_LABELS: Record<number, string> = {
   1: 'Schlecht',
@@ -37,7 +37,7 @@ export default function WriteReviewScreen() {
       try {
         if (!bookingId) return;
         setIsLoading(true);
-        const token = await AsyncStorage.getItem('accessToken');
+        const token = await tokenStorage.getAccessToken();
         const res = await axios.get(`${API_URL}/bookings/${bookingId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -57,7 +57,7 @@ export default function WriteReviewScreen() {
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       
       await axios.post(`${API_URL}/reviews`, {
         bookingId,

@@ -15,7 +15,7 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT)
   async createBooking(@Request() req, @Body() createBookingDto: CreateBookingDto) {
     const clientId = req.user.sub || req.user.id;
@@ -23,7 +23,7 @@ export class BookingsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookings(
     @Request() req, 
@@ -37,7 +37,7 @@ export class BookingsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookingById(@Request() req, @Param('id') id: string) {
     return this.bookingsService.findOne(id, req.user);

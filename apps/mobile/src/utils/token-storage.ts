@@ -32,6 +32,11 @@ export const tokenStorage = {
     ]);
   },
 
+  /** Switch client ↔ provider mode without re-login (same keys as save). */
+  async setUserRole(role: 'client' | 'provider'): Promise<void> {
+    await AsyncStorage.setItem(KEYS.USER_ROLE, role);
+  },
+
   async clear(): Promise<void> {
     await AsyncStorage.multiRemove([
       KEYS.ACCESS_TOKEN,

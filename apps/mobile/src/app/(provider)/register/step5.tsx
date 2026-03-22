@@ -15,7 +15,7 @@ export default function RegisterStep5Screen() {
   const [progressText, setProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+  const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
   const handleSubmit = async () => {
     setIsSubmitting(true);

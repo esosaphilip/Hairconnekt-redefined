@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Act
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 
@@ -101,7 +100,7 @@ export default function ProviderProfileHubScreen() {
 
   const switchToClientMode = async () => {
     try {
-      await AsyncStorage.setItem('userRole', 'client');
+      await tokenStorage.setUserRole('client');
       router.replace('/(client)');
     } catch (error) {
       console.log('Error switching mode:', error);

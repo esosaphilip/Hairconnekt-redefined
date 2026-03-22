@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking, Alert, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ProviderSettingsScreen() {
   const router = useRouter();
@@ -68,8 +67,8 @@ export default function ProviderSettingsScreen() {
           onPress: async () => {
             try {
               const token = await tokenStorage.getAccessToken();
-              const refreshToken = await AsyncStorage.getItem('hc_refresh_token');
-              
+              const refreshToken = await tokenStorage.getRefreshToken();
+
               if (refreshToken) {
                 await fetch(`${API}/auth/logout`, {
                   method: 'POST',
@@ -81,7 +80,7 @@ export default function ProviderSettingsScreen() {
                 }).catch(() => {});
               }
             } catch {} finally {
-              await AsyncStorage.multiRemove(['hc_access_token', 'hc_refresh_token', 'hc_user_role']);
+              await tokenStorage.clear();
               router.replace('/(auth)/login?role=provider');
             }
           }
@@ -121,7 +120,7 @@ export default function ProviderSettingsScreen() {
         throw { response: { status: response.status } };
       }
 
-      await AsyncStorage.multiRemove(['hc_access_token', 'hc_refresh_token', 'hc_user_role']);
+      await tokenStorage.clear();
       setDeleteModalVisible(false);
       router.replace('/(auth)/login?role=provider');
 

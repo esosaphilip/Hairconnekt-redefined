@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -110,7 +109,7 @@ export default function ClientProfileScreen() {
 
   const handleProviderSwitch = async () => {
     if (user && user.role === 'provider') {
-      await AsyncStorage.setItem('hc_user_role', 'provider');
+      await tokenStorage.setUserRole('provider');
       router.replace('/(provider)' as any);
     } else {
       router.push('/(provider)/register/type');

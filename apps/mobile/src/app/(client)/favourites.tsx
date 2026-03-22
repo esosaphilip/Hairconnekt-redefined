@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 type ProviderSummaryDto = {
   id: string;
@@ -34,7 +34,7 @@ export default function FavouritesScreen() {
   const fetchFavourites = async () => {
     try {
       setIsLoading(true);
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       if (!token) {
         router.replace('/(auth)/login');
         return;
@@ -63,7 +63,7 @@ export default function FavouritesScreen() {
             // Optimistic Update
             setFavourites(prev => prev.filter(p => p.id !== providerId));
             try {
-              const token = await AsyncStorage.getItem('accessToken');
+              const token = await tokenStorage.getAccessToken();
               await axios.delete(`${API_URL}/favourites/${providerId}`, {
                 headers: { Authorization: `Bearer ${token}` }
               });

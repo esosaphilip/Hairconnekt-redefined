@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 
@@ -36,7 +35,7 @@ export default function ChatListScreen() {
 
   useEffect(() => {
     const fetchRole = async () => {
-      const storedRole = await AsyncStorage.getItem('userRole');
+      const storedRole = await tokenStorage.getUserRole();
       setRole(storedRole);
     };
     fetchRole();

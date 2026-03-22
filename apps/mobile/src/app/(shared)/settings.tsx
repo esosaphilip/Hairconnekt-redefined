@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking, Alert, Modal, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 // Temporarily comment out Notifications to avoid Expo Go SDK 53 errors
 // import * as Notifications from 'expo-notifications';
 // import * as Device from 'expo-device';
@@ -49,8 +48,8 @@ export default function SharedSettingsScreen() {
           onPress: async () => {
             try {
               const token = await tokenStorage.getAccessToken();
-              const refreshToken = await AsyncStorage.getItem('refreshToken');
-              
+              const refreshToken = await tokenStorage.getRefreshToken();
+
               if (refreshToken) {
                 await fetch(`${API_URL}/auth/logout`, {
                   method: 'POST',
@@ -61,12 +60,12 @@ export default function SharedSettingsScreen() {
                   body: JSON.stringify({ refreshToken })
                 });
               }
-              
-              await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userRole']);
+
+              await tokenStorage.clear();
               router.replace('/(auth)/login' as any);
             } catch (error) {
               console.log('Error logging out:', error);
-              await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userRole']);
+              await tokenStorage.clear();
               router.replace('/(auth)/login' as any);
             }
           }
@@ -106,7 +105,7 @@ export default function SharedSettingsScreen() {
         throw { response: { status: response.status } };
       }
 
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userRole']);
+      await tokenStorage.clear();
       setDeleteModalVisible(false);
       router.replace('/(auth)/login' as any);
 

@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Provider } from '../entities/provider.entity';
+import { Provider, ProviderStatus } from '../entities/provider.entity';
 import { PortfolioImage } from '../entities/portfolio-image.entity';
 import { User } from '../entities/user.entity';
 import { Service } from '../entities/service.entity';
@@ -36,6 +36,54 @@ export class ProvidersService {
 
   async findByUserId(userId: string) {
     return this.providerRepo.findOne({ where: { userId } });
+  }
+
+  async findAll(query: Record<string, string>) {
+    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const page = Math.max(Number(query.page) || 1, 1);
+    const qb = this.providerRepo
+      .createQueryBuilder('p')
+      .where('p.status = :status', { status: ProviderStatus.APPROVED });
+    if (query.availableToday === 'true') {
+      qb.andWhere('p.isOnline = :online', { online: true });
+    }
+    const [providers, total] = await qb
+      .orderBy('p.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const ids = providers.map((p) => p.id);
+    const priceMap = new Map<string, number>();
+    if (ids.length) {
+      const rows = await this.serviceRepo
+        .createQueryBuilder('s')
+        .select('s.providerId', 'providerId')
+        .addSelect('MIN(s.price)', 'minPrice')
+        .where('s.providerId IN (:...ids)', { ids })
+        .andWhere('s.isActive = true')
+        .groupBy('s.providerId')
+        .getRawMany();
+      for (const r of rows) {
+        priceMap.set(r.providerId, Number(r.minPrice));
+      }
+    }
+
+    return {
+      data: providers.map((p) => ({
+        id: p.id,
+        businessName: p.businessName,
+        providerType: p.providerType,
+        avatarUrl: p.avatarUrl,
+        city: p.city,
+        avgRating: Number(p.avgRating) || 0,
+        totalReviews: p.totalReviews ?? 0,
+        startingPrice: priceMap.get(p.id) ?? 0,
+        isAvailableToday: p.isOnline,
+        distanceKm: null as number | null,
+      })),
+      meta: { total, page, limit },
+    };
   }
 
   async registerProvider(userId: string, dto: RegisterProviderDto) {
