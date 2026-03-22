@@ -123,6 +123,7 @@ export class ProvidersController {
     );
     const provider = await this.providersService.findByUserId(user.id);
     if (!provider) throw new NotFoundException();
+    // Update the provider avatarUrl
     await this.providerRepo.update(provider.id, { avatarUrl: url });
     // Also update the user avatarUrl so it shows in client view
     await this.userRepo.update(user.id, { avatarUrl: url });
@@ -178,6 +179,7 @@ export class ProvidersController {
   async uploadPortfolioImage(
     @CurrentUser() user: User,
     @UploadedFile() file: Express.Multer.File,
+    @Body() body: Record<string, string>,
   ) {
     if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
     const url = await this.r2Service.uploadFile(
@@ -188,14 +190,48 @@ export class ProvidersController {
     const provider = await this.providersService.findByUserId(user.id);
     if (!provider) throw new NotFoundException();
 
+    let styleTags = [];
+    if (body.styleTags) {
+      try {
+        styleTags = JSON.parse(body.styleTags);
+      } catch (e) {
+        // Fallback or ignore
+      }
+    }
+
     // Save to portfolio_images table
     const image = this.portfolioRepo.create({
       providerId: provider.id,
       imageUrl: url,
       sortOrder: 0,
+      caption: body.caption || null,
+      styleTags: styleTags.length > 0 ? styleTags : null,
     });
     await this.portfolioRepo.save(image);
     return { id: image.id, imageUrl: url };
+  }
+
+  @Delete('me/portfolio/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
+  async deletePortfolioImage(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const provider = await this.providersService.findByUserId(user.id);
+    if (!provider) throw new NotFoundException();
+
+    const image = await this.portfolioRepo.findOne({
+      where: { id, providerId: provider.id },
+    });
+    if (!image) throw new NotFoundException('Bild nicht gefunden');
+
+    if (image.imageUrl) {
+      await this.r2Service.deleteFile(image.imageUrl);
+    }
+
+    await this.portfolioRepo.remove(image);
+    return { success: true };
   }
 
   // --- Services ---

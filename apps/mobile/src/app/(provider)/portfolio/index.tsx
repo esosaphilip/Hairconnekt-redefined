@@ -16,6 +16,7 @@ const IMAGE_SIZE = (width - spacing.lg * 2 - spacing.md) / COLUMN_COUNT;
 interface PortfolioImage {
   id: string;
   url: string;
+  imageUrl?: string;
   orderIndex: number;
 }
 
@@ -38,8 +39,9 @@ export default function PortfolioScreen() {
         const imageList = data.data || data;
         // Sort by orderIndex if present
         if (Array.isArray(imageList)) {
-          imageList.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-          setImages(imageList);
+          imageList.sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0));
+          const validImages = imageList.filter((img: any) => img.imageUrl && img.imageUrl.length > 0);
+          setImages(validImages);
         }
       }
     } catch (error) {
@@ -90,18 +92,29 @@ export default function PortfolioScreen() {
     );
   };
 
-  const renderItem = ({ item }: { item: PortfolioImage }) => (
-    <View style={styles.imageCard}>
-      <Image source={{ uri: item.url }} style={styles.image} resizeMode="cover" />
-      <TouchableOpacity 
-        style={styles.deleteButton} 
-        onPress={() => handleDelete(item.id)}
-        activeOpacity={0.8}
-      >
-        <Feather name="x" size={16} color={colors.error} />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = ({ item }: { item: PortfolioImage }) => {
+    if (!item.imageUrl && !item.url) return null;
+    return (
+      <View style={styles.imageCard}>
+        <Image 
+          source={{ uri: item.imageUrl ?? item.url }} 
+          style={styles.image} 
+          resizeMode="cover" 
+          onError={() => {
+            console.log('Image load error:', item.imageUrl);
+            setImages(prev => prev.filter(i => i.id !== item.id));
+          }}
+        />
+        <TouchableOpacity 
+          style={styles.deleteButton} 
+          onPress={() => handleDelete(item.id)}
+          activeOpacity={0.8}
+        >
+          <Feather name="x" size={16} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   if (loading && images.length === 0) {
     return (

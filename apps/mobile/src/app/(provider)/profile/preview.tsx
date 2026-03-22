@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 const { width } = Dimensions.get('window');
 
 export default function ProfilePreviewScreen() {
@@ -18,8 +17,6 @@ export default function ProfilePreviewScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
 
-  const [providerId, setProviderId] = useState<string | null>(null);
-  
   const [provider, setProvider] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
@@ -37,37 +34,58 @@ export default function ProfilePreviewScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
+      if (!token) {
+        setErrorMessage(mapHttpError(401));
+        setErrorVisible(true);
+        return;
+      }
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 1. Get own provider ID
-      const meResponse = await fetch(`${API_URL}/providers/me`, { headers });
-      let idToUse = 'mock-id';
-      if (meResponse.ok) {
-        const meData = await meResponse.json();
-        if (meData.id) idToUse = meData.id;
+      const meRes = await fetch(`${API_URL}/providers/me`, { headers });
+      if (!meRes.ok) {
+        setErrorMessage(mapHttpError(meRes.status));
+        setErrorVisible(true);
+        return;
       }
-      setProviderId(idToUse);
-
-      const lat = '51.2562';
-      const lng = '7.1508';
-
-      // 2. Fetch public profile data using Promise.all
+      const meData = await meRes.json();
+      const ownId = meData?.data?.id ?? meData?.id;
+      if (!ownId) {
+        setErrorMessage(mapHttpError(404));
+        setErrorVisible(true);
+        return;
+      }
       const [provRes, servRes, portRes, revRes] = await Promise.all([
-        axios.get(`${API_URL}/providers/${idToUse}?lat=${lat}&lng=${lng}`, { headers }).catch(e => ({ data: { data: {} } })),
-        axios.get(`${API_URL}/providers/${idToUse}/services`, { headers }).catch(e => ({ data: { data: [] } })),
-        axios.get(`${API_URL}/providers/${idToUse}/portfolio`, { headers }).catch(e => ({ data: { data: [] } })),
-        axios.get(`${API_URL}/providers/${idToUse}/reviews?limit=10`, { headers }).catch(e => ({ data: { data: [] } }))
+        fetch(`${API_URL}/providers/${ownId}`, { headers }),
+        fetch(`${API_URL}/providers/${ownId}/services`, { headers }),
+        fetch(`${API_URL}/providers/${ownId}/portfolio`, { headers }),
+        fetch(`${API_URL}/providers/${ownId}/reviews`, { headers }),
       ]);
 
-      setProvider(provRes.data.data || provRes.data);
-      setServices(servRes.data.data || servRes.data || []);
-      setPortfolio(portRes.data.data || portRes.data || []);
-      setReviews(revRes.data.data || revRes.data || []);
+      if (!provRes.ok) {
+        setErrorMessage(mapHttpError(provRes.status));
+        setErrorVisible(true);
+        return;
+      }
 
-    } catch (err: any) {
-      const status = err.response?.status;
-      setErrorMessage(mapHttpError(status));
+      const provJson = await provRes.json();
+      setProvider(provJson?.data ?? provJson);
+
+      const servJson = await servRes.json().catch(() => ({}));
+      const servArr = servJson?.data ?? servJson ?? [];
+      setServices(Array.isArray(servArr) ? servArr : []);
+
+      const portJson = await portRes.json().catch(() => ({}));
+      const portArr = portJson?.data ?? portJson ?? [];
+      setPortfolio(
+        (Array.isArray(portArr) ? portArr : []).filter((i: any) => i.imageUrl || i.url),
+      );
+
+      const revJson = await revRes.json().catch(() => ({}));
+      const revArr = revJson?.data ?? revJson ?? [];
+      setReviews(Array.isArray(revArr) ? revArr : []);
+    } catch {
+      setErrorMessage(mapHttpError(500));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

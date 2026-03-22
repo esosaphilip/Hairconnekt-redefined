@@ -7,7 +7,6 @@ import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme'
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { tokenStorage } from '../../../utils/token-storage';
-import { mapHttpError } from '../../../utils/error-messages';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -35,7 +34,13 @@ export default function PortfolioUploadScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setImageUri(result.assets[0].uri);
+        const asset = result.assets[0];
+        let uri = asset.uri;
+        // Android may return content:// — React Native Image + FormData accept it
+        if (Platform.OS === 'ios' && !uri.startsWith('file://')) {
+          uri = `file://${uri}`;
+        }
+        setImageUri(uri);
         setErrorVisible(false);
       }
     } catch (error) {
@@ -70,40 +75,46 @@ export default function PortfolioUploadScreen() {
       const token = await tokenStorage.getAccessToken();
 
       const formData = new FormData();
-      
-      // CRITICAL: Must be named 'portfolio'
+
+      const filename = imageUri.split('/').pop() ?? 'portfolio.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
       formData.append('portfolio', {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'portfolio.jpg',
+        type,
+        name: filename,
       } as any);
 
       if (caption.trim()) {
         formData.append('caption', caption.trim());
       }
-      
+
       if (styleTags.length > 0) {
         formData.append('styleTags', JSON.stringify(styleTags));
       }
 
-      const response = await fetch(`${API_URL}/providers/me/portfolio`, {
+      const res = await fetch(`${API_URL}/providers/me/portfolio`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
 
-      if (!response.ok) {
-        throw { response: { status: response.status } };
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('Portfolio upload error:', body);
+        setErrorMessage('Das Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.');
+        setErrorVisible(true);
+        return;
       }
 
       router.back();
-    } catch (error: any) {
-      console.log('Upload error', error);
-      setErrorMessage(mapHttpError(error?.response?.status || 500));
+    } catch (err) {
+      console.error('Upload exception:', err);
+      setErrorMessage('Verbindungsfehler. Bitte prüfe deine Internetverbindung.');
       setErrorVisible(true);
     } finally {
       setIsUploading(false);
@@ -133,7 +144,7 @@ export default function PortfolioUploadScreen() {
         >
           {imageUri ? (
             <>
-              <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+              <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" onError={(e) => console.log('Preview error:', e.nativeEvent.error)} />
               <View style={styles.changeImageOverlay}>
                 <Feather name="camera" size={24} color={colors.background} />
                 <Text style={styles.changeImageText}>Ändern</Text>

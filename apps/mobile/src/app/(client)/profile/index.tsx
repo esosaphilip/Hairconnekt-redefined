@@ -8,7 +8,7 @@ import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../../theme';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function ClientProfileScreen() {
       const res = await axios.get(`${API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUser(res.data);
+      setUser(res.data?.data || res.data);
     } catch (err) {
       console.log('Failed to fetch user', err);
     } finally {
@@ -65,24 +65,32 @@ export default function ClientProfileScreen() {
       const token = await tokenStorage.getAccessToken();
       
       const formData = new FormData();
-      const filename = asset.uri.split('/').pop() || 'avatar.jpg';
+      const filename = asset.uri.split('/').pop() ?? 'avatar.jpg';
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
+      const mimeType = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
 
       formData.append('avatar', {
         uri: asset.uri,
         name: filename,
-        type,
+        type: mimeType,
       } as any);
 
-      await axios.post(`${API_URL}/users/me/avatar`, formData, {
+      const res = await fetch(`${API_URL}/users/me/avatar`, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
+        body: formData,
       });
 
-      await fetchUser(); // reload user
+      if (!res.ok) {
+        throw new Error('Upload fehlgeschlagen');
+      }
+
+      const data = await res.json();
+      // update local state immediately with R2 URL
+      setUser((prev: any) => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
     } catch (err) {
       Alert.alert('Fehler', 'Das Bild konnte nicht hochgeladen werden.');
     } finally {
@@ -110,7 +118,13 @@ export default function ClientProfileScreen() {
   };
 
   // Safe default values
-  const avatarUri = user?.avatarUrl;
+  const avatarUri = user?.avatarUrl as string | undefined;
+  const resolvedAvatarUri =
+    avatarUri && (avatarUri.startsWith('http://') || avatarUri.startsWith('https://'))
+      ? avatarUri
+      : avatarUri
+        ? `${API_URL.replace(/\/api\/v1\/?$/, '')}${avatarUri.startsWith('/') ? '' : '/'}${avatarUri}`
+        : undefined;
   const fullName = user?.firstName ? `${user.firstName} ${user.lastName}` : 'Kunde';
   const email = user?.email || '';
   const phone = user?.phone || '';
@@ -145,8 +159,12 @@ export default function ClientProfileScreen() {
               <View style={styles.avatarLoader}>
                 <ActivityIndicator color={colors.gold} />
               </View>
-            ) : avatarUri ? (
-              <Image source={{ uri: `${avatarUri.startsWith('http') ? '' : API_URL}${avatarUri}` }} style={styles.avatar} />
+            ) : resolvedAvatarUri ? (
+              <Image
+                key={user?.avatarUrl ?? 'placeholder'}
+                source={{ uri: resolvedAvatarUri }}
+                style={styles.avatar}
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>{fullName.charAt(0).toUpperCase()}</Text>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStorage } from '../../../utils/token-storage';
 import axios from 'axios';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
@@ -37,7 +37,7 @@ export default function ProviderProfile() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       // Optional placeholder logic for coords if needed, defaults omitted or set raw
@@ -54,7 +54,11 @@ export default function ProviderProfile() {
 
       setProvider(provRes.data.data || provRes.data);
       setServices(servRes.data.data || servRes.data);
-      setPortfolio(portRes.data.data || portRes.data);
+      
+      const portData = portRes.data.data || portRes.data || [];
+      console.log('Portfolio data:', JSON.stringify(portData).slice(0, 200));
+      setPortfolio(portData.filter((img: any) => img.imageUrl ?? img.url));
+
       setReviews(revRes.data.data || revRes.data);
 
       const favs = favRes.data.data || favRes.data;
@@ -74,7 +78,7 @@ export default function ProviderProfile() {
     try {
       const prev = isFavourite;
       setIsFavourite(!prev);
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await tokenStorage.getAccessToken();
       const headers = { Authorization: `Bearer ${token}` };
       if (prev) {
         await axios.delete(`${API_URL}/favourites/${id}`, { headers });
@@ -248,11 +252,15 @@ export default function ProviderProfile() {
               scrollEnabled={false}
               numColumns={2}
               columnWrapperStyle={{ justifyContent: 'space-between' }}
-              renderItem={({ item }) => (
-                <View style={styles.galleryImageContainer}>
-                  <Image source={{ uri: item.imageUrl }} style={styles.galleryImage} />
-                </View>
-              )}
+              renderItem={({ item }) => {
+                const imageUrl = item.imageUrl ?? item.url;
+                if (!imageUrl) return null;
+                return (
+                  <View style={styles.galleryImageContainer}>
+                    <Image source={{ uri: imageUrl }} style={styles.galleryImage} resizeMode="cover" onError={() => console.log('Gallery image failed:', imageUrl)} />
+                  </View>
+                );
+              }}
               ListEmptyComponent={<Text style={styles.emptyText}>Noch keine Fotos</Text>}
             />
           )}

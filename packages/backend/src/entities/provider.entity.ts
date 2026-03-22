@@ -77,6 +77,9 @@ export class Provider {
   @Column({ type: 'varchar', nullable: true })
   idDocumentUrl: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  avatarUrl: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
