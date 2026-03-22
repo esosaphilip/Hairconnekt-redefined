@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -37,8 +37,8 @@ export default function NotificationsScreen() {
 
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API_URL}/notifications?page=${pageNum}&limit=20`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (!res.ok) {
         throw new Error('Failed to load notifications');
@@ -46,7 +46,7 @@ export default function NotificationsScreen() {
       const data: any = await res.json();
 
       const newItems = data.data || [];
-      setNotifications(prev => refresh ? newItems : [...prev, ...newItems]);
+      setNotifications(prev => (refresh ? newItems : [...prev, ...newItems]));
       setHasMore(data.meta?.hasNextPage || false);
       setPage(pageNum);
     } catch (error) {
@@ -59,12 +59,11 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (id: string) => {
     try {
-      // Optimistic update
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
       const token = await tokenStorage.getAccessToken();
       await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
     } catch (e) {
       console.log('Error marking as read', e);
@@ -77,7 +76,7 @@ export default function NotificationsScreen() {
       const token = await tokenStorage.getAccessToken();
       await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
     } catch (e) {
       console.log('Error marking all as read', e);
@@ -89,15 +88,12 @@ export default function NotificationsScreen() {
       markAsRead(notif.id);
     }
 
-    if (notif.type.startsWith('booking')) {
-      // Could route to specific appointment if we know the user type, 
-      // but without knowing if this is client or provider, we can route safely to a general appointments view or just back.
-      // For now, no strict navigation action to avoid 404s, or just log.
-      console.log('Navigate to appointment', notif.referenceId);
+    if (notif.type.includes('booking')) {
+      router.push(`/(client)/appointments/${notif.referenceId}` as any);
     } else if (notif.type === 'review_received') {
-      console.log('Navigate to reviews');
+      router.push('/(client)/profile/reviews' as any);
     } else if (notif.type === 'message_received') {
-      console.log('Navigate to chat', notif.referenceId);
+      router.push(`/(client)/chat/${notif.referenceId}` as any);
     }
   };
 
@@ -108,13 +104,22 @@ export default function NotificationsScreen() {
   };
 
   const getRelativeTime = (isoString: string) => {
-    const diffMs = Date.now() - new Date(isoString).getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 60) return `vor ${diffMins} Min.`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `vor ${diffHours} Std.`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
+    const d = new Date(isoString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs > 0 && d.toDateString() === today.toDateString()) {
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 60) return `vor ${diffMins} Min.`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `vor ${diffHours} Std.`;
+    }
+
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const getDateLabel = (isoString: string) => {
@@ -125,11 +130,10 @@ export default function NotificationsScreen() {
 
     if (d.toDateString() === today.toDateString()) return 'Heute';
     if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
-  // Group notifications by date label
-  const groupedData: { label: string, data: Notification[] }[] = [];
+  const groupedData: { label: string; data: Notification[] }[] = [];
   notifications.forEach(n => {
     const label = getDateLabel(n.createdAt);
     let group = groupedData.find(g => g.label === label);
@@ -140,7 +144,6 @@ export default function NotificationsScreen() {
     group.data.push(n);
   });
 
-  // Flatten for FlatList rendering with custom headers
   const flattenedData: any[] = [];
   groupedData.forEach(group => {
     flattenedData.push({ isHeader: true, label: group.label, id: `header-${group.label}` });
@@ -149,28 +152,32 @@ export default function NotificationsScreen() {
 
   const getIconConfig = (type: string) => {
     switch (type) {
-      case 'booking_confirmed': return { name: 'calendar', color: '#4CAF50', bg: '#E8F5E9' };
-      case 'new_booking': return { name: 'clock', color: colors.coral, bg: '#FFF0ED' };
-      case 'review_received': return { name: 'star', color: colors.gold, bg: '#FFF9E6' };
-      case 'message_received': return { name: 'message-square', color: colors.teal, bg: '#E0F2F1' };
-      case 'booking_cancelled': return { name: 'x', color: colors.error, bg: '#FFEBEE' };
-      default: return { name: 'bell', color: colors.primary, bg: '#F5F5F5' };
+      case 'booking_confirmed':
+        return { name: 'calendar', color: '#FFFFFF', bg: '#4CAF50' };
+      case 'booking_cancelled':
+        return { name: 'x', color: '#FFFFFF', bg: colors.error };
+      case 'new_booking':
+        return { name: 'clock', color: '#FFFFFF', bg: colors.coral };
+      case 'review_received':
+        return { name: 'star', color: '#FFFFFF', bg: colors.gold };
+      case 'message_received':
+        return { name: 'message-square', color: '#FFFFFF', bg: colors.teal };
+      default:
+        return { name: 'bell', color: '#FFFFFF', bg: colors.borderStrong };
     }
   };
 
   const renderItem = ({ item }: { item: any }) => {
     if (item.isHeader) {
-      return (
-        <Text style={styles.sectionHeader}>{item.label}</Text>
-      );
+      return <Text style={styles.sectionHeader}>{item.label}</Text>;
     }
 
     const notif = item as Notification;
     const iconConfig = getIconConfig(notif.type);
 
     return (
-      <TouchableOpacity 
-        style={[styles.notificationRow, !notif.isRead && styles.notificationRowUnread]} 
+      <TouchableOpacity
+        style={[styles.notificationRow, !notif.isRead ? styles.notificationRowUnread : styles.notificationRowRead]}
         onPress={() => handleNotificationPress(notif)}
         activeOpacity={0.7}
       >
@@ -179,10 +186,10 @@ export default function NotificationsScreen() {
         </View>
 
         <View style={styles.contentCol}>
-          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>
-            {notif.title}
+          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>{notif.title}</Text>
+          <Text style={styles.bodyText} numberOfLines={2}>
+            {notif.body}
           </Text>
-          <Text style={styles.bodyText} numberOfLines={2}>{notif.body}</Text>
           <Text style={styles.timeText}>{getRelativeTime(notif.createdAt)}</Text>
         </View>
 
@@ -191,7 +198,7 @@ export default function NotificationsScreen() {
     );
   };
 
-  const hasUnread = notifications.some(n => !n.isRead);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -200,10 +207,8 @@ export default function NotificationsScreen() {
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Benachrichtigungen</Text>
-        <TouchableOpacity onPress={markAllAsRead} disabled={!hasUnread || notifications.length === 0}>
-          <Text style={[styles.readAllText, (!hasUnread || notifications.length === 0) && styles.readAllTextDisabled]}>
-            Alle als gelesen markieren
-          </Text>
+        <TouchableOpacity onPress={markAllAsRead} disabled={unreadCount === 0}>
+          <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>Alle lesen</Text>
         </TouchableOpacity>
       </View>
 
@@ -213,9 +218,9 @@ export default function NotificationsScreen() {
         </View>
       ) : flattenedData.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Feather name="bell" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
+          <Feather name="bell" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
           <Text style={styles.emptyTitle}>Keine Benachrichtigungen</Text>
-          <Text style={styles.emptySub}>Hier siehst du Updates zu deinen Buchungen und Nachrichten</Text>
+          <Text style={styles.emptySub}>Hier siehst du Updates zu deinen Buchungen</Text>
         </View>
       ) : (
         <FlatList
@@ -233,30 +238,30 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: colors.background },
+  safeContainer: { flex: 1, backgroundColor: '#FAF9F7' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-  
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    backgroundColor: '#FAF9F7'
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
-  readAllText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.teal },
-  readAllTextDisabled: { color: colors.textTertiary },
+  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
+  readAllText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.primary },
+  readAllTextDisabled: { color: colors.borderStrong },
 
   listContent: { paddingBottom: 40 },
 
   sectionHeader: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: '#AAAAAA',
-    textTransform: 'uppercase',
+    fontSize: 14,
+    color: '#888888',
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -264,35 +269,36 @@ const styles = StyleSheet.create({
 
   notificationRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
+    borderRadius: 8,
+  },
+  notificationRowRead: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   notificationRowUnread: {
-    backgroundColor: '#FFF0ED',
+    backgroundColor: '#FFF5F4',
     borderLeftWidth: 3,
     borderLeftColor: colors.coral,
     paddingLeft: spacing.md - 3,
-    borderColor: '#FFF0ED',
   },
-  
+
   iconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
-  
-  contentCol: { flex: 1, paddingRight: spacing.sm },
-  title: { fontFamily: fonts.bodyBold, fontSize: 16, marginBottom: 2 },
+
+  contentCol: { flex: 1, paddingRight: spacing.sm, justifyContent: 'center' },
+  title: { fontFamily: fonts.bodyBold, fontSize: 16, marginBottom: 4 },
   titleUnread: { color: '#1A1A1A' },
-  titleRead: { color: '#6B6B6B' },
-  
-  bodyText: { fontFamily: fonts.body, fontSize: 14, color: '#555555', lineHeight: 20, marginBottom: 4 },
+  titleRead: { color: '#888888' },
+
+  bodyText: { fontFamily: fonts.body, fontSize: 14, color: '#555555', lineHeight: 20, marginBottom: 6 },
   timeText: { fontFamily: fonts.body, fontSize: 12, color: '#AAAAAA' },
 
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral, marginTop: 6 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral },
 
-  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
-  emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
+  emptySub: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
 });

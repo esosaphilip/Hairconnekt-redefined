@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
+import { mapHttpError } from '../../../utils/error-messages';
+import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -18,6 +20,9 @@ export default function ClientProfileEditScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -25,28 +30,27 @@ export default function ClientProfileEditScreen() {
   const loadProfile = async () => {
     try {
       setIsLoading(true);
+      setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API_URL}/users/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      const data: any = res.ok ? await res.json() : {
-        data: {
-          firstName: 'Sarah',
-          lastName: 'Müller',
-          email: 'sarah.mueller@example.com',
-          phone: '+49 176 12345678'
-        }
-      };
-
-      if (data.data) {
-        setFirstName(data.data.firstName || '');
-        setLastName(data.data.lastName || '');
-        setEmail(data.data.email || '');
-        setPhone(data.data.phone || '');
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    } catch (error) {
+
+      const data: any = await res.json();
+      if (data) {
+        setFirstName(data.firstName || data.data?.firstName || '');
+        setLastName(data.lastName || data.data?.lastName || '');
+        setEmail(data.email || data.data?.email || '');
+        setPhone(data.phone || data.data?.phone || '');
+      }
+    } catch (error: any) {
       console.log('Error loading profile:', error);
+      setErrorMessage(mapHttpError(error?.status || 500));
+      setErrorVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -54,31 +58,36 @@ export default function ClientProfileEditScreen() {
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Fehler', 'Vorname und Nachname dürfen nicht leer sein.');
+      setErrorMessage('Vorname und Nachname dürfen nicht leer sein.');
+      setErrorVisible(true);
       return;
     }
 
     try {
       setIsSaving(true);
+      setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
       
       const res = await fetch(`${API_URL}/users/me`, {
         method: 'PATCH',
         headers: { 
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ firstName, lastName, phone })
-      }).catch(() => ({ ok: true })); // Mock success
+      });
 
       if (res.ok) {
         router.back();
       } else {
-        Alert.alert('Fehler', 'Die Änderungen konnten nicht gespeichert werden.');
+        const status = res.status;
+        setErrorMessage(mapHttpError(status));
+        setErrorVisible(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('Error saving profile:', error);
-      Alert.alert('Fehler', 'Es gab ein Problem beim Speichern. Bitte versuche es erneut.');
+      setErrorMessage(mapHttpError(500));
+      setErrorVisible(true);
     } finally {
       setIsSaving(false);
     }
@@ -94,10 +103,7 @@ export default function ClientProfileEditScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
@@ -112,58 +118,33 @@ export default function ClientProfileEditScreen() {
           </TouchableOpacity>
         </View>
 
+        <GermanErrorBanner visible={errorVisible} message={errorMessage} onDismiss={() => setErrorVisible(false)} />
+
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-          
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Vorname</Text>
-            <TextInput
-              style={styles.input}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Vorname"
-            />
+            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="Vorname" />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Nachname</Text>
-            <TextInput
-              style={styles.input}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Nachname"
-            />
+            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder="Nachname" />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>E-Mail</Text>
-            <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={email}
-              editable={false}
-              selectTextOnFocus={false}
-            />
+            <TextInput style={[styles.input, styles.inputDisabled]} value={email} editable={false} selectTextOnFocus={false} />
             <Text style={styles.hintText}>E-Mail kann nicht geändert werden</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Telefon</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+49 ..."
-              keyboardType="phone-pad"
-            />
+            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+49 ..." keyboardType="phone-pad" />
           </View>
-
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.primaryButton} 
-            onPress={handleSave}
-            disabled={isSaving}
-          >
+          <TouchableOpacity style={styles.primaryButton} onPress={handleSave} disabled={isSaving}>
             {isSaving ? (
               <ActivityIndicator color={colors.background} />
             ) : (
@@ -179,7 +160,7 @@ export default function ClientProfileEditScreen() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
-  
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,10 +189,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
-  inputDisabled: {
-    opacity: 0.5,
-    backgroundColor: '#EBEBEB',
-  },
+  inputDisabled: { opacity: 0.5, backgroundColor: '#EBEBEB' },
   hintText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 4 },
 
   footer: {
@@ -220,12 +198,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  primaryButton: {
-    backgroundColor: colors.coral,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  primaryButton: { backgroundColor: colors.coral, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.background },
 });

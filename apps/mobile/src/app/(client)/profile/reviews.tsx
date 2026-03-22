@@ -34,31 +34,14 @@ export default function ClientReviewsScreen() {
       setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API_URL}/reviews/mine`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      const data: any = res.ok ? await res.json() : {
-        data: [
-          {
-            id: '1',
-            rating: 5,
-            comment: 'Super Service! Meine Haare sehen fantastisch aus und die Beratung war sehr professionell. Gerne wieder!',
-            createdAt: '2026-03-12T14:00:00Z',
-            serviceName: 'Balayage & Styling',
-            provider: { businessName: 'Style Studio' },
-            response: 'Vielen Dank für das tolle Feedback, Sarah! Es hat mich sehr gefreut, dich als Kundin zu haben.'
-          },
-          {
-            id: '2',
-            rating: 4,
-            comment: 'Pünktlich und freundlich. Der Schnitt ist gut geworden.',
-            createdAt: '2026-02-05T10:30:00Z',
-            serviceName: 'Damenhaarschnitt',
-            provider: { businessName: 'Mobile Hair by Lisa' }
-          }
-        ]
-      };
-
+      if (!res.ok) {
+        throw new Error(`Failed to load reviews. Status: ${res.status}`);
+      }
+      
+      const data: any = await res.json();
       setReviews(data.data || []);
     } catch (error) {
       console.log('Error loading reviews:', error);
@@ -70,14 +53,8 @@ export default function ClientReviewsScreen() {
   const renderStars = (rating: number) => {
     return (
       <View style={styles.starsRow}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Feather 
-            key={star} 
-            name="star" 
-            size={14} 
-            color={star <= rating ? colors.gold : '#E0E0E0'} 
-            style={{ marginRight: 2 }}
-          />
+        {[1, 2, 3, 4, 5].map(star => (
+          <Feather key={star} name="star" size={14} color={star <= rating ? colors.gold : '#E0E0E0'} style={{ marginRight: 2 }} />
         ))}
       </View>
     );
@@ -93,14 +70,14 @@ export default function ClientReviewsScreen() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.providerRow}>
-          {item.provider.avatarUrl ? (
+          {item.provider?.avatarUrl ? (
             <Image source={{ uri: item.provider.avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Feather name="briefcase" size={20} color={colors.textSecondary} />
             </View>
           )}
-          <Text style={styles.providerName}>{item.provider.businessName}</Text>
+          <Text style={styles.providerName}>{item.provider?.businessName || 'Unbekannt'}</Text>
         </View>
       </View>
 
@@ -109,11 +86,15 @@ export default function ClientReviewsScreen() {
         <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
       </View>
 
-      <View style={styles.serviceChip}>
-        <Text style={styles.serviceChipText}>• {item.serviceName}</Text>
-      </View>
+      {item.serviceName && (
+        <View style={styles.serviceChip}>
+          <Text style={styles.serviceChipText}>• {item.serviceName}</Text>
+        </View>
+      )}
 
-      <Text style={styles.commentText} numberOfLines={4}>{item.comment}</Text>
+      <Text style={styles.commentText} numberOfLines={4}>
+        {item.comment}
+      </Text>
 
       {item.response && (
         <View style={styles.responseBox}>
@@ -128,7 +109,7 @@ export default function ClientReviewsScreen() {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="star" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
+        <Feather name="star" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>Noch keine Bewertungen</Text>
         <Text style={styles.emptySub}>Deine Bewertungen nach abgeschlossenen Terminen erscheinen hier</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(client)/appointments/' as any)}>
@@ -168,7 +149,7 @@ export default function ClientReviewsScreen() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,18 +165,28 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.xl, paddingBottom: 100 },
 
   card: {
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadows.card,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#EEEEEE',
   },
   cardHeader: { marginBottom: spacing.sm },
   providerRow: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.sm },
-  avatarPlaceholder: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.gold, marginRight: spacing.sm },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.gold,
+    marginRight: spacing.sm,
+  },
   providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
 
   ratingDateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
@@ -208,13 +199,15 @@ const styles = StyleSheet.create({
   commentText: { fontFamily: fonts.body, fontSize: 16, color: '#1A1A1A', lineHeight: 22 },
 
   responseBox: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFF0ED',
     borderRadius: 12,
     padding: 12,
     marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.coral
   },
-  responseLabel: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.primary, marginBottom: 4 },
-  responseText: { fontFamily: fonts.body, fontSize: 14, color: '#555', lineHeight: 20 },
+  responseLabel: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#1A1A1A', marginBottom: 4 },
+  responseText: { fontFamily: fonts.body, fontSize: 14, color: '#555555', lineHeight: 20 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },

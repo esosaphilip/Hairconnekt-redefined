@@ -12,24 +12,22 @@ import { User, UserRole as Role } from '../entities/user.entity';
 import { ProvidersService } from './providers.service';
 import { RegisterProviderDto } from './dto/register-provider.dto';
 import { CreateServiceDto, UpdateServiceDto, CreateTimeBlockDto } from './dto/provider-endpoints.dto';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-
-const imageFileFilter = (req: any, file: any, callback: any) => {
-  if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-    return callback(new BadRequestException('Only image files are allowed!'), false);
-  }
-  callback(null, true);
-};
-
-const makeFilename = (req: any, file: any, callback: any) => {
-  const rand = Array(8).fill(null).map(() => Math.round(Math.random() * 16).toString(16)).join('');
-  callback(null, `${rand}${extname(file.originalname)}`);
-};
+import { memoryStorage } from 'multer';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Provider } from '../entities/provider.entity';
+import { PortfolioImage } from '../entities/portfolio-image.entity';
+import { R2Service } from '../common/storage/r2.service';
 
 @Controller('providers')
 export class ProvidersController {
-  constructor(private readonly providersService: ProvidersService) {}
+  constructor(
+    private readonly providersService: ProvidersService,
+    private readonly r2Service: R2Service,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Provider) private readonly providerRepo: Repository<Provider>,
+    @InjectRepository(PortfolioImage) private readonly portfolioRepo: Repository<PortfolioImage>,
+  ) {}
 
   @Post('register')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -99,49 +97,105 @@ export class ProvidersController {
   }
 
   @Post('me/avatar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({ destination: './uploads/avatars', filename: makeFilename }),
-      fileFilter: imageFileFilter,
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
-  async uploadAvatar(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file provided');
-    const userId = req.user.sub || req.user.id;
-    return this.providersService.updateAvatar(userId, file);
+  async uploadProviderAvatar(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    const url = await this.r2Service.uploadFile(
+      file.buffer,
+      file.mimetype,
+      'provider-avatars',
+    );
+    const provider = await this.providersService.findByUserId(user.id);
+    if (!provider) throw new NotFoundException();
+    await this.providerRepo.update(provider.id, { avatarUrl: url });
+    // Also update the user avatarUrl so it shows in client view
+    await this.userRepo.update(user.id, { avatarUrl: url });
+    return { avatarUrl: url };
   }
 
   @Post('me/id-document')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileInterceptor('idDocument', {
-      storage: diskStorage({ destination: './uploads/id-documents', filename: makeFilename }),
-      fileFilter: imageFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 },
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for ID docs
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
-  async uploadIdDocument(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file provided');
-    const userId = req.user.sub || req.user.id;
-    return this.providersService.updateIdDocument(userId, file);
+  async uploadIdDocument(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Kein Dokument hochgeladen.');
+    const url = await this.r2Service.uploadFile(
+      file.buffer,
+      file.mimetype,
+      'id-documents',
+    );
+    const provider = await this.providersService.findByUserId(user.id);
+    if (!provider) throw new NotFoundException();
+    await this.providerRepo.update(provider.id, { idDocumentUrl: url });
+    return { idDocumentUrl: url };
   }
 
   @Post('me/portfolio')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileInterceptor('portfolio', {
-      storage: diskStorage({ destination: './uploads/portfolio', filename: makeFilename }),
-      fileFilter: imageFileFilter,
+      storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
-  async uploadPortfolio(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file provided');
-    const userId = req.user.sub || req.user.id;
-    return this.providersService.addPortfolioImage(userId, file);
+  async uploadPortfolioImage(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    const url = await this.r2Service.uploadFile(
+      file.buffer,
+      file.mimetype,
+      'portfolio',
+    );
+    const provider = await this.providersService.findByUserId(user.id);
+    if (!provider) throw new NotFoundException();
+
+    // Save to portfolio_images table
+    const image = this.portfolioRepo.create({
+      providerId: provider.id,
+      imageUrl: url,
+      sortOrder: 0,
+    });
+    await this.portfolioRepo.save(image);
+    return { id: image.id, imageUrl: url };
   }
 
   // --- Services ---

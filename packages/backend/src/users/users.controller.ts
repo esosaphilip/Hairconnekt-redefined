@@ -2,31 +2,20 @@ import { Controller, Get, Post, UseGuards, Request, UseInterceptors, UploadedFil
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-
-// Generate a random filename securely avoiding conflicts bounds
-const editFileName = (req, file, callback) => {
-  const name = file.originalname.split('.')[0];
-  const fileExtName = extname(file.originalname);
-  const randomName = Array(4)
-    .fill(null)
-    .map(() => Math.round(Math.random() * 16).toString(16))
-    .join('');
-  callback(null, `${name}-${randomName}${fileExtName}`);
-};
-
-// Evaluate image types safely
-const imageFileFilter = (req, file, callback) => {
-  if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-    return callback(new BadRequestException('Only image files are allowed!'), false);
-  }
-  callback(null, true);
-};
+import { memoryStorage } from 'multer';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../entities/user.entity';
+import { R2Service } from '../common/storage/r2.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly r2Service: R2Service,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -39,21 +28,27 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: './uploads/avatars',
-        filename: editFileName,
-      }),
-      fileFilter: imageFileFilter,
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
+        }
+        cb(null, true);
       },
     }),
   )
-  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file provided');
-    }
-    const userId = req.user.sub || req.user.id;
-    return this.usersService.updateAvatar(userId, file);
+  async uploadClientAvatar(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    const url = await this.r2Service.uploadFile(
+      file.buffer,
+      file.mimetype,
+      'avatars',
+    );
+    await this.userRepo.update(user.id, { avatarUrl: url });
+    return { avatarUrl: url };
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,7 @@ export default function ProviderProfile() {
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [isFavourite, setIsFavourite] = useState(false);
 
   const [activeTab, setActiveTab] = useState('Überblick');
   const tabs = ['Überblick', 'Services', 'Galerie', 'Bewertungen'];
@@ -43,23 +44,46 @@ export default function ProviderProfile() {
       const lat = '51.2562';
       const lng = '7.1508';
 
-      const [provRes, servRes, portRes, revRes] = await Promise.all([
+      const [provRes, servRes, portRes, revRes, favRes] = await Promise.all([
         axios.get(`${API_URL}/providers/${id}?lat=${lat}&lng=${lng}`, { headers }),
         axios.get(`${API_URL}/providers/${id}/services`, { headers }),
         axios.get(`${API_URL}/providers/${id}/portfolio`, { headers }),
-        axios.get(`${API_URL}/providers/${id}/reviews?limit=10`, { headers })
+        axios.get(`${API_URL}/providers/${id}/reviews?limit=20`, { headers }),
+        axios.get(`${API_URL}/favourites`, { headers }).catch(() => ({ data: { data: [] } }))
       ]);
 
       setProvider(provRes.data.data || provRes.data);
       setServices(servRes.data.data || servRes.data);
       setPortfolio(portRes.data.data || portRes.data);
       setReviews(revRes.data.data || revRes.data);
+
+      const favs = favRes.data.data || favRes.data;
+      if (Array.isArray(favs) && favs.some((f: any) => f.providerId === id || f.provider?.id === id)) {
+        setIsFavourite(true);
+      }
     } catch (err: any) {
       const status = err.response?.status;
       setErrorMessage(mapHttpError(status));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const toggleFavourite = async () => {
+    try {
+      const prev = isFavourite;
+      setIsFavourite(!prev);
+      const token = await AsyncStorage.getItem('accessToken');
+      const headers = { Authorization: `Bearer ${token}` };
+      if (prev) {
+        await axios.delete(`${API_URL}/favourites/${id}`, { headers });
+      } else {
+        await axios.post(`${API_URL}/favourites`, { providerId: id }, { headers });
+      }
+    } catch (err) {
+      setIsFavourite(isFavourite);
+      console.log('Error toggling favourite', err);
     }
   };
 
@@ -110,8 +134,8 @@ export default function ProviderProfile() {
               <TouchableOpacity style={styles.iconButton}>
                 <Feather name="share-2" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconButton, { marginLeft: spacing.sm }]}>
-                <FontAwesome5 name="heart" size={20} color={colors.textPrimary} />
+              <TouchableOpacity style={[styles.iconButton, { marginLeft: spacing.sm }]} onPress={toggleFavourite}>
+                <FontAwesome5 name="heart" solid={isFavourite} size={20} color={isFavourite ? colors.coral : colors.textPrimary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -197,32 +221,40 @@ export default function ProviderProfile() {
           )}
 
           {activeTab === 'Services' && (
-            <View>
-              {services.map((service, idx) => (
-                <View key={idx} style={styles.serviceCard}>
+            <FlatList
+              data={services}
+              keyExtractor={(_, i) => i.toString()}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <View style={styles.serviceCard}>
                   <View style={styles.serviceInfo}>
-                    <Text style={styles.serviceName}>{service.name}</Text>
-                    <Text style={styles.serviceDetail}>{service.durationMin} Min.</Text>
-                    <Text style={styles.servicePrice}>€ {service.price}</Text>
+                    <Text style={styles.serviceName}>{item.name}</Text>
+                    <Text style={styles.serviceDetail}>{item.durationMin ?? item.duration} Min.</Text>
+                    <Text style={styles.servicePrice}>€ {item.price}</Text>
                   </View>
                   <TouchableOpacity style={styles.selectButton} onPress={() => router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any)}>
                     <Text style={styles.selectButtonText}>Auswählen</Text>
                   </TouchableOpacity>
                 </View>
-              ))}
-              {services.length === 0 && <Text style={styles.emptyText}>Keine Services gelistet.</Text>}
-            </View>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>Noch keine Services</Text>}
+            />
           )}
 
           {activeTab === 'Galerie' && (
-            <View style={styles.galleryGrid}>
-              {portfolio.map((img: any, idx: number) => (
-                <View key={idx} style={styles.galleryImageContainer}>
-                  <Image source={{ uri: img.imageUrl }} style={styles.galleryImage} />
+            <FlatList
+              data={portfolio}
+              keyExtractor={(_, i) => i.toString()}
+              scrollEnabled={false}
+              numColumns={2}
+              columnWrapperStyle={{ justifyContent: 'space-between' }}
+              renderItem={({ item }) => (
+                <View style={styles.galleryImageContainer}>
+                  <Image source={{ uri: item.imageUrl }} style={styles.galleryImage} />
                 </View>
-              ))}
-              {portfolio.length === 0 && <Text style={styles.emptyText}>Noch keine Fotos</Text>}
-            </View>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>Noch keine Fotos</Text>}
+            />
           )}
 
           {activeTab === 'Bewertungen' && (
@@ -235,22 +267,27 @@ export default function ProviderProfile() {
                 <Text style={styles.totalReviewsText}>Basierend auf {provider.totalReviews || 0} Bewertungen</Text>
               </View>
 
-              {reviews.map((rev, idx) => (
-                <View key={idx} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewerAvatar}>
-                      <Text style={styles.reviewerAvatarText}>{rev.clientName?.charAt(0) || 'K'}</Text>
+              <FlatList
+                data={reviews}
+                keyExtractor={(_, i) => i.toString()}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <View style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewerAvatar}>
+                        <Text style={styles.reviewerAvatarText}>{item.clientName?.charAt(0) || 'K'}</Text>
+                      </View>
+                      <View style={styles.reviewerInfo}>
+                        <Text style={styles.reviewerName}>{item.clientName || 'Kunde'}</Text>
+                        <View style={{flexDirection: 'row'}}>{[...Array(item.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
+                      </View>
+                      <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString('de-DE') : ''}</Text>
                     </View>
-                    <View style={styles.reviewerInfo}>
-                      <Text style={styles.reviewerName}>{rev.clientName || 'Kunde'}</Text>
-                      <View style={{flexDirection: 'row'}}>{[...Array(rev.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
-                    </View>
-                    <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('de-DE') : ''}</Text>
+                    <Text style={styles.reviewComment}>{item.comment}</Text>
                   </View>
-                  <Text style={styles.reviewComment}>{rev.comment}</Text>
-                </View>
-              ))}
-              {reviews.length === 0 && <Text style={styles.emptyText}>Keine Bewertungen vorhanden.</Text>}
+                )}
+                ListEmptyComponent={<Text style={styles.emptyText}>Noch keine Bewertungen</Text>}
+              />
             </View>
           )}
         </View>
@@ -263,7 +300,7 @@ export default function ProviderProfile() {
           <Text style={styles.footerPriceValue}>ab €{minPrice}</Text>
         </View>
         <View style={styles.footerButtons}>
-          <TouchableOpacity style={styles.messageBtn} onPress={() => router.push(`/(client)/chat/${id}` as any)}>
+          <TouchableOpacity style={styles.messageBtn} onPress={() => router.push(`/(client)/chat/${provider?.conversationId ?? id}` as any)}>
             <Text style={styles.messageBtnText}>Nachricht</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bookBtn} onPress={() => router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any)}>

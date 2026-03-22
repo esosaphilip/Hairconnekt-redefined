@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, fonts, fontSizes, spacing } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -28,24 +29,30 @@ interface Conversation {
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const segments = useSegments();
-  const isProvider = segments[0] === '(provider)';
-  const basePath = isProvider ? '/(provider)' : '/(client)';
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchRole = async () => {
+      const storedRole = await AsyncStorage.getItem('userRole');
+      setRole(storedRole);
+    };
+    fetchRole();
+
     loadConversations();
+    const intervalId = setInterval(loadConversations, 10000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const loadConversations = async () => {
     try {
-      setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API_URL}/chat/conversations`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (!res.ok) {
         throw new Error('Failed to load conversations.');
@@ -71,29 +78,30 @@ export default function ChatListScreen() {
     return `${d.getDate()}.${d.getMonth() + 1}.`;
   };
 
+  const handlePress = (item: Conversation) => {
+    if (role === 'provider') {
+      router.push(`/(provider)/chat/${item.id}` as any);
+    } else {
+      router.push(`/(client)/chat/${item.id}` as any);
+    }
+  };
+
   const renderItem = ({ item }: { item: Conversation }) => {
     const { otherUser, lastMessage, unreadCount, bookingReference } = item;
     const isUnread = unreadCount > 0;
 
     return (
-      <TouchableOpacity 
-        style={styles.row} 
-        activeOpacity={0.7}
-        onPress={() => router.push({ pathname: `${basePath}/chat/[id]` as any, params: { id: item.id }})}
-      >
+      <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={() => handlePress(item)}>
         {/* AVATAR */}
         <View style={styles.avatarContainer}>
           {otherUser?.avatarUrl ? (
-            <Image 
-              source={{ uri: otherUser.avatarUrl }} 
-              style={[styles.avatar, otherUser.isOnline && styles.avatarOnline]} 
-            />
+            <Image source={{ uri: otherUser.avatarUrl }} style={[styles.avatar, otherUser.isOnline && styles.avatarOnline]} />
           ) : (
             <View style={[styles.avatarPlaceholder, otherUser?.isOnline && styles.avatarOnline]}>
               <Feather name="user" size={24} color={colors.textSecondary} />
             </View>
           )}
-          {otherUser.isOnline && <View style={styles.onlineDot} />}
+          {otherUser?.isOnline && <View style={styles.onlineDot} />}
         </View>
 
         {/* CONTENT */}
@@ -103,9 +111,7 @@ export default function ChatListScreen() {
               {otherUser?.name || `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim()}
             </Text>
             {lastMessage && (
-              <Text style={[styles.timeText, isUnread && styles.timeTextUnread]}>
-                {getRelativeTime(lastMessage.createdAt)}
-              </Text>
+              <Text style={[styles.timeText, isUnread && styles.timeTextUnread]}>{getRelativeTime(lastMessage.createdAt)}</Text>
             )}
           </View>
 
@@ -136,7 +142,7 @@ export default function ChatListScreen() {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="message-circle" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
+        <Feather name="message-circle" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>Noch keine Nachrichten</Text>
         <Text style={styles.emptySub}>Starte ein Gespräch über die Buchung eines Termins</Text>
       </View>
@@ -167,15 +173,13 @@ export default function ChatListScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: colors.background },
+  safeContainer: { flex: 1, backgroundColor: '#FFFFFF' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
+
   header: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
 
@@ -186,9 +190,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#EEEEEE',
   },
 
   avatarContainer: { position: 'relative', marginRight: spacing.md },
@@ -199,19 +203,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: '#FFFFFF',
   },
 
   contentCol: { flex: 1, justifyContent: 'center' },
   nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   nameText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary, flex: 1, marginRight: spacing.sm },
   timeText: { fontFamily: fonts.body, fontSize: 12, color: '#AAAAAA' },
-  timeTextUnread: { color: colors.primary, fontFamily: fonts.bodyBold },
+  timeTextUnread: { color: colors.coral, fontFamily: fonts.bodyBold },
 
   bookingRefPill: {
     alignSelf: 'flex-start',
@@ -223,7 +227,7 @@ const styles = StyleSheet.create({
   },
   bookingRefText: { fontFamily: fonts.bodyMedium, fontSize: 10, color: colors.primary },
 
-  messagePreview: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: '#6B6B6B' },
+  messagePreview: { fontFamily: fonts.body, fontSize: 14, color: '#6B6B6B' },
   messagePreviewUnread: { color: '#1A1A1A', fontFamily: fonts.bodyBold },
 
   unreadBadge: {
@@ -236,9 +240,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     marginLeft: spacing.md,
   },
-  unreadBadgeText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: 10 },
+  unreadBadgeText: { color: '#FFFFFF', fontFamily: fonts.bodyBold, fontSize: 10 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
-  emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
+  emptySub: { fontFamily: fonts.body, fontSize: 14, color: '#6B6B6B', textAlign: 'center' },
 });

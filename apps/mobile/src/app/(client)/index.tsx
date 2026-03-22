@@ -15,6 +15,8 @@ export default function ClientHome() {
   const router = useRouter();
   
   const [firstName, setFirstName] = useState('');
+  const [userCity, setUserCity] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -26,9 +28,24 @@ export default function ClientHome() {
   }, []);
 
   const loadUser = async () => {
-    const storedName = await AsyncStorage.getItem('firstName');
-    // If we didn't store it during register/login, we dynamically fallback
-    if (storedName) setFirstName(storedName);
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (token) {
+        const res = await axios.get(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const u = res.data.data || res.data;
+        if (u.firstName) setFirstName(u.firstName);
+        if (u.city) setUserCity(u.city);
+        if (u.avatarUrl) setUserAvatar(u.avatarUrl);
+      } else {
+        const storedName = await AsyncStorage.getItem('firstName');
+        if (storedName) setFirstName(storedName);
+      }
+    } catch (e) {
+      const storedName = await AsyncStorage.getItem('firstName');
+      if (storedName) setFirstName(storedName);
+    }
   };
 
   const fetchProviders = async () => {
@@ -59,25 +76,35 @@ export default function ClientHome() {
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatarRing}>
-               <Feather name="user" size={24} color={colors.primary} />
-            </View>
+            {userAvatar ? (
+              <Image source={{ uri: userAvatar }} style={styles.avatarRing} />
+            ) : (
+              <View style={styles.avatarRing}>
+                {firstName ? (
+                  <Text style={{ fontFamily: fonts.heading, fontSize: 24, color: colors.primary }}>
+                    {firstName.charAt(0).toUpperCase()}
+                  </Text>
+                ) : (
+                  <Feather name="user" size={24} color={colors.primary} />
+                )}
+              </View>
+            )}
           </View>
           <View style={styles.headerTitles}>
             <Text style={styles.greeting}>Hallo, {firstName || 'Kunde'}!</Text>
             <View style={styles.locationRow}>
               <Feather name="map-pin" size={14} color={colors.textSecondary} />
-              <Text style={styles.locationText}>Wuppertal, NRW</Text>
+              <Text style={styles.locationText}>{userCity ?? 'Deutschland'}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellButton}>
+          <TouchableOpacity style={styles.bellButton} onPress={() => router.push('/(shared)/notifications')}>
             <Feather name="bell" size={24} color={colors.primary} />
             <View style={styles.bellBadge} />
           </TouchableOpacity>
         </View>
 
         {/* Search */}
-        <TouchableOpacity style={styles.searchBar} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.searchBar} activeOpacity={0.9} onPress={() => router.push('/(client)/search')}>
           <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <Text style={styles.searchText}>Suche nach Styles, Braiders, Salons...</Text>
           <Feather name="sliders" size={20} color={colors.primary} />
@@ -97,7 +124,7 @@ export default function ClientHome() {
           <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
         ) : providers.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Keine Braider in deiner Nähe</Text>
+            <Text style={styles.emptyStateText}>Keine Braider verfügbar</Text>
           </View>
         ) : (
           providers.map((provider) => (
@@ -110,29 +137,6 @@ export default function ClientHome() {
           ))
         )}
 
-        {/* Popular Styles Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Beliebte Styles</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>Alle anzeigen</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stylesGallery} contentContainerStyle={{ paddingRight: spacing.lg }}>
-          {[
-            { id: '1', name: 'Knotless Braids', bg: '#FDE4E4' },
-            { id: '2', name: 'Box Braids', bg: '#E4F3FD' },
-            { id: '3', name: 'Cornrows', bg: '#FDF1E4' },
-            { id: '4', name: 'Passion Twists', bg: '#EAE4FD' }
-          ].map((style) => (
-            <View key={style.id} style={[styles.styleCard, { backgroundColor: style.bg }]}>
-              <View style={styles.styleImagePlaceholder}>
-                <Feather name="image" size={32} color={colors.textTertiary} />
-              </View>
-              <Text style={styles.styleName}>{style.name}</Text>
-            </View>
-          ))}
-        </ScrollView>
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
