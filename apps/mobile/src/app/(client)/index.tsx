@@ -11,6 +11,45 @@ import { tokenStorage } from '../../utils/token-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
+const BELIEBTE_STYLES = [
+  {
+    id: '1',
+    name: 'Knotless Braids',
+    color: '#C8860A',      // gold warm tone
+    emoji: '✨',
+  },
+  {
+    id: '2',
+    name: 'Box Braids',
+    color: '#8B4513',      // colors.primary brown
+    emoji: '💫',
+  },
+  {
+    id: '3',
+    name: 'Cornrows',
+    color: '#1A8C85',      // colors.teal
+    emoji: '🌿',
+  },
+  {
+    id: '4',
+    name: 'Goddess Locs',
+    color: '#E05A4E',      // colors.coral
+    emoji: '👑',
+  },
+  {
+    id: '5',
+    name: 'Twists',
+    color: '#5C2D00',      // colors.primaryDark
+    emoji: '🌀',
+  },
+  {
+    id: '6',
+    name: 'Fades',
+    color: '#2E7D32',      // colors.green
+    emoji: '✂️',
+  },
+];
+
 export default function ClientHome() {
   const router = useRouter();
   
@@ -108,6 +147,44 @@ export default function ClientHome() {
           <Feather name="sliders" size={20} color={colors.primary} />
         </TouchableOpacity>
 
+        {/* ── Beliebte Styles ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Beliebte Styles</Text>
+          <TouchableOpacity onPress={() => router.push('/(client)/search')}>
+            <Text style={styles.seeAllText}>Alle anzeigen</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.stylesGallery}
+          contentContainerStyle={{ paddingRight: spacing.lg }}
+        >
+          {BELIEBTE_STYLES.map(style => (
+            <TouchableOpacity
+              key={style.id}
+              style={styles.styleCard}
+              activeOpacity={0.85}
+              onPress={() => router.push({
+                pathname: '/(client)/search',
+                params: { query: style.name },
+              } as any)}
+            >
+              {/* Gradient-style background using solid colour */}
+              <View style={[
+                styles.styleImagePlaceholder,
+                { backgroundColor: style.color }
+              ]}>
+                <Text style={{ fontSize: 36 }}>{style.emoji}</Text>
+              </View>
+              <Text style={styles.styleName} numberOfLines={2}>
+                {style.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         <GermanErrorBanner visible={errorVisible} message={errorMessage} />
 
         {/* Braiders Section */}
@@ -162,8 +239,33 @@ const styles = StyleSheet.create({
   loader: { marginVertical: spacing.xxl },
   emptyState: { paddingVertical: spacing.xxl, alignItems: 'center' },
   emptyStateText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary },
-  stylesGallery: { marginBottom: spacing.xl, marginHorizontal: -spacing.lg, paddingLeft: spacing.lg },
-  styleCard: { width: 140, height: 180, borderRadius: borderRadius.md, marginRight: spacing.md, overflow: 'hidden' },
-  styleImagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  styleName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, padding: spacing.sm, backgroundColor: 'rgba(255,255,255,0.8)', position: 'absolute', bottom: 0, width: '100%' },
+  stylesGallery: {
+    marginBottom: spacing.xl,
+    marginHorizontal: -spacing.lg,
+    paddingLeft: spacing.lg,
+  },
+  styleCard: {
+    width: 130,
+    height: 170,
+    borderRadius: 16,
+    marginRight: spacing.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+  },
+  styleImagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  styleName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: '#FFFFFF',
+    padding: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    textAlign: 'center',
+  },
 });
