@@ -10,6 +10,16 @@ import { mapHttpError } from '../../../utils/error-messages';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 const { width } = Dimensions.get('window');
 
+// Safe numeric helpers — API can return null/undefined for any field
+const safeRating = (val: any): string =>
+  typeof val === 'number' && !isNaN(val) ? val.toFixed(1) : 'NEU';
+
+const safeDistance = (val: any): string =>
+  typeof val === 'number' && !isNaN(val) ? `${val.toFixed(1)} km` : '';
+
+const safeNumber = (val: any): number =>
+  typeof val === 'number' && !isNaN(val) ? val : 0;
+
 export default function ProfilePreviewScreen() {
   const router = useRouter();
 
@@ -119,9 +129,14 @@ export default function ProfilePreviewScreen() {
   }
 
   // Derived properties safely extracted
-  const avgRating = provider.avgRating ? provider.avgRating.toFixed(1) : 'NEU';
-  const distance = provider.distanceKm !== null && provider.distanceKm !== undefined ? `${provider.distanceKm.toFixed(1)} km` : '';
-  const specialisationTags = provider.specialisationTags || provider.specializations || [];
+  const avgRating = safeRating(provider.avgRating);
+  const distance = safeDistance(provider.distanceKm);
+  const totalReviews = safeNumber(provider.totalReviews);
+  const specialisationTags = Array.isArray(provider.specialisationTags)
+    ? provider.specialisationTags
+    : Array.isArray(provider.specializations)
+      ? provider.specializations
+      : [];
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -130,7 +145,9 @@ export default function ProfilePreviewScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.bannerBackButton}>
           <Feather name="arrow-left" size={20} color={colors.background} />
         </TouchableOpacity>
-        <Text style={styles.bannerText}>👁 Vorschau-Modus</Text>
+        <Text style={styles.bannerText}>
+        👁 Vorschau-Modus {(provider.businessName?.charAt(0) ?? 'P')}
+      </Text>
         <TouchableOpacity onPress={() => router.push('/(provider)/profile/edit')}>
           <Text style={styles.bannerAction}>Bearbeiten</Text>
         </TouchableOpacity>
@@ -196,7 +213,7 @@ export default function ProfilePreviewScreen() {
                   <View key={idx} style={styles.tagChip}>
                     <Text style={styles.tagText}>{tag}</Text>
                   </View>
-                )) : services.slice(0, 6).map((s: any, idx: number) => (
+                )) : (Array.isArray(services) ? services.slice(0, 6) : []).map((s: any, idx: number) => (
                   <View key={idx} style={styles.tagChip}>
                     <Text style={styles.tagText}>{s.name}</Text>
                   </View>
@@ -233,7 +250,7 @@ export default function ProfilePreviewScreen() {
 
           {activeTab === 'Services' && (
             <View>
-              {services.map((service, idx) => (
+              {(Array.isArray(services) ? services : []).map((service, idx) => (
                 <View key={idx} style={styles.serviceCard}>
                   <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>{service.name}</Text>
@@ -251,7 +268,7 @@ export default function ProfilePreviewScreen() {
 
           {activeTab === 'Galerie' && (
             <View style={styles.galleryGrid}>
-              {portfolio.map((img: any, idx: number) => (
+              {(Array.isArray(portfolio) ? portfolio : []).map((img: any, idx: number) => (
                 <View key={idx} style={styles.galleryImageContainer}>
                   <Image source={{ uri: img.imageUrl || img.url }} style={styles.galleryImage} />
                 </View>
@@ -265,12 +282,12 @@ export default function ProfilePreviewScreen() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(provider.avgRating || 0) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
                 </View>
-                <Text style={styles.totalReviewsText}>Basierend auf {provider.totalReviews || 0} Bewertungen</Text>
+                <Text style={styles.totalReviewsText}>Basierend auf {totalReviews} Bewertungen</Text>
               </View>
 
-              {reviews.map((rev, idx) => (
+              {(Array.isArray(reviews) ? reviews : []).map((rev, idx) => (
                 <View key={idx} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <View style={styles.reviewerAvatar}>

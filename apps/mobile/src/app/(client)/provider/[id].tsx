@@ -111,8 +111,9 @@ export default function ProviderProfile() {
 
   // Derived properties safely extracted
   const avgRating = (typeof provider.avgRating === 'number' && !isNaN(provider.avgRating)) ? provider.avgRating.toFixed(1) : 'NEU';
-  const distance = provider.distanceKm !== null && provider.distanceKm !== undefined ? `${provider.distanceKm.toFixed(1)} km` : '';
-  const specialisationTags = provider.specialisationTags || provider.specializations || [];
+  const distance = (typeof provider.distanceKm === 'number' && !isNaN(provider.distanceKm)) ? `${provider.distanceKm.toFixed(1)} km` : '';
+  const totalReviews = (typeof provider.totalReviews === 'number' && !isNaN(provider.totalReviews)) ? provider.totalReviews : 0;
+  const specialisationTags = Array.isArray(provider.specialisationTags) ? provider.specialisationTags : Array.isArray(provider.specializations) ? provider.specializations : [];
   const minPrice = services.length > 0 ? Math.min(...services.map((s: any) => Number(s.price))) : (provider.startingPrice || 0);
 
   return (
@@ -161,7 +162,7 @@ export default function ProviderProfile() {
           <Text style={styles.businessName}>{provider.businessName}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={14} color={colors.gold} />
-            <Text style={styles.statsText}>{avgRating} ({provider.totalReviews || 0} Bewertungen)</Text>
+            <Text style={styles.statsText}>{avgRating} ({totalReviews} Bewertungen)</Text>
           </View>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={14} color={colors.textSecondary} />
@@ -206,7 +207,7 @@ export default function ProviderProfile() {
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="star" solid size={14} color={colors.gold} />
-                <Text style={styles.infoText}>{avgRating} ({provider.totalReviews || 0} Bewertungen)</Text>
+                <Text style={styles.infoText}>{avgRating} ({totalReviews} Bewertungen)</Text>
               </View>
               <View style={styles.infoRow}>
                 <Feather name="clock" size={16} color={colors.textSecondary} />
@@ -272,7 +273,7 @@ export default function ProviderProfile() {
                 <View style={styles.overallStars}>
                   {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
                 </View>
-                <Text style={styles.totalReviewsText}>Basierend auf {provider.totalReviews || 0} Bewertungen</Text>
+                <Text style={styles.totalReviewsText}>Basierend auf {totalReviews} Bewertungen</Text>
               </View>
 
               <FlatList
