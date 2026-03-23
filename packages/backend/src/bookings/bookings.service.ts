@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Raw } from 'typeorm';
+import { Repository, Not, In, Raw } from 'typeorm';
 import { Booking, BookingStatus, CancelledBy } from '../entities/booking.entity';
 import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
@@ -132,27 +132,50 @@ export class BookingsService {
   }
 
   async rescheduleBooking(id: string, user: any, dto: RescheduleBookingDto) {
+    // Find booking and verify ownership
     const booking = await this.bookingRepository.findOne({
       where: { id },
+      relations: ['provider'],
     });
-
+    
     if (!booking) {
-      throw new NotFoundException('Booking not found');
+      throw new NotFoundException('Buchung nicht gefunden.');
     }
 
     const userId = user.sub || user.id;
     if (user.role === UserRole.CLIENT && booking.clientId !== userId) {
-      throw new NotFoundException('Booking not found');
+      throw new ForbiddenException('Keine Berechtigung.');
     }
 
-    if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {
-      throw new BadRequestException('Only PENDING or CONFIRMED bookings can be rescheduled');
+    // Only PENDING and CONFIRMED bookings can be rescheduled
+    const allowedStatuses = ['pending', 'confirmed', 'PENDING', 'CONFIRMED'];
+    if (!allowedStatuses.includes(booking.status)) {
+      throw new BadRequestException(
+        'Dieser Termin kann nicht verschoben werden.'
+      );
     }
 
+    // Check new slot is available
+    const conflict = await this.bookingRepository.findOne({
+      where: {
+        providerId: booking.providerId,
+        scheduledDate: dto.scheduledDate,
+        scheduledTime: dto.scheduledTime,
+        status: Not(In(['cancelled', 'CANCELLED'])),
+      },
+    });
+    
+    if (conflict && conflict.id !== id) {
+      throw new ConflictException(
+        'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.'
+      );
+    }
+
+    // Update the booking
     booking.scheduledDate = dto.scheduledDate;
     booking.scheduledTime = dto.scheduledTime;
-    booking.status = BookingStatus.PENDING; 
-
+    booking.status = BookingStatus.PENDING; // Reset to pending when rescheduled
+    
     if (dto.reason) {
       booking.clientNotes = booking.clientNotes 
         ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}` 

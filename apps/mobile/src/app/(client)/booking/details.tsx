@@ -12,7 +12,14 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1
 
 export default function BookingDetails() {
   const router = useRouter();
-  const { providerId, serviceIds, totalPrice, scheduledDate, scheduledTime } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  
+  // Support multiple possible param names from datetime screen
+  const scheduledDate = (params.scheduledDate ?? params.date ?? '') as string;
+  const scheduledTime = (params.scheduledTime ?? params.time ?? '') as string;
+  const providerId = (params.providerId ?? '') as string;
+  const serviceIds = (params.serviceIds ?? params.selectedServiceIds ?? '') as string;
+  const totalPrice = (params.totalPrice ?? '') as string;
   
   const [ids, setIds] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -82,31 +89,48 @@ export default function BookingDetails() {
       setErrorVisible(false);
       
       const token = await tokenStorage.getAccessToken();
-      const response = await axios.post(`${API_URL}/bookings`, {
-        providerId,
+      
+      // Ensure all data is properly converted to strings
+      const bookingData = {
+        providerId: String(providerId),
         serviceIds: ids,
-        scheduledDate,
-        scheduledTime,
+        scheduledDate: String(scheduledDate),
+        scheduledTime: String(scheduledTime),
         isMobile,
         clientNotes
-      }, {
+      };
+      
+      const response = await axios.post(`${API_URL}/bookings`, bookingData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const resData = response.data.data || response.data;
-      const bookingData = resData.booking || resData;
+      const bookingResult = resData.booking || resData;
       
       router.replace({ 
         pathname: '/(client)/booking/confirmation', 
-        params: { booking: JSON.stringify(bookingData) }
+        params: { booking: JSON.stringify(bookingResult) }
       });
       
     } catch (err: any) {
+      // Debug: Log the full error
+      console.log('Booking error:', err);
+      console.log('Error response:', err.response?.data);
+      console.log('Error status:', err.response?.status);
+      
       const status = err.response?.status;
       if (status === 409) {
         setErrorMessage('Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle eine andere Zeit.');
       } else if (status === 400) {
-        setErrorMessage('Ungültige Eingabe. Bitte prüfe deine Daten.');
+        // Show more detailed error for debugging
+        const errorData = err.response?.data;
+        if (errorData?.message) {
+          setErrorMessage(`Fehler: ${errorData.message}`);
+        } else if (errorData?.error) {
+          setErrorMessage(`Fehler: ${errorData.error}`);
+        } else {
+          setErrorMessage('Ungültige Eingabe. Bitte prüfe deine Daten.');
+        }
       } else {
         setErrorMessage(mapHttpError(status));
       }
@@ -161,7 +185,7 @@ export default function BookingDetails() {
           
           <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
             <Text style={styles.totalLabel}>Gesamt</Text>
-            <Text style={styles.totalValue}>€{totalPrice},00</Text>
+            <Text style={styles.totalValue}>€{totalPrice}</Text>
           </View>
         </View>
 

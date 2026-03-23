@@ -258,7 +258,7 @@ export default function ProviderDashboardScreen() {
             <TouchableOpacity 
               key={booking.id} 
               style={styles.bookingCard}
-              onPress={() => router.push(`/(provider)/booking-request/${booking.id}`)}
+              onPress={() => router.push(`/(provider)/appointments/${booking.id}`)}
             >
               <View style={styles.bookingHeader}>
                 <Text style={styles.bookingTime}>

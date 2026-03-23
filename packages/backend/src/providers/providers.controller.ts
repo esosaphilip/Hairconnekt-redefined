@@ -345,4 +345,12 @@ export class ProvidersController {
   async getPublicReviews(@Param('id', ParseUUIDPipe) providerId: string) {
     return this.providersService.getPublicReviews(providerId);
   }
+
+  @Get(':id/slots')
+  async getSlots(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('date') date: string,
+  ) {
+    return this.providersService.getAvailableSlots(id, date);
+  }
 }

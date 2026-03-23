@@ -49,7 +49,9 @@ export default function ProfilePreviewScreen() {
         return;
       }
       const meData = await meRes.json();
-      const ownId = meData?.data?.id ?? meData?.id;
+      console.log('Profile Preview - meData:', meData);
+      const ownId = meData?.id ?? meData?.data?.id;
+      console.log('Profile Preview - ownId:', ownId);
       if (!ownId) {
         setErrorMessage(mapHttpError(404));
         setErrorVisible(true);

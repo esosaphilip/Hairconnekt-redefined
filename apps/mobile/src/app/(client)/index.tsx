@@ -50,7 +50,7 @@ export default function ClientHome() {
       setIsLoading(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      const response = await axios.get(`${API_URL}/providers?availableToday=true&limit=5`, {
+      const response = await axios.get(`${API_URL}/providers?limit=10`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const payload = response.data?.data ?? response.data;
@@ -143,7 +143,7 @@ export default function ClientHome() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
   avatarContainer: { marginRight: spacing.md },
   avatarRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },

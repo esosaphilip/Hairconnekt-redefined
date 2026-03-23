@@ -7,12 +7,12 @@ export interface ProviderProps {
   id: string;
   businessName: string;
   avatarUrl: string | null;
-  avgRating: number;
+  avgRating?: number;
   totalReviews: number;
   distanceKm: number | null;
   startingPrice: number;
   isAvailableToday: boolean;
-  specialisationTags: string[];
+  specialisationTags?: string[];
   isFavourited: boolean;
 }
 
@@ -31,7 +31,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
             <Image source={{ uri: provider.avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.placeholderAvatar]}>
-              <Text style={styles.placeholderText}>{provider.businessName.charAt(0)}</Text>
+              <Text style={styles.placeholderText}>{provider.businessName?.charAt(0) || '?'}</Text>
             </View>
           )}
         </View>
@@ -39,8 +39,8 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
           <Text style={styles.name} numberOfLines={1}>{provider.businessName}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={12} color={colors.gold} />
-            <Text style={styles.ratingText}>{provider.avgRating.toFixed(1)} ({provider.totalReviews})</Text>
-            {provider.distanceKm !== null && (
+            <Text style={styles.ratingText}>{(provider.avgRating || 0).toFixed(1)} ({provider.totalReviews || 0})</Text>
+            {provider.distanceKm !== null && provider.distanceKm !== undefined && (
               <Text style={styles.distanceText}> • {provider.distanceKm.toFixed(1)} km</Text>
             )}
           </View>
@@ -51,7 +51,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
       </View>
 
       <View style={styles.tagsRow}>
-        {provider.specialisationTags.slice(0, 3).map((tag, idx) => (
+        {provider.specialisationTags?.slice(0, 3).map((tag, idx) => (
           <View key={idx} style={styles.tagChip}>
             <Text style={styles.tagText}>{tag}</Text>
           </View>

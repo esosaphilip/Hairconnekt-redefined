@@ -62,9 +62,12 @@ export default function ClientBookingDateTime() {
       const response = await axios.get(`${API_URL}/providers/${providerId}/slots?date=${dateStr}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      let fetchedSlots = response.data.data || response.data || [];
+      let fetchedSlots = response.data.slots ?? response.data.data ?? response.data ?? [];
+      if (!Array.isArray(fetchedSlots)) {
+        fetchedSlots = [];
+      }
       // Basic formatting sort
-      fetchedSlots.sort((a: any, b: any) => (a.startTime || '').localeCompare(b.startTime || ''));
+      fetchedSlots.sort((a: any, b: any) => (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''));
       setSlots(fetchedSlots);
     } catch (err: any) {
       setErrorMessage(mapHttpError(err.response?.status));
@@ -77,9 +80,16 @@ export default function ClientBookingDateTime() {
 
   const handleNext = () => {
     if (!selectedDate || !selectedTime) return;
+    
     router.push({
       pathname: '/(client)/booking/details',
-      params: { providerId, selectedServiceIds, totalPrice, date: selectedDate, time: selectedTime }
+      params: { 
+        providerId, 
+        selectedServiceIds, 
+        totalPrice, 
+        scheduledDate: selectedDate,  // ← details.tsx expects 'scheduledDate'
+        scheduledTime: selectedTime    // ← details.tsx expects 'scheduledTime'
+      }
     } as any);
   };
 
@@ -186,18 +196,19 @@ export default function ClientBookingDateTime() {
               <Text style={styles.emptySlotsText}>Keine freien Termine an diesem Tag.</Text>
             ) : (
               <View style={styles.slotsGrid}>
-                {slots.map((slot, idx) => {
-                  if (slot.isAvailable === false) return null;
-                  
-                  const active = selectedTime === slot.startTime;
+                {slots
+                  .filter(slot => slot.available || slot.isAvailable)
+                  .map((slot, idx) => {
+                  const time = slot.time ?? slot.startTime;
+                  const active = selectedTime === time;
                   return (
                     <TouchableOpacity 
                       key={idx} 
                       style={[styles.slotButton, active && styles.slotButtonActive]}
-                      onPress={() => setSelectedTime(slot.startTime)}
+                      onPress={() => setSelectedTime(time)}
                     >
                       <Text style={[styles.slotText, active && styles.slotTextActive]}>
-                        {slot.startTime}
+                        {time}
                       </Text>
                     </TouchableOpacity>
                   );

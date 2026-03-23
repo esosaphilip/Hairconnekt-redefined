@@ -6,6 +6,8 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function ProviderAppointmentDetailScreen() {
     try {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`http://localhost:3000/bookings/${id}`, {
+      const response = await fetch(`${API_URL}/bookings/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -41,7 +43,7 @@ export default function ProviderAppointmentDetailScreen() {
   const updateBookingStatus = async (action: 'start' | 'complete') => {
     try {
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`http://localhost:3000/bookings/${id}/${action}`, {
+      const response = await fetch(`${API_URL}/bookings/${id}/${action}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -128,8 +130,12 @@ export default function ProviderAppointmentDetailScreen() {
               )}
             </View>
             <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>{booking.client?.firstName} {booking.client?.lastName}</Text>
-              <Text style={styles.clientCity}>{booking.client?.city || 'Stadt unbekannt'}</Text>
+              <Text style={styles.clientName}>
+                {booking.client?.firstName} {booking.client?.lastName}
+              </Text>
+              <Text style={styles.clientCity}>
+                {booking.client?.city || booking.client?.address?.city || 'Stadt unbekannt'}
+              </Text>
             </View>
           </View>
 
@@ -158,7 +164,9 @@ export default function ProviderAppointmentDetailScreen() {
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Service</Text>
-            <Text style={styles.infoValue}>{booking.service?.name || 'Service'}</Text>
+            <Text style={styles.infoValue}>
+              {booking.services?.map((s: any) => s.name).join(', ') || 'Service'}
+            </Text>
           </View>
           
           <View style={styles.infoRow}>
@@ -166,7 +174,7 @@ export default function ProviderAppointmentDetailScreen() {
               <Feather name="calendar" size={14} color={colors.textSecondary} /> Datum
             </Text>
             <Text style={styles.infoValue}>
-              {new Date(booking.startTime).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              {new Date(booking.scheduledDate).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
             </Text>
           </View>
           
@@ -174,24 +182,14 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={styles.infoLabel}>
               <Feather name="clock" size={14} color={colors.textSecondary} /> Zeit
             </Text>
-            <Text style={styles.infoValue}>
-              {new Date(booking.startTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} - 
-              {new Date(booking.endTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Dauer</Text>
-            <Text style={styles.infoValue}>
-              {Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 3600000)} Stunden
-            </Text>
+            <Text style={styles.infoValue}>{booking.scheduledTime} Uhr</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Service-Preis</Text>
-            <Text style={styles.infoValue}>€{booking.totalPrice},00</Text>
+            <Text style={styles.infoValue}>€{booking.totalPrice}</Text>
           </View>
 
           {(booking.platformFeeAmount > 0) && (
@@ -207,7 +205,7 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={[styles.infoLabel, styles.boldGreenText]}>
               <Feather name="briefcase" size={16} color={colors.green} /> Deine Auszahlung
             </Text>
-            <Text style={[styles.infoValue, styles.boldGreenText]}>€{booking.providerPayout || booking.totalPrice},00</Text>
+            <Text style={[styles.infoValue, styles.boldGreenText]}>€{booking.providerPayout || booking.totalPrice}</Text>
           </View>
 
           <View style={styles.paymentMethodRow}>

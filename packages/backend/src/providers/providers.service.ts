@@ -1,8 +1,8 @@
 import {
-  Injectable, NotFoundException, ConflictException, ForbiddenException
+  Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, In } from 'typeorm';
 import { Provider, ProviderStatus } from '../entities/provider.entity';
 import { PortfolioImage } from '../entities/portfolio-image.entity';
 import { User } from '../entities/user.entity';
@@ -319,5 +319,71 @@ export class ProvidersService {
       providerResponse: r.providerResponse,
       createdAt: r.createdAt,
     }));
+  }
+
+  async getAvailableSlots(providerId: string, dateStr: string) {
+    if (!dateStr) {
+      throw new BadRequestException('date parameter is required (YYYY-MM-DD)');
+    }
+
+    const provider = await this.providerRepo.findOne({
+      where: { id: providerId }
+    });
+    if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
+
+    // Get day of week (0=Sunday, 1=Monday ... 6=Saturday)
+    const date = new Date(dateStr);
+    const dayOfWeek = date.getDay();
+
+    // Get availability for this day
+    const schedule = await this.availabilityRepo.findOne({
+      where: { providerId, dayOfWeek },
+    });
+
+    // If no schedule OR day is closed → return empty slots
+    if (!schedule || !schedule.isOpen) {
+      return { date: dateStr, providerId, slots: [] };
+    }
+
+    // Generate 30-min slots between openTime and closeTime
+    const slots = [];
+    const [openH, openM] = schedule.openTime.split(':').map(Number);
+    const [closeH, closeM] = schedule.closeTime.split(':').map(Number);
+    const bufferMin = provider.bufferMinutes ?? 0;
+    const slotInterval = 30; // 30 minute slots
+
+    let currentH = openH;
+    let currentM = openM;
+
+    while (
+      currentH < closeH ||
+      (currentH === closeH && currentM < closeM)
+    ) {
+      const timeStr = `${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`;
+
+      // Check if this slot is booked
+      const existingBooking = await this.bookingRepo.findOne({
+        where: {
+          providerId,
+          scheduledDate: dateStr,
+          scheduledTime: timeStr,
+          status: Not('CANCELLED' as any),
+        },
+      });
+
+      slots.push({
+        time: timeStr,
+        startTime: timeStr,
+        available: !existingBooking,
+        isAvailable: !existingBooking,
+      });
+
+      // Advance by slot interval + buffer
+      const totalMinutes = currentH * 60 + currentM + slotInterval + bufferMin;
+      currentH = Math.floor(totalMinutes / 60);
+      currentM = totalMinutes % 60;
+    }
+
+    return { date: dateStr, providerId, slots };
   }
 }

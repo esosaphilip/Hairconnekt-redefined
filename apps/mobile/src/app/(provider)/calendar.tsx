@@ -244,7 +244,7 @@ export default function ProviderCalendarScreen() {
               <TouchableOpacity 
                 key={booking.id} 
                 style={styles.bookingCard}
-                onPress={() => router.push({ pathname: '/(provider)/booking-request/[id]' as any, params: { id: booking.id } })}
+                onPress={() => router.push({ pathname: '/(provider)/appointments/[id]' as any, params: { id: booking.id } })}
               >
                 <View style={styles.bookingCardInner}>
                   <View style={styles.bookingHeaderRow}>

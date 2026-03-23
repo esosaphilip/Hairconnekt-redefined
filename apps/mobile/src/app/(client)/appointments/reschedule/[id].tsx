@@ -81,40 +81,73 @@ export default function RescheduleAppointment() {
         setErrorVisible(false);
         setSelectedTime('');
         const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API_URL}/providers/${booking.provider.id}/slots?date=${selectedDate}`, {
+        const res = await fetch(`${API_URL}/providers/${booking.provider.id}/slots?date=${selectedDate}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        let fetchedSlots = res.data.data || res.data || [];
-        fetchedSlots.sort((a: any, b: any) => (a.startTime || '').localeCompare(b.startTime || ''));
-        setSlots(fetchedSlots);
+        const data = await res.json();
+        const slotArray = data.slots ?? data.data ?? [];
+        // Filter only available slots
+        setSlots(slotArray.filter((s: any) => s.available || s.isAvailable));
+        setIsSlotsLoading(false);
       } catch (err: any) {
         setErrorMessage(mapHttpError(err.response?.status));
         setErrorVisible(true);
         setSlots([]);
-      } finally {
         setIsSlotsLoading(false);
       }
     };
     fetchSlots();
   }, [selectedDate, booking]);
 
-  const handleSubmit = async () => {
+  const submitReschedule = async () => {
     if (!selectedDate || !selectedTime) return;
+
+    // Validate formats before sending
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+    const cleanTime = selectedTime.substring(0, 5);
+
+    if (!dateRegex.test(selectedDate) || !timeRegex.test(cleanTime)) {
+      setErrorMessage('Ungültiges Datum oder Uhrzeit. Bitte erneut auswählen.');
+      setErrorVisible(true);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
-        const token = await tokenStorage.getAccessToken();
-      await axios.patch(`${API_URL}/bookings/${id}/reschedule`, {
-        scheduledDate: selectedDate,
-        scheduledTime: selectedTime,
-        reason: reason.trim() || undefined
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      const token = await tokenStorage.getAccessToken();
+
+      const res = await fetch(`${API_URL}/bookings/${id}/reschedule`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scheduledDate: selectedDate,
+          scheduledTime: cleanTime,
+          reason: reason.trim() || undefined,
+        }),
       });
-      router.replace(`/(client)/appointments/${id}` as any);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          throw new Error(
+            'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.'
+          );
+        }
+        throw new Error(mapHttpError(res.status));
+      }
+
+      // Success → navigate back to appointment detail
+      router.replace(`/(client)/appointments/${id}`);
+
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      setErrorMessage(err.message ?? mapHttpError(500));
       setErrorVisible(true);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -252,17 +285,16 @@ export default function RescheduleAppointment() {
             ) : (
               <View style={styles.slotsGrid}>
                 {slots.map((slot, idx) => {
-                  if (slot.isAvailable === false) return null;
-                  
-                  const active = selectedTime === slot.startTime;
+                  const slotTime = slot.time ?? slot.startTime;
+                  const active = selectedTime === slotTime;
                   return (
                     <TouchableOpacity 
                       key={idx} 
                       style={[styles.slotButton, active && styles.slotButtonActive]}
-                      onPress={() => setSelectedTime(slot.startTime)}
+                      onPress={() => setSelectedTime(slotTime)}
                     >
                       <Text style={[styles.slotText, active && styles.slotTextActive]}>
-                        {slot.startTime}
+                        {slotTime}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -274,7 +306,7 @@ export default function RescheduleAppointment() {
 
         {/* Reason Block */}
         <View style={styles.reasonSection}>
-          <Text style={styles.reasonLabel}>Grund für Verschiebung (Optional)</Text>
+          <Text style={styles.reasonLabel}>Grund für Verschiebung (optional)</Text>
           <TextInput
             style={styles.reasonInput}
             placeholder="Bitte gib einen Grund an..."
@@ -300,7 +332,7 @@ export default function RescheduleAppointment() {
         </View>
         <TouchableOpacity 
           style={[styles.nextButton, (!selectedDate || !selectedTime || isSubmitting) && styles.nextButtonDisabled]} 
-          onPress={handleSubmit}
+          onPress={submitReschedule}
           disabled={!selectedDate || !selectedTime || isSubmitting}
         >
           {isSubmitting ? (

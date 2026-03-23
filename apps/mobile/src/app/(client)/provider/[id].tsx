@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { tokenStorage } from '../../../utils/token-storage';
@@ -110,13 +110,13 @@ export default function ProviderProfile() {
   }
 
   // Derived properties safely extracted
-  const avgRating = provider.avgRating ? provider.avgRating.toFixed(1) : 'NEU';
+  const avgRating = (typeof provider.avgRating === 'number' && !isNaN(provider.avgRating)) ? provider.avgRating.toFixed(1) : 'NEU';
   const distance = provider.distanceKm !== null && provider.distanceKm !== undefined ? `${provider.distanceKm.toFixed(1)} km` : '';
   const specialisationTags = provider.specialisationTags || provider.specializations || [];
   const minPrice = services.length > 0 ? Math.min(...services.map((s: any) => Number(s.price))) : (provider.startingPrice || 0);
 
   return (
-    <View style={styles.safeContainer}>
+    <SafeAreaView style={styles.safeContainer}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         
         {/* HERO SECTION */}
@@ -270,7 +270,7 @@ export default function ProviderProfile() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(provider.avgRating || 0) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
                 </View>
                 <Text style={styles.totalReviewsText}>Basierend auf {provider.totalReviews || 0} Bewertungen</Text>
               </View>
@@ -316,7 +316,7 @@ export default function ProviderProfile() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   heroContainer: { height: 220, position: 'relative', marginBottom: 50 },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroImagePlaceholder: { width: '100%', height: '100%', backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  heroControls: { position: 'absolute', top: 50, left: spacing.lg, right: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' },
+  heroControls: { position: 'absolute', top: 60, left: spacing.lg, right: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   heroControlsRight: { flexDirection: 'row' },
   avatarWrapper: { position: 'absolute', bottom: -48, alignSelf: 'center', width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.gold, backgroundColor: colors.surface, padding: 2, ...shadows.card },

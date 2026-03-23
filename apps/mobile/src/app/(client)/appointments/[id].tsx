@@ -218,11 +218,14 @@ export default function AppointmentDetails() {
       </ScrollView>
 
       {/* Conditional Footer Rendering */}
-      {(booking.status?.toLowerCase() === 'pending' || booking.status === 'CONFIRMED') && (
+      {(booking.status?.toLowerCase() === 'pending' ||
+        booking.status?.toLowerCase() === 'confirmed') && (
         <View style={styles.footerContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.outlineBtn}
-            onPress={() => router.push(`/(client)/appointments/reschedule/${booking.id}` as any)}
+            onPress={() => router.push(
+              `/(client)/appointments/reschedule/${booking.id}` 
+            )}
           >
             <Text style={styles.outlineBtnText}>Termin verschieben</Text>
           </TouchableOpacity>

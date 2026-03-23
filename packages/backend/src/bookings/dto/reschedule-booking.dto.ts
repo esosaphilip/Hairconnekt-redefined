@@ -1,11 +1,12 @@
-import { IsDateString, IsString, IsOptional, MaxLength, Matches } from 'class-validator';
+import { IsString, IsOptional, MaxLength, Matches } from 'class-validator';
 
 export class RescheduleBookingDto {
-  @IsDateString()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'scheduledDate must be in YYYY-MM-DD format' })
   scheduledDate: string;
 
   @IsString()
-  @Matches(/^([01]\d|2[0-3]):?([0-5]\d)$/, { message: 'Time must be in HH:mm format' })
+  @Matches(/^\d{2}:\d{2}$/, { message: 'scheduledTime must be in HH:MM format' })
   scheduledTime: string;
 
   @IsString()
