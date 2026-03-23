@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
@@ -26,6 +27,7 @@ export default function ProfilePreviewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
 
   const [provider, setProvider] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
@@ -70,6 +72,17 @@ export default function ProfilePreviewScreen() {
       // Use provider data directly from /providers/me response
       setProvider(meData);
       
+      // Check if this provider is in user's favorites
+      try {
+        const favRes = await axios.get(`${API_URL}/favourites`, { headers });
+        const favs = favRes.data.data || favRes.data;
+        if (Array.isArray(favs) && favs.some((f: any) => f.providerId === meData.id || f.provider?.id === meData.id)) {
+          setIsFavourite(true);
+        }
+      } catch {
+        // Keep default false if favorites check fails
+      }
+      
       // Fetch additional data
       const [servRes, portRes, revRes] = await Promise.all([
         fetch(`${API_URL}/providers/me/services`, { headers }),
@@ -99,6 +112,23 @@ export default function ProfilePreviewScreen() {
   };
 
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl || portfolio[0].url : null;
+
+  const toggleFavourite = async () => {
+    try {
+      const prev = isFavourite;
+      setIsFavourite(!prev);
+      const token = await tokenStorage.getAccessToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      if (prev) {
+        await axios.delete(`${API_URL}/favourites/${provider.id}`, { headers });
+      } else {
+        await axios.post(`${API_URL}/favourites`, { providerId: provider.id }, { headers });
+      }
+    } catch (err) {
+      setIsFavourite(isFavourite);
+      console.log('Error toggling favourite', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -135,7 +165,10 @@ export default function ProfilePreviewScreen() {
         </TouchableOpacity>
         <Text style={styles.bannerText}>
         👁 Vorschau-Modus {(provider.businessName?.charAt(0) ?? 'P')}
-      </Text>
+        </Text>
+        <TouchableOpacity onPress={toggleFavourite} style={styles.bannerAction}>
+          <FontAwesome5 name="heart" solid={isFavourite} size={16} color={isFavourite ? colors.coral : colors.background} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/(provider)/profile/edit')}>
           <Text style={styles.bannerAction}>Bearbeiten</Text>
         </TouchableOpacity>
