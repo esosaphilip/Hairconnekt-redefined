@@ -116,15 +116,21 @@ export default function ProfilePreviewScreen() {
   const toggleFavourite = async () => {
     try {
       const prev = isFavourite;
-      setIsFavourite(!prev);
+      const newFavState = !prev;
+      
+      // Update UI immediately for better feedback
+      setIsFavourite(newFavState);
+      
       const token = await tokenStorage.getAccessToken();
       const headers = { Authorization: `Bearer ${token}` };
+      
       if (prev) {
         await axios.delete(`${API_URL}/favourites/${provider.id}`, { headers });
       } else {
         await axios.post(`${API_URL}/favourites`, { providerId: provider.id }, { headers });
       }
     } catch (err) {
+      // Revert on error
       setIsFavourite(isFavourite);
       console.log('Error toggling favourite', err);
     }
