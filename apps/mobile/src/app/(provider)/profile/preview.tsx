@@ -173,7 +173,15 @@ export default function ProfilePreviewScreen() {
         👁 Vorschau-Modus {(provider.businessName?.charAt(0) ?? 'P')}
         </Text>
         <TouchableOpacity onPress={toggleFavourite} style={styles.bannerAction}>
-          <FontAwesome5 name="heart" solid={isFavourite} size={16} color={isFavourite ? colors.coral : colors.background} />
+          <FontAwesome5 
+            name="heart" 
+            solid={isFavourite} 
+            size={16} 
+            color={isFavourite ? colors.coral : colors.background}
+            style={{
+              transform: [{ scale: isFavourite ? 1.1 : 1.0 }],
+            }}
+          />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/(provider)/profile/edit')}>
           <Text style={styles.bannerAction}>Bearbeiten</Text>
