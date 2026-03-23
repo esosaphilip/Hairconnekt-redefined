@@ -35,6 +35,7 @@ export default function ProfilePreviewScreen() {
       setErrorVisible(false);
 
       const token = await tokenStorage.getAccessToken();
+      console.log('Profile Preview - Token:', token ? 'exists' : 'missing');
       if (!token) {
         setErrorMessage(mapHttpError(401));
         setErrorVisible(true);
@@ -42,21 +43,29 @@ export default function ProfilePreviewScreen() {
       }
       const headers = { Authorization: `Bearer ${token}` };
 
+      console.log('Profile Preview - Fetching /providers/me');
       const meRes = await fetch(`${API_URL}/providers/me`, { headers });
+      console.log('Profile Preview - /providers/me response status:', meRes.status);
+      
       if (!meRes.ok) {
+        console.log('Profile Preview - /providers/me failed:', meRes.status, meRes.statusText);
         setErrorMessage(mapHttpError(meRes.status));
         setErrorVisible(true);
         return;
       }
       const meData = await meRes.json();
-      console.log('Profile Preview - meData:', meData);
-      const ownId = meData?.id ?? meData?.data?.id;
-      console.log('Profile Preview - ownId:', ownId);
+      console.log('Profile Preview - meData structure:', JSON.stringify(meData, null, 2));
+      const ownId = meData.id;
+      console.log('Profile Preview - extracted ownId:', ownId);
+      
       if (!ownId) {
+        console.log('Profile Preview - No provider ID found, showing 404 error');
         setErrorMessage(mapHttpError(404));
         setErrorVisible(true);
         return;
       }
+      
+      console.log('Profile Preview - Fetching provider data with ID:', ownId);
       const [provRes, servRes, portRes, revRes] = await Promise.all([
         fetch(`${API_URL}/providers/${ownId}`, { headers }),
         fetch(`${API_URL}/providers/${ownId}/services`, { headers }),
@@ -64,14 +73,23 @@ export default function ProfilePreviewScreen() {
         fetch(`${API_URL}/providers/${ownId}/reviews`, { headers }),
       ]);
 
+      console.log('Profile Preview - API responses:', {
+        prov: provRes.status,
+        serv: servRes.status,
+        port: portRes.status,
+        rev: revRes.status
+      });
+
       if (!provRes.ok) {
+        console.log('Profile Preview - Provider data fetch failed:', provRes.status);
         setErrorMessage(mapHttpError(provRes.status));
         setErrorVisible(true);
         return;
       }
 
       const provJson = await provRes.json();
-      setProvider(provJson?.data ?? provJson);
+      console.log('Profile Preview - provJson structure:', JSON.stringify(provJson, null, 2));
+      setProvider(provJson.data ?? provJson);
 
       const servJson = await servRes.json().catch(() => ({}));
       const servArr = servJson?.data ?? servJson ?? [];
