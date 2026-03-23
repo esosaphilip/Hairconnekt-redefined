@@ -60,6 +60,7 @@ export default function ClientHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [favourites, setFavourites] = useState<string[]>([]);
 
   useEffect(() => {
     loadUser();
@@ -88,12 +89,41 @@ export default function ClientHome() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
+
       const token = await tokenStorage.getAccessToken();
-      const response = await axios.get(`${API_URL}/providers?limit=10`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const payload = response.data?.data ?? response.data;
-      setProviders(Array.isArray(payload) ? payload : []);
+      if (!token) return;
+      
+      // Fetch providers and favorites in parallel
+      const [providersRes, favRes] = await Promise.all([
+        fetch(`${API_URL}/providers?limit=20`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/favourites`, { 
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      if (!providersRes.ok) {
+        setErrorMessage(mapHttpError(providersRes.status));
+        setErrorVisible(true);
+        return;
+      }
+
+      const providersData = await providersRes.json();
+      const providersList = providersData.data || providersData;
+      
+      // Get favorites list
+      const favs = favRes.data.data || favRes.data;
+      const favIds = Array.isArray(favs) ? favs.map((f: any) => f.providerId || f.provider?.id) : [];
+
+      // Mark providers as favorited
+      const providersWithFavStatus = providersList.map((provider: any) => ({
+        ...provider,
+        isFavourited: favIds.includes(provider.id)
+      }));
+
+      setProviders(providersWithFavStatus);
+      setFavourites(favIds);
     } catch (err: any) {
       const status = err.response?.status;
       setErrorMessage(mapHttpError(status));
@@ -105,6 +135,34 @@ export default function ClientHome() {
 
   const handleProviderPress = (id: string) => {
     router.push(`/(client)/provider/${id}` as any);
+  };
+
+  const toggleFavorite = async (providerId: string) => {
+    try {
+      const token = await tokenStorage.getAccessToken();
+      if (!token) return;
+
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      if (favourites.includes(providerId)) {
+        // Remove from favorites
+        await axios.delete(`${API_URL}/favourites/${providerId}`, { headers });
+        setFavourites(favourites.filter(id => id !== providerId));
+      } else {
+        // Add to favorites
+        await axios.post(`${API_URL}/favourites`, { providerId }, { headers });
+        setFavourites([...favourites, providerId]);
+      }
+
+      // Update the provider in the list
+      setProviders(prev => prev.map(provider => 
+        provider.id === providerId 
+          ? { ...provider, isFavourited: !favourites.includes(providerId) }
+          : provider
+      ));
+    } catch (err) {
+      console.log('Error toggling favorite', err);
+    }
   };
 
   return (
@@ -207,7 +265,7 @@ export default function ClientHome() {
               key={provider.id}
               provider={provider}
               onPress={() => handleProviderPress(provider.id)}
-              onFavourite={() => {}}
+              onFavourite={() => toggleFavorite(provider.id)}
             />
           ))
         )}
