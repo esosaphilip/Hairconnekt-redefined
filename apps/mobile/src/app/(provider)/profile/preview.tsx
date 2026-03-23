@@ -45,7 +45,6 @@ export default function ProfilePreviewScreen() {
       setErrorVisible(false);
 
       const token = await tokenStorage.getAccessToken();
-      console.log('Profile Preview - Token:', token ? 'exists' : 'missing');
       if (!token) {
         setErrorMessage(mapHttpError(401));
         setErrorVisible(true);
@@ -53,21 +52,16 @@ export default function ProfilePreviewScreen() {
       }
       const headers = { Authorization: `Bearer ${token}` };
 
-      console.log('Profile Preview - Fetching /providers/me');
       const meRes = await fetch(`${API_URL}/providers/me`, { headers });
-      console.log('Profile Preview - /providers/me response status:', meRes.status);
       
       if (!meRes.ok) {
-        console.log('Profile Preview - /providers/me failed:', meRes.status, meRes.statusText);
         setErrorMessage(mapHttpError(meRes.status));
         setErrorVisible(true);
         return;
       }
       const meData = await meRes.json();
-      console.log('Profile Preview - meData structure:', JSON.stringify(meData, null, 2));
       
       if (!meData) {
-        console.log('Profile Preview - No provider data found, showing 404 error');
         setErrorMessage(mapHttpError(404));
         setErrorVisible(true);
         return;
@@ -82,12 +76,6 @@ export default function ProfilePreviewScreen() {
         fetch(`${API_URL}/providers/me/portfolio`, { headers }),
         fetch(`${API_URL}/providers/me/reviews`, { headers }),
       ]);
-
-      console.log('Profile Preview - Additional API responses:', {
-        serv: servRes.status,
-        port: portRes.status,
-        rev: revRes.status
-      });
 
       const servJson = await servRes.json().catch(() => ({}));
       const servArr = servJson?.data ?? servJson ?? [];
