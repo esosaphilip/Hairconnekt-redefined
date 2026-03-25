@@ -5,6 +5,7 @@ import { Feather, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
+import { removeFavourite } from '../../utils/favourites';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -42,7 +43,8 @@ export default function FavouritesScreen() {
       const res = await axios.get(`${API_URL}/favourites`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setFavourites(res.data);
+      const payload = res.data?.data ?? res.data ?? [];
+      setFavourites(Array.isArray(payload) ? payload : []);
     } catch (err) {
       console.log('Failed to fetch favourites', err);
     } finally {
@@ -50,7 +52,7 @@ export default function FavouritesScreen() {
     }
   };
 
-  const removeFavourite = async (providerId: string, businessName: string) => {
+  const handleRemoveFavourite = async (providerId: string, businessName: string) => {
     Alert.alert(
       'Aus Favoriten entfernen?',
       `Möchtest du ${businessName} wirklich aus deinen Favoriten entfernen?`,
@@ -62,14 +64,10 @@ export default function FavouritesScreen() {
           onPress: async () => {
             // Optimistic Update
             setFavourites(prev => prev.filter(p => p.id !== providerId));
-            try {
-              const token = await tokenStorage.getAccessToken();
-              await axios.delete(`${API_URL}/favourites/${providerId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-            } catch (err) {
-              console.log('Failed to remove favourite via API', err);
-              // In a real app we might revert the optimistic update here if it truly failed
+            
+            const success = await removeFavourite(providerId);
+            if (!success) {
+              // Revert optimistic update
               fetchFavourites();
             }
           } 
@@ -99,7 +97,7 @@ export default function FavouritesScreen() {
           {/* Heart Button */}
           <TouchableOpacity 
             style={styles.heartButton} 
-            onPress={() => removeFavourite(item.id, item.businessName || item.firstName || '')}
+            onPress={() => handleRemoveFavourite(item.id, item.businessName || item.firstName || '')}
           >
             <FontAwesome name="heart" size={16} color={colors.coral} />
           </TouchableOpacity>

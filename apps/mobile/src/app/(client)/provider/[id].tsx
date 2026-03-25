@@ -7,6 +7,7 @@ import axios from 'axios';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { addFavourite, removeFavourite } from '../../../utils/favourites';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000/api/v1';
 const { width } = Dimensions.get('window');
@@ -61,10 +62,14 @@ export default function ProviderProfile() {
 
       setReviews(revRes.data.data || revRes.data);
 
-      const favs = favRes.data.data || favRes.data;
-      if (Array.isArray(favs) && favs.some((f: any) => f.providerId === id || f.provider?.id === id)) {
-        setIsFavourite(true);
-      }
+      const favs: any[] = favRes.data?.data ?? favRes.data ?? [];
+      const isFav = Array.isArray(favs) && favs.some(
+        (f: any) =>
+          f.id === id ||
+          f.providerId === id ||
+          f.provider?.id === id
+      );
+      setIsFavourite(isFav);
     } catch (err: any) {
       const status = err.response?.status;
       setErrorMessage(mapHttpError(status));
@@ -75,19 +80,18 @@ export default function ProviderProfile() {
   };
 
   const toggleFavourite = async () => {
-    try {
-      const prev = isFavourite;
-      setIsFavourite(!prev);
-      const token = await tokenStorage.getAccessToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      if (prev) {
-        await axios.delete(`${API_URL}/favourites/${id}`, { headers });
-      } else {
-        await axios.post(`${API_URL}/favourites`, { providerId: id }, { headers });
-      }
-    } catch (err) {
-      setIsFavourite(isFavourite);
-      console.log('Error toggling favourite', err);
+    const wasAlreadyFav = isFavourite;
+
+    // Optimistic update
+    setIsFavourite(!wasAlreadyFav);
+
+    const success = wasAlreadyFav
+      ? await removeFavourite(id as string)
+      : await addFavourite(id as string);
+
+    // Revert if API failed
+    if (!success) {
+      setIsFavourite(wasAlreadyFav);
     }
   };
 

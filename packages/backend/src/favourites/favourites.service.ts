@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Favourite } from '../entities/favourite.entity';
@@ -36,6 +36,25 @@ export class FavouritesService {
         isFavourite: true, // It's in the favourites list
       };
     });
+  }
+
+  async addFavourite(userId: string, providerId: string): Promise<void> {
+    // Check if already favourited
+    const existing = await this.favouriteRepository.findOne({
+      where: { clientId: userId, providerId }
+    });
+    
+    if (existing) {
+      throw new ConflictException('Provider already favourited');
+    }
+
+    // Add new favourite
+    const favourite = this.favouriteRepository.create({
+      clientId: userId,
+      providerId
+    });
+    
+    await this.favouriteRepository.save(favourite);
   }
 
   async removeFavourite(userId: string, providerId: string): Promise<void> {

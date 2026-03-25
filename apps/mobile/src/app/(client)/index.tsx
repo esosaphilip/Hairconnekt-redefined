@@ -8,6 +8,7 @@ import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
+import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -60,11 +61,12 @@ export default function ClientHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
-  const [favourites, setFavourites] = useState<string[]>([]);
+  const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadUser();
     fetchProviders();
+    getFavouriteIds().then(setFavouriteIds);
   }, []);
 
   const loadUser = async () => {
@@ -93,37 +95,18 @@ export default function ClientHome() {
       const token = await tokenStorage.getAccessToken();
       if (!token) return;
       
-      // Fetch providers and favorites in parallel
-      const [providersRes, favRes] = await Promise.all([
-        fetch(`${API_URL}/providers?limit=20`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${API_URL}/favourites`, { 
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
+      const res = await fetch(`${API_URL}/providers?limit=20`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      if (!providersRes.ok) {
-        setErrorMessage(mapHttpError(providersRes.status));
+      if (!res.ok) {
+        setErrorMessage(mapHttpError(res.status));
         setErrorVisible(true);
         return;
       }
 
-      const providersData = await providersRes.json();
-      const providersList = providersData.data || providersData;
-      
-      // Get favorites list
-      const favs = favRes.data.data || favRes.data;
-      const favIds = Array.isArray(favs) ? favs.map((f: any) => f.providerId || f.provider?.id) : [];
-
-      // Mark providers as favorited
-      const providersWithFavStatus = providersList.map((provider: any) => ({
-        ...provider,
-        isFavourited: favIds.includes(provider.id)
-      }));
-
-      setProviders(providersWithFavStatus);
-      setFavourites(favIds);
+      const data = await res.json();
+      setProviders(data.data || data);
     } catch (err: any) {
       const status = err.response?.status;
       setErrorMessage(mapHttpError(status));
@@ -137,31 +120,27 @@ export default function ClientHome() {
     router.push(`/(client)/provider/${id}` as any);
   };
 
-  const toggleFavorite = async (providerId: string) => {
-    try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) return;
+  const handleToggleFavourite = async (providerId: string) => {
+    const isCurrentlyFav = favouriteIds.includes(providerId);
 
-      const headers = { Authorization: `Bearer ${token}` };
-      
-      if (favourites.includes(providerId)) {
-        // Remove from favorites
-        await axios.delete(`${API_URL}/favourites/${providerId}`, { headers });
-        setFavourites(favourites.filter(id => id !== providerId));
-      } else {
-        // Add to favorites
-        await axios.post(`${API_URL}/favourites`, { providerId }, { headers });
-        setFavourites([...favourites, providerId]);
-      }
+    // Optimistic update
+    setFavouriteIds(prev =>
+      isCurrentlyFav
+        ? prev.filter(id => id !== providerId)
+        : [...prev, providerId]
+    );
 
-      // Update the provider in the list
-      setProviders(prev => prev.map(provider => 
-        provider.id === providerId 
-          ? { ...provider, isFavourited: !favourites.includes(providerId) }
-          : provider
-      ));
-    } catch (err) {
-      console.log('Error toggling favorite', err);
+    const success = isCurrentlyFav
+      ? await removeFavourite(providerId)
+      : await addFavourite(providerId);
+
+    // Revert if API failed
+    if (!success) {
+      setFavouriteIds(prev =>
+        isCurrentlyFav
+          ? [...prev, providerId]
+          : prev.filter(id => id !== providerId)
+      );
     }
   };
 
@@ -263,9 +242,12 @@ export default function ClientHome() {
           providers.map((provider) => (
             <ProviderCard
               key={provider.id}
-              provider={provider}
+              provider={{
+                ...provider,
+                isFavourited: favouriteIds.includes(provider.id)
+              }}
               onPress={() => handleProviderPress(provider.id)}
-              onFavourite={() => toggleFavorite(provider.id)}
+              onFavourite={() => handleToggleFavourite(provider.id)}
             />
           ))
         )}
