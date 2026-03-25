@@ -8,6 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
+import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -32,7 +33,12 @@ export default function ClientSearch() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
 
-  const categories = ['Alle', 'Flechten', 'Pflege', 'Styling'];
+  // Favourites
+  const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
+
+  // Categories from API (id + name pairs)
+  const [categoryList, setCategoryList] = useState<{ id: string; name: string }[]>([]);
+
   const sortMap: Record<SortOption, string> = {
     empfohlen: 'Empfohlen',
     entfernung: 'Entfernung',
@@ -40,12 +46,38 @@ export default function ClientSearch() {
   };
 
   useEffect(() => {
-    // Reset page logic when filters (except raw text search) shift naturally
-    setPage(1);
-    setHasMore(true);
-    setProviders([]);
-    fetchProviders(1, true);
-  }, [activeCategory, availableToday, sortOption]);
+    // Load service categories for filter chips
+    const loadCategories = async () => {
+      try {
+        const res = await fetch(`${API_URL}/services/categories`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list: { id: string; name: string }[] = data.data ?? data ?? [];
+        setCategoryList(list);
+      } catch {
+        // Keep empty — chips will not appear but app won't crash
+      }
+    };
+
+    // Load which providers are already favourited
+    const loadFavourites = async () => {
+      const ids = await getFavouriteIds();
+      setFavouriteIds(ids);
+    };
+
+    loadCategories();
+    loadFavourites();
+  }, []);
+
+  useEffect(() => {
+    // Only fetch when we have categories loaded (or Alle is selected)
+    if (activeCategory === 'Alle' || categoryList.length > 0) {
+      setPage(1);
+      setHasMore(true);
+      setProviders([]);
+      fetchProviders(1, true);
+    }
+  }, [activeCategory, availableToday, sortOption, categoryList]);
 
   const fetchProviders = async (pageNumber: number, isInitial = false) => {
     try {
@@ -56,7 +88,9 @@ export default function ClientSearch() {
       const token = await tokenStorage.getAccessToken();
       
       const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
-      const categoryParam = activeCategory !== 'Alle' ? `&category=${encodeURIComponent(activeCategory)}` : '';
+      // Map the selected display name back to its ID
+      const selectedCat = categoryList.find(c => c.name === activeCategory);
+      const categoryParam = selectedCat ? `&services=${encodeURIComponent(selectedCat.id)}` : '';
       const availParam = availableToday ? `&availableToday=true` : '';
       
       const url = `${API_URL}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}`;
@@ -96,22 +130,81 @@ export default function ClientSearch() {
     fetchProviders(nextPage);
   };
 
+  const handleToggleFavourite = async (providerId: string) => {
+    const isCurrentlyFav = favouriteIds.includes(providerId);
+
+    // Optimistic update
+    setFavouriteIds(prev =>
+      isCurrentlyFav
+        ? prev.filter(id => id !== providerId)
+        : [...prev, providerId]
+    );
+
+    const success = isCurrentlyFav
+      ? await removeFavourite(providerId)
+      : await addFavourite(providerId);
+
+    // Revert if API failed
+    if (!success) {
+      setFavouriteIds(prev =>
+        isCurrentlyFav
+          ? [...prev, providerId]
+          : prev.filter(id => id !== providerId)
+      );
+    }
+  };
+
   const renderFilterChips = () => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsContent}>
-      {categories.map((cat) => (
-        <TouchableOpacity 
-          key={cat} 
-          style={[styles.chip, activeCategory === cat && styles.chipActive]}
-          onPress={() => setActiveCategory(cat)}
+      {/* "Alle" chip — always first */}
+      <TouchableOpacity
+        style={[
+          styles.chip,
+          activeCategory === 'Alle' && styles.chipActive,
+        ]}
+        onPress={() => setActiveCategory('Alle')}
+      >
+        <Text style={[
+          styles.chipText,
+          activeCategory === 'Alle' && styles.chipTextActive,
+        ]}>
+          Alle
+        </Text>
+      </TouchableOpacity>
+
+      {/* Dynamic category chips from /services/categories */}
+      {categoryList.map(cat => (
+        <TouchableOpacity
+          key={cat.id}
+          style={[
+            styles.chip,
+            activeCategory === cat.name && styles.chipActive,
+          ]}
+          onPress={() => setActiveCategory(cat.name)}
         >
-          <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>{cat}</Text>
+          <Text style={[
+            styles.chipText,
+            activeCategory === cat.name && styles.chipTextActive,
+          ]}>
+            {cat.name}
+          </Text>
         </TouchableOpacity>
       ))}
-      <TouchableOpacity 
-        style={[styles.chip, availableToday && styles.chipActive]}
-        onPress={() => setAvailableToday(!availableToday)}
+
+      {/* "Verfügbar heute" toggle chip — always last */}
+      <TouchableOpacity
+        style={[
+          styles.chip,
+          availableToday && styles.chipActive,
+        ]}
+        onPress={() => setAvailableToday(prev => !prev)}
       >
-        <Text style={[styles.chipText, availableToday && styles.chipTextActive]}>Verfügbar heute</Text>
+        <Text style={[
+          styles.chipText,
+          availableToday && styles.chipTextActive,
+        ]}>
+          Verfügbar heute
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -195,9 +288,12 @@ export default function ClientSearch() {
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <ProviderCard
-              provider={item}
+              provider={{
+                ...item,
+                isFavourited: favouriteIds.includes(item.id)
+              }}
               onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
-              onFavourite={() => {}}
+              onFavourite={() => handleToggleFavourite(item.id)}
             />
           )}
           onEndReached={handleLoadMore}
