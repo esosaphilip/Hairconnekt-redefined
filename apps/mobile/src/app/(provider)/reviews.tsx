@@ -5,8 +5,7 @@ import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { API } from '../../utils/api';
 
 interface ReviewSummary {
   avgRating: number;
@@ -75,8 +74,11 @@ export default function ReviewsScreen() {
         url += `&rating=${filter.charAt(0)}`;
       }
 
-      const res = await fetch(url);
-      if (!res.ok) return;
+      const token = await tokenStorage.getAccessToken();
+      const res = await fetch(url, {
+        // BUG 11: reviews list must be authenticated to show private data
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       const data: any = await res.json();
 
       if (refresh) {

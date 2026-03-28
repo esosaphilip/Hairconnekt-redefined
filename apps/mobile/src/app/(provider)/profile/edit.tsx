@@ -10,8 +10,7 @@ import { FormInput } from '../../../components/FormInput';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { tokenStorage } from '../../../utils/token-storage';
 import { mapHttpError } from '../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 const AVAILABLE_LANGUAGES = ['Deutsch', 'Englisch', 'Französisch', 'Arabisch', 'Türkisch', 'Hausa', 'Yoruba', 'Igbo'];
 
@@ -37,6 +36,8 @@ export default function EditProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  // BUG 4: bump after upload to force Image re-render
+  const [avatarVersion, setAvatarVersion] = useState(Date.now());
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
 
@@ -48,7 +49,7 @@ export default function EditProfileScreen() {
     try {
       setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/providers/me`, {
+      const response = await fetch(`${API}/providers/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -82,7 +83,7 @@ export default function EditProfileScreen() {
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
 
-      const response = await fetch(`${API_URL}/providers/me`, {
+      const response = await fetch(`${API}/providers/me`, {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -107,7 +108,7 @@ export default function EditProfileScreen() {
   const pickAvatar = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -141,12 +142,12 @@ export default function EditProfileScreen() {
         name: 'avatar.jpg',
       } as any);
 
-      const response = await fetch(`${API_URL}/providers/me/avatar`, {
+      const response = await fetch(`${API}/providers/me/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
+          // BUG 8: do NOT set Content-Type; RN sets it with the boundary
         },
         body: formData,
       });
@@ -154,6 +155,8 @@ export default function EditProfileScreen() {
       if (!response.ok) {
         throw { response: { status: response.status } };
       }
+      // BUG 4: bust cache so Image re-renders with new photo
+      setAvatarVersion(Date.now());
     } catch (error: any) {
       console.log('Avatar upload error', error);
       setErrorMessage(mapHttpError(error?.response?.status));

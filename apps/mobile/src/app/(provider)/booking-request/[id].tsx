@@ -4,8 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 export default function BookingRequestScreen() {
   const router = useRouter();
@@ -26,38 +25,17 @@ export default function BookingRequestScreen() {
       setIsLoading(true);
       setError(null);
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/bookings/${id}`, {
+      const res = await fetch(`${API}/bookings/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false, json: () => ({}) }));
+      });
 
-      const data: any = res.ok ? await res.json() : {
-        data: {
-          id,
-          status: 'pending',
-          scheduledDate: new Date(new Date().setHours(14, 0, 0, 0)).toISOString(),
-          totalPrice: 120,
-          totalMinutes: 120,
-          isMobile: true,
-          clientNotes: 'Bitte klingeln bei Müller.',
-          client: {
-            id: 'client123',
-            firstName: 'Sarah',
-            lastName: 'Müller',
-            phone: '+4917612345678',
-            totalBookings: 3
-          },
-          services: [
-            { id: 's1', name: 'Balayage & Styling' }
-          ],
-          address: {
-            street: 'Musterstraße',
-            houseNumber: '12a',
-            city: 'Berlin'
-          }
-        }
-      };
+      if (!res.ok) {
+        setError('Buchungsanfrage konnte nicht geladen werden.');
+        return;
+      }
 
-      setBooking(data.data);
+      const data: any = await res.json();
+      setBooking(data.data ?? data);
     } catch (err) {
       console.log('Error loading booking:', err);
       setError('Fehler beim Laden der Buchungsanfrage.');
@@ -70,10 +48,10 @@ export default function BookingRequestScreen() {
     try {
       setIsAccepting(true);
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/bookings/${id}/accept`, {
+      const res = await fetch(`${API}/bookings/${id}/accept`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: true })); // Mock success
+      });
 
       if (res.ok) {
         // In a real app we might show a toast here
@@ -101,10 +79,10 @@ export default function BookingRequestScreen() {
             try {
               setIsDeclining(true);
               const token = await tokenStorage.getAccessToken();
-              const res = await fetch(`${API_URL}/bookings/${id}/decline`, {
+              const res = await fetch(`${API}/bookings/${id}/decline`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}` }
-              }).catch(() => ({ ok: true })); // Mock success
+              });
 
               if (res.ok) {
                 router.replace('/(provider)/calendar');

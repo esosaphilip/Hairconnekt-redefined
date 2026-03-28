@@ -6,14 +6,15 @@ import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../../theme';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  // BUG 4: bump this after upload to force React Native to re-render the Image
+  const [avatarVersion, setAvatarVersion] = useState(Date.now());
 
   const fetchUser = async () => {
     try {
@@ -23,7 +24,7 @@ export default function ClientProfileScreen() {
         return;
       }
       setIsLoading(true);
-      const res = await axios.get(`${API_URL}/users/me`, {
+      const res = await axios.get(`${API}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUser(res.data?.data || res.data);
@@ -74,11 +75,11 @@ export default function ClientProfileScreen() {
         type: mimeType,
       } as any);
 
-      const res = await fetch(`${API_URL}/users/me/avatar`, {
+      const res = await fetch(`${API}/users/me/avatar`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          // BUG 8: do NOT set Content-Type; RN sets it with the boundary automatically
         },
         body: formData,
       });
@@ -90,6 +91,8 @@ export default function ClientProfileScreen() {
       const data = await res.json();
       // update local state immediately with R2 URL
       setUser((prev: any) => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
+      // BUG 4: bust the image cache so UI refreshes
+      setAvatarVersion(Date.now());
     } catch (err) {
       Alert.alert('Fehler', 'Das Bild konnte nicht hochgeladen werden.');
     } finally {
@@ -116,14 +119,8 @@ export default function ClientProfileScreen() {
     }
   };
 
-  // Safe default values
+  // BUG 2: R2 always returns full https:// URLs — use directly, no prefix logic needed
   const avatarUri = user?.avatarUrl as string | undefined;
-  const resolvedAvatarUri =
-    avatarUri && (avatarUri.startsWith('http://') || avatarUri.startsWith('https://'))
-      ? avatarUri
-      : avatarUri
-        ? `${API_URL.replace(/\/api\/v1\/?$/, '')}${avatarUri.startsWith('/') ? '' : '/'}${avatarUri}`
-        : undefined;
   const fullName = user?.firstName ? `${user.firstName} ${user.lastName}` : 'Kunde';
   const email = user?.email || '';
   const phone = user?.phone || '';
@@ -158,10 +155,10 @@ export default function ClientProfileScreen() {
               <View style={styles.avatarLoader}>
                 <ActivityIndicator color={colors.gold} />
               </View>
-            ) : resolvedAvatarUri ? (
+            ) : avatarUri ? (
               <Image
-                key={user?.avatarUrl ?? 'placeholder'}
-                source={{ uri: resolvedAvatarUri }}
+                key={`avatar-${avatarVersion}`}
+                source={{ uri: avatarUri }}
                 style={styles.avatar}
               />
             ) : (
@@ -250,7 +247,7 @@ function MenuItem({ icon, title, rightComponent, onPress }: { icon: any, title: 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60 },
-  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: colors.primary },
+  headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary },
   settingsButton: { width: 40, alignItems: 'flex-end', justifyContent: 'center' },
   
   scrollContent: { paddingBottom: 40 },
@@ -263,7 +260,7 @@ const styles = StyleSheet.create({
   avatarLoader: { width: 116, height: 116, borderRadius: 58, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
   cameraIconContainer: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.surface },
   
-  fullName: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 24, color: colors.primary, marginBottom: 4 },
+  fullName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 24, color: colors.primary, marginBottom: 4 },
   contactText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#555555', marginBottom: 2 },
   
   verificationRow: { flexDirection: 'row', gap: 12, marginTop: spacing.sm },

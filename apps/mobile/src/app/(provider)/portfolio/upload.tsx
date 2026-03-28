@@ -7,8 +7,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme'
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { tokenStorage } from '../../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 const PRESET_TAGS = ['Knotless', 'Box Braids', 'Cornrows', 'Twists', 'Locs', 'Fades'];
 
@@ -27,7 +26,7 @@ export default function PortfolioUploadScreen() {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         quality: 0.7,
         exif: false,
@@ -94,11 +93,11 @@ export default function PortfolioUploadScreen() {
         formData.append('styleTags', JSON.stringify(styleTags));
       }
 
-      const res = await fetch(`${API_URL}/providers/me/portfolio`, {
+      const res = await fetch(`${API}/providers/me/portfolio`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          // BUG 8: no Content-Type — RN sets multipart boundary automatically
         },
         body: formData,
       });

@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
   PlayfairDisplay_400Regular,
+  PlayfairDisplay_500Medium,
   PlayfairDisplay_700Bold,
 } from '@expo-google-fonts/playfair-display';
 import {
@@ -22,6 +23,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
+    PlayfairDisplay_500Medium,
     PlayfairDisplay_700Bold,
     DMSans_400Regular,
     DMSans_500Medium,

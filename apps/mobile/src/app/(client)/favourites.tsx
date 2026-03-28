@@ -6,8 +6,7 @@ import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
 import { removeFavourite } from '../../utils/favourites';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 type ProviderSummaryDto = {
   id: string;
@@ -40,7 +39,7 @@ export default function FavouritesScreen() {
         router.replace('/(auth)/login');
         return;
       }
-      const res = await axios.get(`${API_URL}/favourites`, {
+      const res = await axios.get(`${API}/favourites`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const payload = res.data?.data ?? res.data ?? [];
@@ -87,7 +86,8 @@ export default function FavouritesScreen() {
       >
         <View style={styles.imageContainer}>
           {avatar ? (
-            <Image source={{ uri: `${avatar.startsWith('http') ? '' : API_URL}${avatar}` }} style={styles.cardImage} />
+            // BUG 2: R2 returns full https:// URLs — use directly
+            <Image source={{ uri: avatar }} style={styles.cardImage} />
           ) : (
             <View style={[styles.cardImage, styles.imagePlaceholder]}>
               <Text style={styles.imagePlaceholderText}>{initial}</Text>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
   backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: colors.primary },
+  headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary },
   
   listContainer: { paddingHorizontal: 16, paddingVertical: spacing.md, paddingBottom: 40 },
   rowGap: { gap: 12, marginBottom: 12 },

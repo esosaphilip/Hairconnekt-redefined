@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
+import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -32,7 +32,7 @@ export default function AppointmentsList() {
       if (activeTab === 'completed') statusParam = 'COMPLETED';
       if (activeTab === 'cancelled') statusParam = 'CANCELLED';
 
-      const response = await axios.get(`${API_URL}/bookings?status=${statusParam}&limit=50`, {
+      const response = await axios.get(`${API}/bookings?status=${statusParam}&limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -81,8 +81,29 @@ export default function AppointmentsList() {
     }
   };
 
-  const openMaps = (city: string) => {
-    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(city)}`);
+  const openMaps = (address: string) => {
+    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
+  };
+
+  const openChat = async (providerId: string, providerUserId: string) => {
+    try {
+      const token = await tokenStorage.getAccessToken();
+      const res = await fetch(`${API}/chat/conversations`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: providerUserId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const conversationId = data.data?.id ?? data.id;
+        router.push(`/(client)/chat/${conversationId}` as any);
+      } else {
+        // Fallback: navigate with provider ID so chat screen can handle it
+        router.push(`/(client)/chat/${providerId}` as any);
+      }
+    } catch {
+      router.push(`/(client)/chat/${providerId}` as any);
+    }
   };
 
   const emptyText = () => {
@@ -95,8 +116,8 @@ export default function AppointmentsList() {
     const provider = item.provider || {};
     const user = provider.user || {};
     const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : 'Anbieter');
-    const avatar = user.avatarUrl || 'https://via.placeholder.com/150';
-    const city = user.city || 'Düsseldorf';
+    const avatarUri = user.avatarUrl as string | undefined;
+    const address = item.address ? `${item.address.street || ''} ${item.address.houseNumber || ''}, ${item.address.city || ''}`.trim() : (user.city as string | undefined);
     
     const serviceNames = item.services && item.services.length > 0
       ? item.services.map((s: any) => s.name).join(', ')
@@ -112,7 +133,11 @@ export default function AppointmentsList() {
       >
         {/* ROW 1: Provider Info + Status Badge */}
         <View style={styles.cardHeader}>
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          ) : (
+            <Image source={avatarPlaceholder} style={styles.avatar} />
+          )}
           <Text style={styles.providerName} numberOfLines={1}>{providerName}</Text>
           <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
             <Text style={styles.statusBadgeText}>{badge.text}</Text>
@@ -134,11 +159,13 @@ export default function AppointmentsList() {
 
         {/* ROW 4: Action Buttons */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(city)}>
-            <Feather name="map-pin" size={16} color={colors.primary} style={styles.actionIcon} />
-            <Text style={styles.actionButtonText}>Route</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push(`/(client)/chat/${provider.id}` as any)}>
+          {!!address && (
+            <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(address)}>
+              <Feather name="map-pin" size={16} color={colors.primary} style={styles.actionIcon} />
+              <Text style={styles.actionButtonText}>Route</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.actionButton} onPress={() => openChat(provider.id, provider.userId || provider.user?.id)}>
             <Feather name="message-circle" size={16} color={colors.primary} style={styles.actionIcon} />
             <Text style={styles.actionButtonText}>Nachricht</Text>
           </TouchableOpacity>

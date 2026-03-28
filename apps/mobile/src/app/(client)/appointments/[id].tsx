@@ -7,8 +7,9 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
+// BUG 26: local bundled placeholder instead of external URL
+import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function AppointmentDetails() {
       setIsLoading(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      const response = await axios.get(`${API_URL}/bookings/${id}`, {
+      const response = await axios.get(`${API}/bookings/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBooking(response.data);
@@ -120,8 +121,8 @@ export default function AppointmentDetails() {
   const provider = booking.provider || {};
   const user = provider.user || {};
   const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : 'Anbieter');
-  const avatar = user.avatarUrl || 'https://via.placeholder.com/150';
-  const city = user.city || 'Düsseldorf';
+  const avatarUri = user.avatarUrl as string | undefined;
+  const city = user.city as string | undefined;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -142,13 +143,19 @@ export default function AppointmentDetails() {
         {/* Provider Logic Card */}
         <View style={styles.card}>
           <View style={styles.providerHeader}>
-            <Image source={{ uri: avatar }} style={styles.providerAvatar} />
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.providerAvatar} />
+            ) : (
+              <Image source={avatarPlaceholder} style={styles.providerAvatar} />
+            )}
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>{providerName}</Text>
-              <View style={styles.locationRow}>
-                <Feather name="map-pin" size={14} color={colors.textSecondary} />
-                <Text style={styles.locationText}>{city}</Text>
-              </View>
+              {!!city && (
+                <View style={styles.locationRow}>
+                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                  <Text style={styles.locationText}>{city}</Text>
+                </View>
+              )}
             </View>
           </View>
           
@@ -197,7 +204,7 @@ export default function AppointmentDetails() {
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Dauer</Text>
-            <Text style={styles.infoValue}>{calculateDuration() / 60} Stunden</Text>
+            <Text style={styles.infoValue}>{(() => { const mins = calculateDuration(); const h = Math.floor(mins / 60); const m = mins % 60; return h > 0 ? `${h} Std.${m > 0 ? ` ${m} Min.` : ''}` : `${m} Min.`; })()}</Text>
           </View>
           
           <View style={styles.divider} />
