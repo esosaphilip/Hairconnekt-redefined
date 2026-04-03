@@ -58,13 +58,7 @@ export class ProvidersController {
     return this.providersService.updateMyProfile(user.id, body);
   }
 
-  /** GET /providers/me/portfolio */
-  @Get('me/portfolio')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROVIDER)
-  async getMyPortfolio(@CurrentUser() user: User) {
-    return this.providersService.getMyPortfolio(user.id);
-  }
+
 
   /** PUT /providers/me/availability — set weekly schedule */
   @Put('me/availability')
@@ -161,78 +155,7 @@ export class ProvidersController {
     return { idDocumentUrl: url };
   }
 
-  @Post('me/portfolio')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROVIDER)
-  @UseInterceptors(
-    FileInterceptor('portfolio', {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
-      fileFilter: (req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  async uploadPortfolioImage(
-    @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
-    @Body() body: Record<string, string>,
-  ) {
-    if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
-    const url = await this.r2Service.uploadFile(
-      file.buffer,
-      file.mimetype,
-      'portfolio',
-    );
-    const provider = await this.providersService.findByUserId(user.id);
-    if (!provider) throw new NotFoundException();
 
-    let styleTags = [];
-    if (body.styleTags) {
-      try {
-        styleTags = JSON.parse(body.styleTags);
-      } catch (e) {
-        // Fallback or ignore
-      }
-    }
-
-    // Save to portfolio_images table
-    const image = this.portfolioRepo.create({
-      providerId: provider.id,
-      imageUrl: url,
-      sortOrder: 0,
-      caption: body.caption || null,
-      styleTags: styleTags.length > 0 ? styleTags : null,
-    });
-    await this.portfolioRepo.save(image);
-    return { id: image.id, imageUrl: url };
-  }
-
-  @Delete('me/portfolio/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROVIDER)
-  async deletePortfolioImage(
-    @CurrentUser() user: User,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    const provider = await this.providersService.findByUserId(user.id);
-    if (!provider) throw new NotFoundException();
-
-    const image = await this.portfolioRepo.findOne({
-      where: { id, providerId: provider.id },
-    });
-    if (!image) throw new NotFoundException('Bild nicht gefunden');
-
-    if (image.imageUrl) {
-      await this.r2Service.deleteFile(image.imageUrl);
-    }
-
-    await this.portfolioRepo.remove(image);
-    return { success: true };
-  }
 
   // --- Services ---
   @Get('me/services')
@@ -336,10 +259,7 @@ export class ProvidersController {
     return this.providersService.getPublicServices(providerId);
   }
 
-  @Get(':id/portfolio')
-  async getPublicPortfolio(@Param('id', ParseUUIDPipe) providerId: string) {
-    return this.providersService.getPortfolio(providerId);
-  }
+
 
   @Get(':id/reviews')
   async getPublicReviews(@Param('id', ParseUUIDPipe) providerId: string) {

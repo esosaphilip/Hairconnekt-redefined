@@ -53,6 +53,10 @@ export class R2Service {
       );
     } catch (err) {
       console.error('R2 delete error:', err);
+      // ✅ NOW THROWS — prevents DB deletion if R2 fails
+      throw new InternalServerErrorException(
+        'Datei konnte nicht aus dem Speicher gelöscht werden.'
+      );
     }
   }
 }

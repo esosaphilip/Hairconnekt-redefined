@@ -133,25 +133,7 @@ export class ProvidersService {
     return this.providerRepo.save(provider);
   }
 
-  async updateAvatar(userId: string, file: Express.Multer.File): Promise<{ avatarUrl: string }> {
-    await this.getMe(userId);
-    return { avatarUrl: `/uploads/avatars/${file.filename}` };
-  }
 
-  async updateIdDocument(userId: string, file: Express.Multer.File): Promise<{ idDocumentUrl: string }> {
-    const provider = await this.getMe(userId);
-    const idDocumentUrl = `/uploads/id-documents/${file.filename}`;
-    provider.idDocumentUrl = idDocumentUrl;
-    await this.providerRepo.save(provider);
-    return { idDocumentUrl };
-  }
-
-  async addPortfolioImage(userId: string, file: Express.Multer.File): Promise<PortfolioImage> {
-    const provider = await this.getMe(userId);
-    const imageUrl = `/uploads/portfolio/${file.filename}`;
-    const image = this.portfolioRepository.create({ providerId: provider.id, imageUrl });
-    return this.portfolioRepository.save(image);
-  }
 
   async getMyPortfolio(userId: string): Promise<PortfolioImage[]> {
     const provider = await this.getMe(userId);

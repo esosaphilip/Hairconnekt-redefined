@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { mapHttpError } from '../../../utils/error-messages';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
+import * as ImagePicker from 'expo-image-picker';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -22,6 +23,9 @@ export default function ClientProfileEditScreen() {
 
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarVersion, setAvatarVersion] = useState(Date.now());
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -42,6 +46,9 @@ export default function ClientProfileEditScreen() {
 
       const data: any = await res.json();
       if (data) {
+        if (data.avatarUrl || data.data?.avatarUrl) {
+          setAvatarUri(data.avatarUrl || data.data.avatarUrl);
+        }
         setFirstName(data.firstName || data.data?.firstName || '');
         setLastName(data.lastName || data.data?.lastName || '');
         setEmail(data.email || data.data?.email || '');
@@ -93,6 +100,64 @@ export default function ClientProfileEditScreen() {
     }
   };
 
+  const pickAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Error picking avatar', error);
+      setErrorMessage('Fehler beim Auswählen des Bildes.');
+      setErrorVisible(true);
+    }
+  };
+
+  const uploadAvatar = async (uri: string) => {
+    try {
+      setIsUploadingAvatar(true);
+      setErrorVisible(false);
+
+      const token = await tokenStorage.getAccessToken();
+      const formData = new FormData();
+
+      formData.append('avatar', {
+        uri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      } as any);
+
+      const response = await fetch(`${API_URL}/users/me/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(mapHttpError(response.status));
+      }
+
+      const data = await response.json();
+      setAvatarUri(data.avatarUrl || uri);
+      setAvatarVersion(Date.now());
+    } catch (error: any) {
+      console.log('Avatar upload error', error);
+      setErrorMessage(error.message || mapHttpError(500));
+      setErrorVisible(true);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -121,6 +186,39 @@ export default function ClientProfileEditScreen() {
         <GermanErrorBanner visible={errorVisible} message={errorMessage} onDismiss={() => setErrorVisible(false)} />
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+          {/* Avatar Section */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={pickAvatar}
+              activeOpacity={0.8}
+              disabled={isUploadingAvatar}
+            >
+              {avatarUri ? (
+                <>
+                  <Image
+                    source={{ uri: avatarUri }}
+                    key={`avatar-${avatarVersion}`}
+                    style={styles.avatarImage}
+                  />
+                  {isUploadingAvatar && (
+                    <View style={styles.avatarLoadingOverlay}>
+                      <ActivityIndicator size="small" color={colors.surface} />
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Feather name="user" size={40} color={colors.textSecondary} />
+                </View>
+              )}
+              <View style={styles.cameraIcon}>
+                <Feather name="camera" size={16} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.avatarHint}>Dein Profilbild</Text>
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Vorname</Text>
             <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="Vorname" />
@@ -158,6 +256,58 @@ export default function ClientProfileEditScreen() {
 }
 
 const styles = StyleSheet.create({
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  avatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarHint: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
   safeContainer: { flex: 1, backgroundColor: colors.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 

@@ -58,7 +58,7 @@ export default function ProviderProfile() {
       
       const portData = portRes.data.data || portRes.data || [];
       console.log('Portfolio data:', JSON.stringify(portData).slice(0, 200));
-      setPortfolio(portData.filter((img: any) => img.imageUrl ?? img.url));
+      setPortfolio(portData.filter((img: any) => !!img.imageUrl));
 
       setReviews(revRes.data.data || revRes.data);
 
@@ -258,7 +258,7 @@ export default function ProviderProfile() {
               numColumns={2}
               columnWrapperStyle={{ justifyContent: 'space-between' }}
               renderItem={({ item }) => {
-                const imageUrl = item.imageUrl ?? item.url;
+                const imageUrl = item.imageUrl;
                 if (!imageUrl) return null;
                 return (
                   <View style={styles.galleryImageContainer}>

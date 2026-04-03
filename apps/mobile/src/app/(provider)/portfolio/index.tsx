@@ -15,9 +15,11 @@ const IMAGE_SIZE = (width - spacing.lg * 2 - spacing.md) / COLUMN_COUNT;
 
 interface PortfolioImage {
   id: string;
-  url: string;
-  imageUrl?: string;
-  orderIndex: number;
+  imageUrl: string;
+  caption?: string;
+  styleTags?: string[];
+  sortOrder: number;
+  createdAt?: string;
 }
 
 export default function PortfolioScreen() {
@@ -40,7 +42,7 @@ export default function PortfolioScreen() {
         // Sort by orderIndex if present
         if (Array.isArray(imageList)) {
           imageList.sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0));
-          const validImages = imageList.filter((img: any) => img.imageUrl && img.imageUrl.length > 0);
+          const validImages = imageList.filter((img: any) => !!img.imageUrl);
           setImages(validImages);
         }
       }
@@ -93,11 +95,11 @@ export default function PortfolioScreen() {
   };
 
   const renderItem = ({ item }: { item: PortfolioImage }) => {
-    if (!item.imageUrl && !item.url) return null;
+    if (!item.imageUrl) return null;
     return (
       <View style={styles.imageCard}>
         <Image 
-          source={{ uri: item.imageUrl ?? item.url }} 
+          source={{ uri: item.imageUrl }} 
           style={styles.image} 
           resizeMode="cover" 
           onError={() => {
