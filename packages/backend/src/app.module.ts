@@ -22,8 +22,10 @@ import { StorageModule } from './common/storage/storage.module';
       url: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false, // Disable auto-sync in production
       logging: ['error'],
+      retryAttempts: 5,
+      retryDelay: 3000,
     }),
     AuthModule,
     BookingsModule,
