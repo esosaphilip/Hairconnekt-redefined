@@ -3,7 +3,7 @@ import {
   UpdateDateColumn, DeleteDateColumn, OneToOne, OneToMany,
 } from 'typeorm';
 
-export enum UserRole { CLIENT = 'client', PROVIDER = 'provider' }
+export enum UserRole { CLIENT = 'client', PROVIDER = 'provider', ADMIN = 'admin' }
 export enum Gender { MALE = 'male', FEMALE = 'female', DIVERSE = 'diverse', UNSPECIFIED = 'unspecified' }
 
 @Entity('users')

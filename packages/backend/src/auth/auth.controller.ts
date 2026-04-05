@@ -41,6 +41,16 @@ export class AuthController {
   }
 
   /**
+   * POST /auth/admin-login
+   * Returns: AuthResponseDto
+   */
+  @Post('admin-login')
+  @HttpCode(HttpStatus.OK)
+  adminLogin(@Body() dto: LoginDto): Promise<AuthResponseDto> {
+    return this.authService.adminLogin(dto);
+  }
+
+  /**
    * POST /auth/google
    * Mobile Google Sign-In flow
    * Returns: AuthResponseDto

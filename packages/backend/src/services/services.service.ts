@@ -10,7 +10,10 @@ export class CategoriesService {
     private categoryRepo: Repository<ServiceCategory>,
   ) {}
 
-  async getCategories(): Promise<ServiceCategory[]> {
-    return this.categoryRepo.find({ order: { sortOrder: 'ASC', name: 'ASC' } });
+  async getCategories() {
+    return this.categoryRepo.find({
+      where: { isActive: true },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
   }
 }

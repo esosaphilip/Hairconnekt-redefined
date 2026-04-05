@@ -13,6 +13,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
 import { ServicesModule } from './services/services.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { StorageModule } from './common/storage/storage.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { StorageModule } from './common/storage/storage.module';
     ServicesModule,
     AvailabilityModule,
     StorageModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

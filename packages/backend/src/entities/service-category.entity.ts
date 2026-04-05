@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 @Entity('service_categories')
 export class ServiceCategory {
@@ -11,6 +11,15 @@ export class ServiceCategory {
   @Column({ type: 'varchar', nullable: true })
   iconName: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  description: string;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @Column({ type: 'int', default: 0 })
   sortOrder: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }

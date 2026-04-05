@@ -93,6 +93,33 @@ export class AuthService {
     return this.generateAuthResponse(user);
   }
 
+  // ─── ADMIN LOGIN ───────────────────────────────────────────────────────────
+  async adminLogin(dto: LoginDto): Promise<AuthResponseDto> {
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.email = :identifier', {
+        identifier: dto.identifier.toLowerCase(),
+      })
+      .andWhere('user.isActive = true')
+      .getOne();
+
+    if (!user || user.role !== 'admin') {
+      throw new UnauthorizedException('Kein Admin-Zugang.');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Kein Admin-Zugang.');
+    }
+
+    const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Kein Admin-Zugang.');
+    }
+
+    return this.generateAuthResponse(user);
+  }
+
   // ─── GOOGLE AUTH ───────────────────────────────────────────────────────────
   async googleAuth(dto: GoogleAuthDto): Promise<AuthResponseDto> {
     // Phase 1: Basic Google auth via ID token — verify with Google OAuth2 client
