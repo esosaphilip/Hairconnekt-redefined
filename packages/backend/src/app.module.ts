@@ -24,7 +24,7 @@ import { AdminModule } from './admin/admin.module';
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
       autoLoadEntities: true,
       synchronize: false, // Disable auto-sync in production
-      logging: ['error'],
+      logging: 'all',
       retryAttempts: 5,
       retryDelay: 3000,
     }),

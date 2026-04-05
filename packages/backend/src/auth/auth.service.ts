@@ -70,12 +70,12 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     // Identify by email or phone
     const user = await this.userRepo
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash') // select:false — must be explicit
-      .where('user.email = :identifier OR user.phone = :identifier', {
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash') // select:false — must be explicit
+      .where('u.email = :identifier OR u.phone = :identifier', {
         identifier: dto.identifier.toLowerCase(),
       })
-      .andWhere('user.isActive = true')
+      .andWhere('u.isActive = true')
       .getOne();
 
     if (!user) throw new UnauthorizedException('E-Mail oder Passwort falsch.');
@@ -96,12 +96,12 @@ export class AuthService {
   // ─── ADMIN LOGIN ───────────────────────────────────────────────────────────
   async adminLogin(dto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.userRepo
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.email = :identifier', {
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.email = :identifier', {
         identifier: dto.identifier.toLowerCase(),
       })
-      .andWhere('user.isActive = true')
+      .andWhere('u.isActive = true')
       .getOne();
 
     if (!user || user.role !== 'admin') {
@@ -214,9 +214,9 @@ export class AuthService {
     await this.verifyOtp({ email: dto.email, otp: dto.otp });
 
     const user = await this.userRepo
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.email = :email', { email: dto.email.toLowerCase() })
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.email = :email', { email: dto.email.toLowerCase() })
       .getOne();
 
     if (!user) throw new NotFoundException('Konto nicht gefunden.');

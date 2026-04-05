@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Provider } from '../entities/provider.entity';
+import { Provider, ProviderStatus } from '../entities/provider.entity';
 import { User } from '../entities/user.entity';
 
 @Controller('admin/providers')
@@ -22,7 +22,7 @@ export class AdminProvidersController {
   // GET /admin/providers?status=pending
   @Get()
   async findAll(@Query('status') status?: string) {
-    const where = status ? { status } : {};
+    const where = status ? { status: status as ProviderStatus } : {};
     return this.providerRepo.find({
       where,
       relations: ['user'],
@@ -66,7 +66,7 @@ export class AdminProvidersController {
       relations: ['user'],
     });
     if (!provider) throw new Error('Anbieter nicht gefunden.');
-    provider.status = 'approved';
+    provider.status = ProviderStatus.APPROVED;
     await this.providerRepo.save(provider);
     // TODO Phase 2: send approval email via SMTP
     return { message: 'Anbieter wurde freigeschalten.', provider };
@@ -84,7 +84,7 @@ export class AdminProvidersController {
     });
     if (!provider) throw new Error('Anbieter nicht gefunden.');
     // Normally store reason in DB, for now just set status:
-    provider.status = 'rejected';
+    provider.status = ProviderStatus.REJECTED;
     await this.providerRepo.save(provider);
     // TODO Phase 2: send rejection email with reason
     return { message: 'Anbieter wurde abgelehnt.' };
@@ -93,7 +93,7 @@ export class AdminProvidersController {
   // PATCH /admin/providers/:id/suspend — suspend approved provider
   @Patch(':id/suspend')
   async suspend(@Param('id', ParseUUIDPipe) id: string) {
-    await this.providerRepo.update(id, { status: 'suspended' });
+    await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
     return { message: 'Anbieter wurde gesperrt.' };
   }
 }

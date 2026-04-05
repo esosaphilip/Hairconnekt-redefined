@@ -16,8 +16,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('admin_token');
-      // Redirect to login if needed. 
-      // Handled at router level usually by standard protected route
     }
     return Promise.reject(error);
   }
