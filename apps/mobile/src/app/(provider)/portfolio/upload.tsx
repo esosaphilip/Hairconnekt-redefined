@@ -110,7 +110,7 @@ export default function PortfolioUploadScreen() {
         return;
       }
 
-      router.back();
+      router.replace('/(provider)/portfolio');
     } catch (err) {
       console.error('Upload exception:', err);
       setErrorMessage('Verbindungsfehler. Bitte prüfe deine Internetverbindung.');
@@ -124,7 +124,7 @@ export default function PortfolioUploadScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.replace('/(provider)/portfolio')} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Foto hochladen</Text>
