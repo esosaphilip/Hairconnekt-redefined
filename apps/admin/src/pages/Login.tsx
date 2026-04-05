@@ -17,7 +17,13 @@ export default function Login() {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError('Ungültige Anmeldedaten');
+      if (err.message === 'Network Error') {
+        setError('Connection failed. Backend might be unreachable or blocking CORS.');
+      } else if (err.response && err.response.status === 401) {
+        setError('Falsches Passwort oder falsche Email!');
+      } else {
+        setError(`Error: ${err.message || 'Ungültige Anmeldedaten'}`);
+      }
     }
   };
 
