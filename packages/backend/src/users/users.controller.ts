@@ -9,6 +9,7 @@ import { memoryStorage } from 'multer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { Provider } from '../entities/provider.entity';
 import { R2Service } from '../common/storage/r2.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -18,6 +19,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly r2Service: R2Service,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Provider) private readonly providerRepo: Repository<Provider>,
   ) {}
 
   @Get('me')
@@ -92,6 +94,7 @@ export class UsersController {
       'avatars',
     );
     await this.userRepo.update(user.id, { avatarUrl: url });
+    await this.providerRepo.update({ userId: user.id }, { avatarUrl: url });
     return { avatarUrl: url };
   }
 }

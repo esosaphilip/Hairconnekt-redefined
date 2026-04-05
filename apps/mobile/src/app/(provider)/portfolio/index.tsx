@@ -32,7 +32,12 @@ export default function PortfolioScreen() {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
       const response = await fetch(`${API_URL}/providers/me/portfolio`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
 
       if (response.ok) {

@@ -205,7 +205,7 @@ export default function EditProfileScreen() {
         <View style={styles.avatarSection}>
           <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar} activeOpacity={0.8}>
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              <Image key={`avatar-${avatarVersion}`} source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Feather name="user" size={48} color={colors.primaryLight} />

@@ -28,15 +28,6 @@ export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}
 
   /**
-   * PUBLIC: Get provider portfolio (no auth required)
-   * GET /providers/:providerId/portfolio
-   */
-  @Get(':providerId/portfolio')
-  async getPublicPortfolio(@Param('providerId') providerId: string) {
-    return this.portfolioService.getPortfolio(providerId);
-  }
-
-  /**
    * PRIVATE: Get authenticated provider's portfolio
    * GET /providers/me/portfolio
    */
@@ -45,6 +36,15 @@ export class PortfolioController {
   @Roles(UserRole.PROVIDER)
   async getOwnPortfolio(@CurrentUser() user: User) {
     return this.portfolioService.getOwnPortfolio(user.id);
+  }
+
+  /**
+   * PUBLIC: Get provider portfolio (no auth required)
+   * GET /providers/:providerId/portfolio
+   */
+  @Get(':providerId/portfolio')
+  async getPublicPortfolio(@Param('providerId') providerId: string) {
+    return this.portfolioService.getPortfolio(providerId);
   }
 
   /**

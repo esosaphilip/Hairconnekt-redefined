@@ -189,7 +189,7 @@ export default function ProviderProfile() {
         <View style={styles.tabContentContainer}>
           {activeTab === 'Überblick' && (
             <View>
-              {provider.bio && <Text style={styles.bioText}>{provider.bio}</Text>}
+              {!!provider.bio && <Text style={styles.bioText}>{provider.bio}</Text>}
               
               <Text style={styles.sectionHeader}>Spezialisierungen</Text>
               <View style={styles.tagsRow}>
