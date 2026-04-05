@@ -4,8 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 interface Message {
   id: string;
@@ -70,7 +70,7 @@ export default function ChatIndividualScreen() {
       setCurrentUserId('me-id');
 
       // Fetch history
-      const res = await fetch(`${API_URL}/chat/conversations/${id}`, {
+      const res = await fetch(`${API}/chat/conversations/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(() => ({ ok: false, json: () => ({}) }));
 
@@ -87,7 +87,7 @@ export default function ChatIndividualScreen() {
       if (!pollingIntervalRef.current) {
         pollingIntervalRef.current = setInterval(async () => {
           try {
-            const pollRes = await fetch(`${API_URL}/chat/conversations/${id}`, {
+            const pollRes = await fetch(`${API}/chat/conversations/${id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (pollRes.ok) {
@@ -130,7 +130,7 @@ export default function ChatIndividualScreen() {
       const token = await tokenStorage.getAccessToken();
       
       // Send via REST (or WS depending on backend preference)
-      await fetch(`${API_URL}/chat/conversations/${id}/messages`, {
+      await fetch(`${API}/chat/conversations/${id}/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -139,7 +139,7 @@ export default function ChatIndividualScreen() {
         body: JSON.stringify({ content })
       });
       // Refresh messages
-      const updatedRes = await fetch(`${API_URL}/chat/conversations/${id}`, {
+      const updatedRes = await fetch(`${API}/chat/conversations/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (updatedRes.ok) {

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -41,9 +41,10 @@ export default function ReviewsScreen() {
   const [responseText, setResponseText] = useState('');
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
 
-  useEffect(() => {
-    init();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      init();
+    }, [])
 
   const init = async () => {
     try {
@@ -52,10 +53,15 @@ export default function ReviewsScreen() {
       const meRes = await fetch(`${API}/providers/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      let pId = 'mock-id';
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        pId = meData.id || pId;
+      if (!meRes.ok) {
+        console.log('Could not load provider profile, status:', meRes.status);
+        return;
+      }
+      const meData = await meRes.json();
+      const pId: string | undefined = meData.id;
+      if (!pId) {
+        console.log('Provider ID missing in response');
+        return;
       }
       setProviderId(pId);
       await loadReviews(pId, 'Alle', 1, true);

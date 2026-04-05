@@ -10,8 +10,7 @@ import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { FontAwesome5 } from '@expo/vector-icons';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -53,14 +52,14 @@ export default function RegisterScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const response = await axios.post(`${API_URL}/auth/register`, {
+      const response = await axios.post(`${API}/auth/register`, {
         firstName, lastName, email, phone, password, role: 'client', acceptedTerms
       });
 
       const { accessToken, refreshToken, user } = response.data;
 
       await tokenStorage.save(accessToken, refreshToken, user.role as 'client' | 'provider');
-      await AsyncStorage.setItem('hc_user', JSON.stringify(user));
+      await tokenStorage.setUser(user);
 
       router.replace('/(client)/' as any);
     } catch (err: any) {

@@ -5,8 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ProviderProfileHubScreen() {
   const router = useRouter();
@@ -24,8 +24,8 @@ export default function ProviderProfileHubScreen() {
       setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
       const [provRes, userRes] = await Promise.all([
-        fetch(`${API_URL}/providers/me`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/users/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API}/providers/me`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API}/users/me`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (provRes.ok) {
@@ -74,7 +74,7 @@ export default function ProviderProfileHubScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const res = await fetch(`${API_URL}/providers/me/avatar`, {
+      const res = await fetch(`${API}/providers/me/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

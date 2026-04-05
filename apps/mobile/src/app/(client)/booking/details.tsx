@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function BookingDetails() {
   const router = useRouter();
@@ -46,8 +46,8 @@ export default function BookingDetails() {
       try {
         const token = await tokenStorage.getAccessToken();
         const [providerRes, servicesRes] = await Promise.all([
-          axios.get(`${API_URL}/providers/${providerId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_URL}/providers/${providerId}/services`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${API}/providers/${providerId}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/providers/${providerId}/services`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
         
         const provData = providerRes.data.data || providerRes.data;
@@ -100,7 +100,7 @@ export default function BookingDetails() {
         clientNotes
       };
       
-      const response = await axios.post(`${API_URL}/bookings`, bookingData, {
+      const response = await axios.post(`${API}/bookings`, bookingData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

@@ -8,6 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { bookingStatus } from '../../../utils/booking-status';
 import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
@@ -55,10 +56,10 @@ export default function AppointmentsList() {
   );
 
   const getBorderColor = (status: string) => {
-    if (status === 'CONFIRMED' || status === 'IN_PROGRESS') return '#2E7D32'; // Colors.success
-    if (status?.toLowerCase() === 'pending') return '#BF6000'; // Amber
-    if (status === 'COMPLETED') return '#6B6B6B'; // Colors.textSecondary
-    if (status === 'CANCELLED') return '#C62828'; // Colors.error
+    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return '#2E7D32'; // Colors.success
+    if (bookingStatus(status) === 'pending') return '#BF6000'; // Amber
+    if (bookingStatus(status) === 'completed') return '#6B6B6B'; // Colors.textSecondary
+    if (bookingStatus(status) === 'cancelled') return '#C62828'; // Colors.error
     return colors.border;
   };
 

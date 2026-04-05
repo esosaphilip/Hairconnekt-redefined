@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { mapHttpError } from '../../../utils/error-messages';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import * as ImagePicker from 'expo-image-picker';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ClientProfileEditScreen() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function ClientProfileEditScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/users/me`, {
+      const res = await fetch(`${API}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -75,7 +75,7 @@ export default function ClientProfileEditScreen() {
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
       
-      const res = await fetch(`${API_URL}/users/me`, {
+      const res = await fetch(`${API}/users/me`, {
         method: 'PATCH',
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -134,7 +134,7 @@ export default function ClientProfileEditScreen() {
         name: 'avatar.jpg',
       } as any);
 
-      const response = await fetch(`${API_URL}/users/me/avatar`, {
+      const response = await fetch(`${API}/users/me/avatar`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

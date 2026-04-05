@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 interface Conversation {
   id: string;
@@ -49,7 +49,7 @@ export default function ChatListScreen() {
   const loadConversations = async () => {
     try {
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/chat/conversations`, {
+      const res = await fetch(`${API}/chat/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -138,7 +138,11 @@ export default function ChatListScreen() {
   };
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading) return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.coral} />
+      </View>
+    );
     return (
       <View style={styles.emptyContainer}>
         <Feather name="message-circle" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />

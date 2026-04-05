@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ClientBookingDateTime() {
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function ClientBookingDateTime() {
       setSelectedTime('');
       const token = await tokenStorage.getAccessToken();
       
-      const response = await axios.get(`${API_URL}/providers/${providerId}/slots?date=${dateStr}`, {
+      const response = await axios.get(`${API}/providers/${providerId}/slots?date=${dateStr}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       let fetchedSlots = response.data.slots ?? response.data.data ?? response.data ?? [];

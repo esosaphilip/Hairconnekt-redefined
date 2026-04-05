@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000/api/v1';
+import { API } from '../../utils/api';
+import { bookingStatus } from '../../utils/booking-status';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -24,36 +24,47 @@ export default function ProviderDashboardScreen() {
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
 
   useEffect(() => {
-    const guard = async () => {
+    let active = true;
+
+    const guard = async (): Promise<boolean> => {
       const token = await tokenStorage.getAccessToken();
       const role = await tokenStorage.getUserRole();
       if (!token || role !== 'provider') {
         router.replace('/(auth)/login?role=provider');
-        return;
+        return false;
       }
       try {
         const res = await fetch(
-          `${API_URL}/providers/me`,
+          `${API}/providers/me`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.status === 404) {
           router.replace('/(provider)/register/type');
-          return;
+          return false;
         }
         if (!res.ok) {
           router.replace('/(auth)/login?role=provider');
-          return;
+          return false;
         }
-        const provider = await res.json();
-        if (provider.status?.toLowerCase() !== 'approved') {
+        const providerData = await res.json();
+        if (providerData.status?.toLowerCase() !== 'approved') {
           router.replace('/(provider)/pending');
+          return false;
         }
+        return true;
       } catch {
         router.replace('/(auth)/login?role=provider');
+        return false;
       }
     };
-    guard();
-    loadData();
+
+    (async () => {
+      const shouldContinue = await guard();
+      if (!active || !shouldContinue) return;
+      await loadData();
+    })();
+
+    return () => { active = false; };
   }, []);
 
   const loadData = async () => {
@@ -64,13 +75,13 @@ export default function ProviderDashboardScreen() {
       
       // Load stats and bookings in parallel
       const [providerRes, statsRes, bookingsRes] = await Promise.all([
-        fetch(`${API_URL}/providers/me`, {
+        fetch(`${API}/providers/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${API_URL}/providers/me/stats`, {
+        fetch(`${API}/providers/me/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${API_URL}/bookings?today=true`, {
+        fetch(`${API}/bookings?today=true`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -105,7 +116,7 @@ export default function ProviderDashboardScreen() {
     
     try {
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/providers/me/availability`, {
+      const response = await fetch(`${API}/providers/me/availability`, {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -128,7 +139,7 @@ export default function ProviderDashboardScreen() {
   const startBooking = async (id: string) => {
     try {
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/bookings/${id}/start`, {
+      const response = await fetch(`${API}/bookings/${id}/start`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -266,16 +277,16 @@ export default function ProviderDashboardScreen() {
                 </Text>
                 <View style={[
                   styles.statusBadge, 
-                  booking.status === 'CONFIRMED' ? { backgroundColor: colors.greenLight } : 
-                  booking.status === 'IN_PROGRESS' ? { backgroundColor: colors.orangeLight } : {}
+                  bookingStatus(booking.status) === 'confirmed' ? { backgroundColor: colors.greenLight } : 
+                  bookingStatus(booking.status) === 'in_progress' ? { backgroundColor: colors.orangeLight } : {}
                 ]}>
                   <Text style={[
                     styles.statusText,
-                    booking.status === 'CONFIRMED' ? { color: colors.green } : 
-                    booking.status === 'IN_PROGRESS' ? { color: colors.orange } : {}
+                    bookingStatus(booking.status) === 'confirmed' ? { color: colors.green } : 
+                    bookingStatus(booking.status) === 'in_progress' ? { color: colors.orange } : {}
                   ]}>
-                    {booking.status === 'CONFIRMED' ? 'Bestätigt' : 
-                     booking.status === 'IN_PROGRESS' ? 'Aktiv' : booking.status}
+                    {bookingStatus(booking.status) === 'confirmed' ? 'Bestätigt' : 
+                     bookingStatus(booking.status) === 'in_progress' ? 'Aktiv' : booking.status}
                   </Text>
                 </View>
               </View>
@@ -284,7 +295,7 @@ export default function ProviderDashboardScreen() {
               <Text style={styles.serviceName}>{booking.services?.[0]?.name || 'Service'} {booking.totalPrice ? `· €${Number(booking.totalPrice).toFixed(0)}` : ''}</Text>
               
               <View style={styles.bookingActions}>
-                {booking.status === 'CONFIRMED' && (
+                {bookingStatus(booking.status) === 'confirmed' && (
                   <View style={styles.actionBtnContainer}>
                     <PrimaryButton 
                       label="Starten" 
@@ -293,7 +304,7 @@ export default function ProviderDashboardScreen() {
                     />
                   </View>
                 )}
-                <View style={[styles.actionBtnContainer, booking.status === 'CONFIRMED' && { marginLeft: spacing.sm }]}>
+                <View style={[styles.actionBtnContainer, bookingStatus(booking.status) === 'confirmed' && { marginLeft: spacing.sm }]}>
                   <PrimaryButton 
                     label="Nachricht" 
                     onPress={() => router.push('/(provider)/chat')}

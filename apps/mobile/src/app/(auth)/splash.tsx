@@ -17,13 +17,14 @@ import {
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { tokenStorage } from '@/utils/token-storage';
+import { API } from '@/utils/api';
 import { colors } from '@/theme/colors';
 import { fonts, fontSizes } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 
+
 export default function SplashScreen() {
   const router = useRouter();
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
 
   // ── Animations ───────────────────────────────────────────────────────────
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -83,7 +84,7 @@ export default function SplashScreen() {
           if (role === 'provider') {
             try {
               const res = await fetch(
-                `${API_URL}/providers/me`,
+                `${API}/providers/me`,
                 { headers: { Authorization: `Bearer ${accessToken}` } }
               );
               if (res.ok) {

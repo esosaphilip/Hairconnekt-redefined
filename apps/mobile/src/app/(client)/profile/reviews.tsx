@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 interface Review {
   id: string;
@@ -33,7 +33,7 @@ export default function ClientReviewsScreen() {
     try {
       setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/reviews/mine`, {
+      const res = await fetch(`${API}/reviews/mine`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -106,7 +106,11 @@ export default function ClientReviewsScreen() {
   );
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading) return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.coral} />
+      </View>
+    );
     return (
       <View style={styles.emptyContainer}>
         <Feather name="star" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />

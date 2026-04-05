@@ -1,0 +1,193 @@
+
+> @hairconnekt/backend@1.0.0 start:dev
+> ts-node -r tsconfig-paths/register src/main.ts
+
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +25ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAvailabilityModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStorageModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:30 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+(node:34598) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mversion[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m*[0m [94mFROM[0m [95mcurrent_schema[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mCREATE[0m [37mEXTENSION[0m [94mIF[0m [94mNOT[0m [94mEXISTS[0m [37m"uuid-ossp"[0m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmCoreModule dependencies initialized[39m[38;5;3m +1838ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTypeOrmModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mChatModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mServicesModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReviewsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFavouritesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPortfolioModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProvidersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +21ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/register, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/admin-login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/google, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/forgot-password, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/verify-otp, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/reset-password, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBookingsController {/api/v1/bookings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/reschedule, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/cancel, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/accept, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/decline, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/start, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/complete, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReviewsController {/api/v1/reviews}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reviews, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/v1/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me/addresses, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me/addresses, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me/addresses/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me/addresses/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me/avatar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFavouritesController {/api/v1/favourites}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/favourites, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/favourites/:providerId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/favourites/:providerId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProvidersController {/api/v1/providers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/register, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/availability, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/availability, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/availability, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/avatar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/id-document, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/services, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/services, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/services/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/services/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/stats, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/blocks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/blocks, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/blocks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/:id/services, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/:id/reviews, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/:id/slots, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mChatController {/api/v1/chat}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/chat/conversations, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/v1/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPortfolioController {/api/v1/providers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/portfolio, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/:providerId/portfolio, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/portfolio, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/providers/me/portfolio/:imageId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mServicesController {/api/v1/services}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/services/categories, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminCategoriesController {/api/v1/admin/categories}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/categories, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/categories, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/categories/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/categories/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminProvidersController {/api/v1/admin/providers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/providers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/providers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/providers/:id/approve, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/providers/:id/reject, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 34598  - [39m04/05/2026, 9:45:32 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/admin/providers/:id/suspend, PATCH} route[39m[38;5;3m +1ms[39m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m"ServiceCategory"[0m[37m.[0m[37m"id"[0m [94mAS[0m [37m"ServiceCategory_id"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"name"[0m [94mAS[0m [37m"ServiceCategory_name"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"iconName"[0m [94mAS[0m [37m"ServiceCategory_iconName"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"description"[0m [94mAS[0m [37m"ServiceCategory_description"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"isActive"[0m [94mAS[0m [37m"ServiceCategory_isActive"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"sortOrder"[0m [94mAS[0m [37m"ServiceCategory_sortOrder"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"createdAt"[0m [94mAS[0m [37m"ServiceCategory_createdAt"[0m [94mFROM[0m [37m"service_categories"[0m [37m"ServiceCategory"[0m [94mWHERE[0m [37m([0m[37m([0m[37m"ServiceCategory"[0m[37m.[0m[37m"name"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [94mLIMIT[0m [32m1[0m [90m-- PARAMETERS: ["Flechten"][0m
+[4m[31mquery failed:[39m[24m [94mSELECT[0m [37m"ServiceCategory"[0m[37m.[0m[37m"id"[0m [94mAS[0m [37m"ServiceCategory_id"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"name"[0m [94mAS[0m [37m"ServiceCategory_name"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"iconName"[0m [94mAS[0m [37m"ServiceCategory_iconName"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"description"[0m [94mAS[0m [37m"ServiceCategory_description"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"isActive"[0m [94mAS[0m [37m"ServiceCategory_isActive"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"sortOrder"[0m [94mAS[0m [37m"ServiceCategory_sortOrder"[0m[37m,[0m [37m"ServiceCategory"[0m[37m.[0m[37m"createdAt"[0m [94mAS[0m [37m"ServiceCategory_createdAt"[0m [94mFROM[0m [37m"service_categories"[0m [37m"ServiceCategory"[0m [94mWHERE[0m [37m([0m[37m([0m[37m"ServiceCategory"[0m[37m.[0m[37m"name"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [94mLIMIT[0m [32m1[0m [90m-- PARAMETERS: ["Flechten"][0m
+[4m[31merror:[39m[24m error: column ServiceCategory.description does not exist
+/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/typeorm/src/driver/postgres/PostgresQueryRunner.ts:325
+            throw new QueryFailedError(query, parameters, err)
+                  ^
+QueryFailedError: column ServiceCategory.description does not exist
+    at PostgresQueryRunner.query (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/typeorm/src/driver/postgres/PostgresQueryRunner.ts:325:19)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async SelectQueryBuilder.loadRawResults (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:3868:25)
+    at async SelectQueryBuilder.executeEntitiesAndRawResults (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:3614:26)
+    at async SelectQueryBuilder.getRawAndEntities (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:1671:29)
+    at async SelectQueryBuilder.getOne (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:1698:25)
+    at async CategoriesSeedService.onModuleInit (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/src/seeds/categories.seed.ts:26:22)
+    at async Promise.all (index 0)
+    at async callModuleInitHook (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+    at async NestApplication.callInitHook (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/@nestjs/core/nest-application-context.js:252:13) {
+  query: 'SELECT "ServiceCategory"."id" AS "ServiceCategory_id", "ServiceCategory"."name" AS "ServiceCategory_name", "ServiceCategory"."iconName" AS "ServiceCategory_iconName", "ServiceCategory"."description" AS "ServiceCategory_description", "ServiceCategory"."isActive" AS "ServiceCategory_isActive", "ServiceCategory"."sortOrder" AS "ServiceCategory_sortOrder", "ServiceCategory"."createdAt" AS "ServiceCategory_createdAt" FROM "service_categories" "ServiceCategory" WHERE (("ServiceCategory"."name" = $1)) LIMIT 1',
+  parameters: [ 'Flechten' ],
+  driverError: error: column ServiceCategory.description does not exist
+      at /Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/pg/lib/client.js:631:17
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async PostgresQueryRunner.query (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/typeorm/src/driver/postgres/PostgresQueryRunner.ts:254:25)
+      at async SelectQueryBuilder.loadRawResults (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:3868:25)
+      at async SelectQueryBuilder.executeEntitiesAndRawResults (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:3614:26)
+      at async SelectQueryBuilder.getRawAndEntities (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:1671:29)
+      at async SelectQueryBuilder.getOne (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/src/query-builder/SelectQueryBuilder.ts:1698:25)
+      at async CategoriesSeedService.onModuleInit (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/src/seeds/categories.seed.ts:26:22)
+      at async Promise.all (index 0)
+      at async callModuleInitHook (/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/packages/backend/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5) {
+    length: 126,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '168',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3716',
+    routine: 'errorMissingColumn'
+  },
+  length: 126,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '168',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}

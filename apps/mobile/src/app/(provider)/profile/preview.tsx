@@ -7,8 +7,7 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 const { width } = Dimensions.get('window');
 
 // Safe numeric helpers — API can return null/undefined for any field
@@ -54,7 +53,7 @@ export default function ProfilePreviewScreen() {
       }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const meRes = await fetch(`${API_URL}/providers/me`, { headers });
+      const meRes = await fetch(`${API}/providers/me`, { headers });
       
       if (!meRes.ok) {
         setErrorMessage(mapHttpError(meRes.status));
@@ -74,7 +73,7 @@ export default function ProfilePreviewScreen() {
       
       // Check if this provider is in user's favorites
       try {
-        const favRes = await axios.get(`${API_URL}/favourites`, { headers });
+        const favRes = await axios.get(`${API}/favourites`, { headers });
         const favs = favRes.data.data || favRes.data;
         if (Array.isArray(favs) && favs.some((f: any) => f.providerId === meData.id || f.provider?.id === meData.id)) {
           setIsFavourite(true);
@@ -85,9 +84,9 @@ export default function ProfilePreviewScreen() {
       
       // Fetch additional data
       const [servRes, portRes, revRes] = await Promise.all([
-        fetch(`${API_URL}/providers/me/services`, { headers }),
-        fetch(`${API_URL}/providers/me/portfolio`, { headers }),
-        fetch(`${API_URL}/providers/me/reviews`, { headers }),
+        fetch(`${API}/providers/me/services`, { headers }),
+        fetch(`${API}/providers/me/portfolio`, { headers }),
+        fetch(`${API}/providers/me/reviews`, { headers }),
       ]);
 
       const servJson = await servRes.json().catch(() => ({}));
@@ -125,9 +124,9 @@ export default function ProfilePreviewScreen() {
       const headers = { Authorization: `Bearer ${token}` };
       
       if (prev) {
-        await axios.delete(`${API_URL}/favourites/${provider.id}`, { headers });
+        await axios.delete(`${API}/favourites/${provider.id}`, { headers });
       } else {
-        await axios.post(`${API_URL}/favourites`, { providerId: provider.id }, { headers });
+        await axios.post(`${API}/favourites`, { providerId: provider.id }, { headers });
       }
     } catch (err) {
       // Revert on error

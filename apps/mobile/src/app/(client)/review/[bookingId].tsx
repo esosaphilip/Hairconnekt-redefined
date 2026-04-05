@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 const RATING_LABELS: Record<number, string> = {
   1: 'Schlecht',
@@ -38,7 +38,7 @@ export default function WriteReviewScreen() {
         if (!bookingId) return;
         setIsLoading(true);
         const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API_URL}/bookings/${bookingId}`, {
+        const res = await axios.get(`${API}/bookings/${bookingId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setBooking(res.data);
@@ -59,7 +59,7 @@ export default function WriteReviewScreen() {
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
       
-      await axios.post(`${API_URL}/reviews`, {
+      await axios.post(`${API}/reviews`, {
         bookingId,
         rating,
         comment: comment.trim()

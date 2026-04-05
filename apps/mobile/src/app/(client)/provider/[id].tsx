@@ -8,9 +8,10 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { addFavourite, removeFavourite } from '../../../utils/favourites';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000/api/v1';
 const { width } = Dimensions.get('window');
+
 
 export default function ProviderProfile() {
   const router = useRouter();
@@ -46,11 +47,11 @@ export default function ProviderProfile() {
       const lng = '7.1508';
 
       const [provRes, servRes, portRes, revRes, favRes] = await Promise.all([
-        axios.get(`${API_URL}/providers/${id}?lat=${lat}&lng=${lng}`, { headers }),
-        axios.get(`${API_URL}/providers/${id}/services`, { headers }),
-        axios.get(`${API_URL}/providers/${id}/portfolio`, { headers }),
-        axios.get(`${API_URL}/providers/${id}/reviews?limit=20`, { headers }),
-        axios.get(`${API_URL}/favourites`, { headers }).catch(() => ({ data: { data: [] } }))
+        axios.get(`${API}/providers/${id}?lat=${lat}&lng=${lng}`, { headers }),
+        axios.get(`${API}/providers/${id}/services`, { headers }),
+        axios.get(`${API}/providers/${id}/portfolio`, { headers }),
+        axios.get(`${API}/providers/${id}/reviews?limit=20`, { headers }),
+        axios.get(`${API}/favourites`, { headers }).catch(() => ({ data: { data: [] } }))
       ]);
 
       setProvider(provRes.data.data || provRes.data);

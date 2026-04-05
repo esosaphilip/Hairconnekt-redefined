@@ -4,8 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000/api/v1';
+import { API } from '../../utils/api';
 
 interface BookingItem {
   id: string;
@@ -50,8 +49,8 @@ export default function ProviderCalendarScreen() {
       const monthStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
       
       const [bookingsRes, blocksRes] = await Promise.all([
-        fetch(`${API_URL}/bookings?month=${monthStr}`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
-        fetch(`${API_URL}/providers/me/blocks`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
+        fetch(`${API}/bookings?month=${monthStr}`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
+        fetch(`${API}/providers/me/blocks`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
       ]);
 
       if (bookingsRes?.ok) {

@@ -8,8 +8,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
 import { mapHttpError } from '../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 const REASONS = [
   { id: 'urlaub', label: 'Urlaub', icon: '🏖️' },
@@ -99,7 +98,7 @@ export default function BlockTimeScreen() {
         })
       };
 
-      const response = await fetch(`${API_URL}/providers/me/blocks`, {
+      const response = await fetch(`${API}/providers/me/blocks`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

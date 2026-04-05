@@ -9,8 +9,8 @@ import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
+import { API } from '../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
 
@@ -49,7 +49,7 @@ export default function ClientSearch() {
     // Load service categories for filter chips
     const loadCategories = async () => {
       try {
-        const res = await fetch(`${API_URL}/services/categories`);
+        const res = await fetch(`${API}/services/categories`);
         if (!res.ok) return;
         const data = await res.json();
         const list: { id: string; name: string }[] = data.data ?? data ?? [];
@@ -93,7 +93,7 @@ export default function ClientSearch() {
       const categoryParam = selectedCat ? `&services=${encodeURIComponent(selectedCat.id)}` : '';
       const availParam = availableToday ? `&availableToday=true` : '';
       
-      const url = `${API_URL}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}`;
+      const url = `${API}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}`;
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }

@@ -8,8 +8,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
 import { mapHttpError } from '../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { API } from '../../utils/api';
 const DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 // We'll reorder them starting from Monday for UI purposes: Mo, Di, Mi, Do, Fr, Sa, So
 const UI_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -46,7 +45,7 @@ export default function AvailabilityScreen() {
     try {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/providers/me/availability`, {
+      const response = await fetch(`${API}/providers/me/availability`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -115,7 +114,7 @@ export default function AvailabilityScreen() {
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
 
-      const response = await fetch(`${API_URL}/providers/me/availability`, {
+      const response = await fetch(`${API}/providers/me/availability`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,

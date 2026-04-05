@@ -8,6 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { bookingStatus } from '../../../utils/booking-status';
 // BUG 26: local bundled placeholder instead of external URL
 import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
@@ -59,10 +60,10 @@ export default function AppointmentDetails() {
     if (!booking) return null;
     
     const status = booking.status;
-    const isPending = status?.toLowerCase() === 'pending';
-    const isConfirmed = status === 'CONFIRMED' || status === 'IN_PROGRESS' || status === 'COMPLETED';
-    const isInProgress = status === 'IN_PROGRESS' || status === 'COMPLETED';
-    const isCompleted = status === 'COMPLETED';
+    const isPending = bookingStatus(status) === 'pending';
+    const isConfirmed = bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress' || bookingStatus(status) === 'completed';
+    const isInProgress = bookingStatus(status) === 'in_progress' || bookingStatus(status) === 'completed';
+    const isCompleted = bookingStatus(status) === 'completed';
 
     const renderNode = (reached: boolean, label: string, isLast: boolean) => (
       <View style={styles.timelineRow}>
@@ -225,8 +226,8 @@ export default function AppointmentDetails() {
       </ScrollView>
 
       {/* Conditional Footer Rendering */}
-      {(booking.status?.toLowerCase() === 'pending' ||
-        booking.status?.toLowerCase() === 'confirmed') && (
+      {(bookingStatus(booking.status) === 'pending' ||
+        bookingStatus(booking.status) === 'confirmed') && (
         <View style={styles.footerContainer}>
           <TouchableOpacity
             style={styles.outlineBtn}

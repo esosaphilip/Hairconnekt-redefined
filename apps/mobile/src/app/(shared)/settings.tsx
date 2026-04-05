@@ -9,8 +9,8 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
+import { API } from '../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function SharedSettingsScreen() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function SharedSettingsScreen() {
               const refreshToken = await tokenStorage.getRefreshToken();
 
               if (refreshToken) {
-                await fetch(`${API_URL}/auth/logout`, {
+                await fetch(`${API}/auth/logout`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${token}`,
@@ -92,7 +92,7 @@ export default function SharedSettingsScreen() {
       setDeleteError('');
       const token = await tokenStorage.getAccessToken();
       
-      const response = await fetch(`${API_URL}/users/me`, {
+      const response = await fetch(`${API}/users/me`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+import { API } from '../../utils/api';
 
 export default function ProviderPendingScreen() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const consecutiveErrors = useRef(0);
 
   // Clear any lingering registration navigation state on mount
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ProviderPendingScreen() {
       }
       try {
         const res = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/providers/me`,
+          `${API}/providers/me`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.status === 404) {
@@ -40,14 +40,23 @@ export default function ProviderPendingScreen() {
         }
         if (!res.ok) return;
         const provider = await res.json();
+        consecutiveErrors.current = 0; // reset on success
         if (provider.status?.toLowerCase() === 'approved') {
           router.replace('/(provider)');
         }
-      } catch { /* keep polling */ }
+      } catch (err) {
+        consecutiveErrors.current += 1;
+        if (consecutiveErrors.current >= 5) {
+          setError('Verbindung zum Server fehlgeschlagen. Bitte starte die App neu.');
+          clearInterval(intervalRef.current);
+        }
+      }
     };
+
+    const intervalRef = { current: 0 as any };
     check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
+    intervalRef.current = setInterval(check, 30000);
+    return () => clearInterval(intervalRef.current);
   }, []);
 
   const handleLogout = async () => {
@@ -63,6 +72,14 @@ export default function ProviderPendingScreen() {
     <SafeAreaView style={styles.safeContainer}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
+        {/* Error Banner */}
+        {!!error && (
+          <View style={styles.errorBanner}>
+            <Feather name="wifi-off" size={16} color="#C62828" />
+            <Text style={styles.errorBannerText}>{error}</Text>
+          </View>
+        )}
+
         {/* Header Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>
@@ -78,6 +95,7 @@ export default function ProviderPendingScreen() {
           Deine Registrierung wird gerade von unserem Team überprüft.{'\n'}
           Dies dauert in der Regel 1-3 Werktage.
         </Text>
+
 
         {/* Timeline Card */}
         <View style={styles.timelineCard}>
@@ -162,6 +180,21 @@ export default function ProviderPendingScreen() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: 8,
+  },
+  errorBannerText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: '#C62828',
+    flex: 1,
+  },
   scrollContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxl,

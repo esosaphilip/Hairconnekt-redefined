@@ -7,8 +7,7 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { FormInput } from '../../components/FormInput';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.2.85:3000';
+import { API } from '../../utils/api';
 
 export default function PasswordResetScreen() {
   const router = useRouter();
@@ -50,7 +49,7 @@ export default function PasswordResetScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      await axios.post(`${API_URL}/auth/forgot-password`, { email });
+      await axios.post(`${API}/auth/forgot-password`, { email });
       setStep(2);
     } catch (err: any) {
       const status = err.response?.status;
@@ -69,7 +68,7 @@ export default function PasswordResetScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      const res = await axios.post(`${API_URL}/auth/verify-otp`, { email, otp: code });
+      const res = await axios.post(`${API}/auth/verify-otp`, { email, otp: code });
       setResetToken(res.data.resetToken);
       setStep(3);
     } catch (err: any) {
@@ -94,7 +93,7 @@ export default function PasswordResetScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      await axios.post(`${API_URL}/auth/reset-password`, { resetToken, password: newPassword });
+      await axios.post(`${API}/auth/reset-password`, { resetToken, password: newPassword });
       router.replace('/(auth)/login' as any);
     } catch (err: any) {
       const status = err.response?.status;

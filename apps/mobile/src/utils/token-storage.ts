@@ -37,6 +37,10 @@ export const tokenStorage = {
     await AsyncStorage.setItem(KEYS.USER_ROLE, role);
   },
 
+  async setUser(user: any): Promise<void> {
+    await AsyncStorage.setItem(KEYS.USER_JSON, JSON.stringify(user));
+  },
+
   async clear(): Promise<void> {
     await AsyncStorage.multiRemove([
       KEYS.ACCESS_TOKEN,

@@ -87,6 +87,7 @@ export default function ProviderLayout() {
       <Tabs.Screen name="profile/preview"        options={{ href: null }} />
       <Tabs.Screen name="booking-request/[id]"   options={{ href: null }} />
       <Tabs.Screen name="appointments/[id]"      options={{ href: null }} />
+
       <Tabs.Screen name="register"               options={{ href: null }} />
       <Tabs.Screen name="register/type"          options={{ href: null }} />
       <Tabs.Screen name="register/step1"         options={{ href: null }} />

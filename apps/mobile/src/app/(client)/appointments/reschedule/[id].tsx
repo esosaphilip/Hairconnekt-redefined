@@ -7,8 +7,7 @@ import { tokenStorage } from '../../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../../utils/api';
 
 export default function RescheduleAppointment() {
   const router = useRouter();
@@ -58,7 +57,7 @@ export default function RescheduleAppointment() {
         if (!id) return;
         setIsBookingLoading(true);
         const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API_URL}/bookings/${id}`, {
+        const res = await axios.get(`${API}/bookings/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setBooking(res.data);
@@ -81,7 +80,7 @@ export default function RescheduleAppointment() {
         setErrorVisible(false);
         setSelectedTime('');
         const token = await tokenStorage.getAccessToken();
-        const res = await fetch(`${API_URL}/providers/${booking.provider.id}/slots?date=${selectedDate}`, {
+        const res = await fetch(`${API}/providers/${booking.provider.id}/slots?date=${selectedDate}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -118,7 +117,7 @@ export default function RescheduleAppointment() {
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
 
-      const res = await fetch(`${API_URL}/bookings/${id}/reschedule`, {
+      const res = await fetch(`${API}/bookings/${id}/reschedule`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,

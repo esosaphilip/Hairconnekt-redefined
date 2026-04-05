@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
+import { API } from '../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 interface Address {
   id: string;
@@ -46,7 +46,7 @@ export default function AddressesScreen() {
       setIsLoading(true);
       setListErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/users/me/addresses`, {
+      const res = await fetch(`${API}/users/me/addresses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -102,7 +102,7 @@ export default function AddressesScreen() {
           onPress: async () => {
             try {
               const token = await tokenStorage.getAccessToken();
-              const res = await fetch(`${API_URL}/users/me/addresses/${id}`, {
+              const res = await fetch(`${API}/users/me/addresses/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });
@@ -128,7 +128,7 @@ export default function AddressesScreen() {
 
     try {
       const token = await tokenStorage.getAccessToken();
-      await fetch(`${API_URL}/users/me/addresses/${id}`, {
+      await fetch(`${API}/users/me/addresses/${id}`, {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -154,7 +154,7 @@ export default function AddressesScreen() {
       const payload = { label, street, houseNumber, postalCode, city, isDefault };
       
       const method = editingId ? 'PATCH' : 'POST';
-      const url = editingId ? `${API_URL}/users/me/addresses/${editingId}` : `${API_URL}/users/me/addresses`;
+      const url = editingId ? `${API}/users/me/addresses/${editingId}` : `${API}/users/me/addresses`;
 
       const res = await fetch(url, {
         method,
@@ -213,7 +213,11 @@ export default function AddressesScreen() {
   );
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading) return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.coral} />
+      </View>
+    );
     return (
       <View style={styles.emptyContainer}>
         <Feather name="map-pin" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />

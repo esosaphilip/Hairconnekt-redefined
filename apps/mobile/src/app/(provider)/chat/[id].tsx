@@ -30,7 +30,9 @@ export default function ProviderChatDetailScreen() {
       setMessages(data.messages ?? data ?? []);
       setOtherUser(data.otherUser ?? null);
       setMyUserId(data.myUserId ?? '');
-    } catch {}
+    } catch (error) {
+      console.log('Error loading messages:', error);
+    }
   };
 
   useEffect(() => {
@@ -54,7 +56,10 @@ export default function ProviderChatDetailScreen() {
       });
       setInputText('');
       loadMessages();
-    } catch {}
+    } catch (error) {
+      console.log('Error sending message:', error);
+      setInputText(inputText); // Restore message on error
+    }
     setIsSending(false);
   };
 

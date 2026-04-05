@@ -7,8 +7,8 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { API } from '../../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export default function ClientBookingServices() {
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function ClientBookingServices() {
       setIsLoading(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      const response = await axios.get(`${API_URL}/providers/${providerId}/services`, {
+      const response = await axios.get(`${API}/providers/${providerId}/services`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = response.data.data || response.data || [];

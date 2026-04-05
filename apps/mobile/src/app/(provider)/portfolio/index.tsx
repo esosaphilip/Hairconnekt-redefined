@@ -5,8 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -31,7 +30,7 @@ export default function PortfolioScreen() {
     try {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/providers/me/portfolio`, {
+      const response = await fetch(`${API}/providers/me/portfolio`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -80,7 +79,7 @@ export default function PortfolioScreen() {
 
             try {
               const token = await tokenStorage.getAccessToken();
-              const response = await fetch(`${API_URL}/providers/me/portfolio/${id}`, {
+              const response = await fetch(`${API}/providers/me/portfolio/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
               });

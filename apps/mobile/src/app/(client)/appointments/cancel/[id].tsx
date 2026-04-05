@@ -7,8 +7,7 @@ import { tokenStorage } from '../../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../../utils/api';
 
 const CANCEL_REASONS = [
   'Anderer Termin dazwischengekommen', // Maps to 'Andere Pläne' for UI logic, but DTO expects explicit strings. 
@@ -45,7 +44,7 @@ export default function CancelAppointment() {
         if (!id) return;
         setIsLoading(true);
         const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API_URL}/bookings/${id}`, {
+        const res = await axios.get(`${API}/bookings/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setBooking(res.data);
@@ -79,7 +78,7 @@ export default function CancelAppointment() {
       
       const mappedReason = UI_TO_API_MAP[reasonUI] || 'Sonstiges';
 
-      await axios.patch(`${API_URL}/bookings/${id}/cancel`, {
+      await axios.patch(`${API}/bookings/${id}/cancel`, {
         reason: mappedReason,
         notes: notes.trim() || undefined
       }, {

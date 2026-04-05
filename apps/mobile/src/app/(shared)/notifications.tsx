@@ -4,8 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 interface Notification {
   id: string;
@@ -36,7 +35,7 @@ export default function NotificationsScreen() {
       else setIsLoadingMore(true);
 
       const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API_URL}/notifications?page=${pageNum}&limit=20`, {
+      const res = await fetch(`${API}/notifications?page=${pageNum}&limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -61,7 +60,7 @@ export default function NotificationsScreen() {
     try {
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
       const token = await tokenStorage.getAccessToken();
-      await fetch(`${API_URL}/notifications/${id}/read`, {
+      await fetch(`${API}/notifications/${id}/read`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -74,7 +73,7 @@ export default function NotificationsScreen() {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       const token = await tokenStorage.getAccessToken();
-      await fetch(`${API_URL}/notifications/read-all`, {
+      await fetch(`${API}/notifications/read-all`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });

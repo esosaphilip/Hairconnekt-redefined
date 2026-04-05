@@ -9,8 +9,7 @@ import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -40,7 +39,7 @@ export default function LoginScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const response = await axios.post(`${API_URL}/auth/login`, { identifier, password });
+      const response = await axios.post(`${API}/auth/login`, { identifier, password });
       const authData = response.data;
       const token = authData.accessToken;
       const role = authData.user.role;
@@ -48,7 +47,7 @@ export default function LoginScreen() {
       // FIX: Use the tokenStorage utility to save tokens correctly
       await tokenStorage.save(token, authData.refreshToken, role);
       // Also save user info for future use if needed
-      await AsyncStorage.setItem('hc_user', JSON.stringify(authData.user));
+      await tokenStorage.setUser(authData.user);
 
       if (role === 'client') {
         router.replace('/(client)');
@@ -58,7 +57,7 @@ export default function LoginScreen() {
       if (role === 'provider') {
         try {
           const pRes = await fetch(
-            `${API_URL}/providers/me`,
+            `${API}/providers/me`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (pRes.ok) {

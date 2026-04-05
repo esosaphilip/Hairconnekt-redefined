@@ -79,7 +79,10 @@ export default function ProviderSettingsScreen() {
                   body: JSON.stringify({ refreshToken })
                 }).catch(() => {});
               }
-            } catch {} finally {
+            } catch (error) {
+              console.log('Error pausing account:', error);
+              setDeleteError('Fehler beim Pausieren. Bitte versuche es erneut.');
+            } finally {
               await tokenStorage.clear();
               router.replace('/(auth)/login?role=provider');
             }

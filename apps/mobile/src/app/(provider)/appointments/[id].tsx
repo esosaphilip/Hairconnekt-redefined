@@ -5,8 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../../utils/api';
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -25,7 +24,7 @@ export default function ProviderAppointmentDetailScreen() {
     try {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/bookings/${id}`, {
+      const response = await fetch(`${API}/bookings/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -43,7 +42,7 @@ export default function ProviderAppointmentDetailScreen() {
   const updateBookingStatus = async (action: 'start' | 'complete') => {
     try {
       const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API_URL}/bookings/${id}/${action}`, {
+      const response = await fetch(`${API}/bookings/${id}/${action}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });

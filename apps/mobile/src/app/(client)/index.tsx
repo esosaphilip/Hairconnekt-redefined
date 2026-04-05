@@ -9,8 +9,8 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
+import { API } from '../../utils/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 const BELIEBTE_STYLES = [
   {
@@ -73,7 +73,7 @@ export default function ClientHome() {
     try {
       const token = await tokenStorage.getAccessToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/users/me`, {
+      const res = await fetch(`${API}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
@@ -95,7 +95,7 @@ export default function ClientHome() {
       const token = await tokenStorage.getAccessToken();
       if (!token) return;
       
-      const res = await fetch(`${API_URL}/providers?limit=20`, {
+      const res = await fetch(`${API}/providers?limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
