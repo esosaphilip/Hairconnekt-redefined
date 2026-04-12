@@ -376,6 +376,9 @@ export class BookingsService {
 
   async acceptBooking(id: string, user: any) {
     const booking = await this.findBookingForProvider(id, user);
+    if (booking.status === BookingStatus.CONFIRMED) {
+      return this.findOne(id, user);
+    }
     if (booking.status !== BookingStatus.PENDING) {
       throw new BadRequestException('Only PENDING bookings can be accepted');
     }
@@ -386,6 +389,9 @@ export class BookingsService {
 
   async declineBooking(id: string, user: any) {
     const booking = await this.findBookingForProvider(id, user);
+    if (booking.status === BookingStatus.CANCELLED) {
+      return this.findOne(id, user);
+    }
     if (booking.status !== BookingStatus.PENDING) {
       throw new BadRequestException('Only PENDING bookings can be declined');
     }

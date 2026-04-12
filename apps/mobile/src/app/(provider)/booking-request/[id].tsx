@@ -57,7 +57,13 @@ export default function BookingRequestScreen() {
         // In a real app we might show a toast here
         router.replace('/(provider)/calendar');
       } else {
-        Alert.alert('Fehler', 'Buchung konnte nicht bestätigt werden.');
+        let msg = 'Buchung konnte nicht bestätigt werden.';
+        try {
+          const j: any = await res.json();
+          msg = j?.message || msg;
+        } catch {}
+        Alert.alert('Fehler', msg);
+        await loadBooking();
       }
     } catch (err) {
       console.log('Accept error:', err);
@@ -87,7 +93,13 @@ export default function BookingRequestScreen() {
               if (res.ok) {
                 router.replace('/(provider)/calendar');
               } else {
-                Alert.alert('Fehler', 'Buchung konnte nicht abgelehnt werden.');
+                let msg = 'Buchung konnte nicht abgelehnt werden.';
+                try {
+                  const j: any = await res.json();
+                  msg = j?.message || msg;
+                } catch {}
+                Alert.alert('Fehler', msg);
+                await loadBooking();
               }
             } catch (err) {
               console.log('Decline error:', err);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
@@ -13,6 +13,8 @@ export default function ProviderAppointmentDetailScreen() {
   
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<any>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -55,8 +57,76 @@ export default function ProviderAppointmentDetailScreen() {
     }
   };
 
+  const acceptBooking = async () => {
+    try {
+      setIsAccepting(true);
+      const token = await tokenStorage.getAccessToken();
+      const response = await fetch(`${API}/bookings/${id}/accept`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        fetchBookingDetails();
+      } else {
+        let msg = 'Buchung konnte nicht bestätigt werden.';
+        try {
+          const j: any = await response.json();
+          msg = j?.message || msg;
+        } catch {}
+        Alert.alert('Fehler', msg);
+        fetchBookingDetails();
+      }
+    } catch (error) {
+      console.log('Error accepting booking:', error);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const declineBooking = () => {
+    Alert.alert(
+      'Buchung ablehnen',
+      'Möchtest du diese Buchung wirklich ablehnen?',
+      [
+        { text: 'Zurück', style: 'cancel' },
+        {
+          text: 'Ablehnen',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeclining(true);
+              const token = await tokenStorage.getAccessToken();
+              const response = await fetch(`${API}/bookings/${id}/decline`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+
+              if (response.ok) {
+                fetchBookingDetails();
+              } else {
+                let msg = 'Buchung konnte nicht abgelehnt werden.';
+                try {
+                  const j: any = await response.json();
+                  msg = j?.message || msg;
+                } catch {}
+                Alert.alert('Fehler', msg);
+                fetchBookingDetails();
+              }
+            } catch (error) {
+              console.log('Error declining booking:', error);
+            } finally {
+              setIsDeclining(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const getStatusText = (status: string) => {
     switch(status) {
+      case 'PENDING': return 'Ausstehend';
       case 'CONFIRMED': return 'Bestätigt';
       case 'IN_PROGRESS': return 'Aktiv';
       case 'COMPLETED': return 'Abgeschlossen';
@@ -67,6 +137,7 @@ export default function ProviderAppointmentDetailScreen() {
 
   const getStatusColor = (status: string) => {
     // Provider view uses BLUE for status
+    if (status === 'PENDING') return '#E65100';
     if (status === 'CONFIRMED' || status === 'IN_PROGRESS') return '#1976D2'; 
     if (status === 'COMPLETED') return colors.green;
     if (status === 'CANCELLED') return colors.error;
@@ -217,6 +288,30 @@ export default function ProviderAppointmentDetailScreen() {
       </ScrollView>
 
       {/* Action Buttons Footer */}
+      {booking.status === 'PENDING' && (
+        <View style={styles.footer}>
+          <PrimaryButton
+            label="Buchung annehmen"
+            onPress={acceptBooking}
+            loading={isAccepting}
+            disabled={isDeclining}
+            variant="filled"
+          />
+          <View style={{ height: spacing.sm }} />
+          <TouchableOpacity
+            style={styles.declineButton}
+            onPress={declineBooking}
+            disabled={isAccepting || isDeclining}
+          >
+            {isDeclining ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.declineButtonText}>Ablehnen</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
       {booking.status === 'CONFIRMED' && (
         <View style={styles.footer}>
           <PrimaryButton 
@@ -303,4 +398,18 @@ const styles = StyleSheet.create({
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
   actionButton: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   actionButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
+
+  declineButton: {
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  declineButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.error,
+  },
 });
