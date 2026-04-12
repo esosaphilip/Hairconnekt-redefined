@@ -45,6 +45,7 @@ export default function ReviewsScreen() {
     useCallback(() => {
       init();
     }, [])
+  );
 
   const init = async () => {
     try {

@@ -10,6 +10,7 @@ import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
+import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
 
 
 const BELIEBTE_STYLES = [
@@ -62,12 +63,19 @@ export default function ClientHome() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
+  const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
 
   useEffect(() => {
     loadUser();
-    fetchProviders();
     getFavouriteIds().then(setFavouriteIds);
+    bootstrapDiscovery();
   }, []);
+
+  const bootstrapDiscovery = async () => {
+    const coords = await getDiscoveryCoordinates();
+    setDiscoveryLocation(coords);
+    await fetchProviders(coords);
+  };
 
   const loadUser = async () => {
     try {
@@ -87,7 +95,7 @@ export default function ClientHome() {
     }
   };
 
-  const fetchProviders = async () => {
+  const fetchProviders = async (coords?: DiscoveryCoordinates | null) => {
     try {
       setIsLoading(true);
       setErrorVisible(false);
@@ -95,7 +103,11 @@ export default function ClientHome() {
       const token = await tokenStorage.getAccessToken();
       if (!token) return;
       
-      const res = await fetch(`${API}/providers?limit=20`, {
+      const locationParams = coords
+        ? `&lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}&sort=entfernung`
+        : '';
+
+      const res = await fetch(`${API}/providers?limit=20${locationParams}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -178,7 +190,16 @@ export default function ClientHome() {
         </View>
 
         {/* Search */}
-        <TouchableOpacity style={styles.searchBar} activeOpacity={0.9} onPress={() => router.push('/(client)/search')}>
+        <TouchableOpacity
+          style={styles.searchBar}
+          activeOpacity={0.9}
+          onPress={() =>
+            router.push({
+              pathname: '/(client)/search',
+              params: discoveryLocation ? { sort: 'entfernung' } : {},
+            } as any)
+          }
+        >
           <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <Text style={styles.searchText}>Suche nach Styles, Braiders, Salons...</Text>
           <Feather name="sliders" size={20} color={colors.primary} />
@@ -187,7 +208,14 @@ export default function ClientHome() {
         {/* ── Beliebte Styles ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Beliebte Styles</Text>
-          <TouchableOpacity onPress={() => router.push('/(client)/search')}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/(client)/search',
+                params: discoveryLocation ? { sort: 'entfernung' } : {},
+              } as any)
+            }
+          >
             <Text style={styles.seeAllText}>Alle anzeigen</Text>
           </TouchableOpacity>
         </View>
@@ -205,7 +233,10 @@ export default function ClientHome() {
               activeOpacity={0.85}
               onPress={() => router.push({
                 pathname: '/(client)/search',
-                params: { query: style.name },
+                params: {
+                  query: style.name,
+                  ...(discoveryLocation ? { sort: 'entfernung' } : {}),
+                },
               } as any)}
             >
               {/* Gradient-style background using solid colour */}
@@ -227,7 +258,14 @@ export default function ClientHome() {
         {/* Braiders Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Braiders in deiner Nähe</Text>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/(client)/search',
+                params: discoveryLocation ? { sort: 'entfernung' } : {},
+              } as any)
+            }
+          >
             <Text style={styles.seeAllText}>Alle anzeigen</Text>
           </TouchableOpacity>
         </View>

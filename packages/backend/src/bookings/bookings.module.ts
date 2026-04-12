@@ -5,9 +5,19 @@ import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
+import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
+import { TimeBlock } from '../entities/time-block.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking, Service, Provider])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Booking,
+      Service,
+      Provider,
+      AvailabilitySchedule,
+      TimeBlock,
+    ]),
+  ],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

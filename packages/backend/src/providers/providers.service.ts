@@ -2,16 +2,18 @@ import {
   Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In } from 'typeorm';
+import { Repository, Not, In, Brackets } from 'typeorm';
 import { Provider, ProviderStatus } from '../entities/provider.entity';
 import { PortfolioImage } from '../entities/portfolio-image.entity';
 import { User } from '../entities/user.entity';
 import { Service } from '../entities/service.entity';
+import { Favourite } from '../entities/favourite.entity';
 import { TimeBlock } from '../entities/time-block.entity';
 import { Booking } from '../entities/booking.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { Review } from '../entities/review.entity';
 import { RegisterProviderDto } from './dto/register-provider.dto';
+import { GeocodingService } from '../common/geocoding/geocoding.service';
 
 @Injectable()
 export class ProvidersService {
@@ -24,6 +26,8 @@ export class ProvidersService {
     private userRepo: Repository<User>,
     @InjectRepository(Service)
     private serviceRepo: Repository<Service>,
+    @InjectRepository(Favourite)
+    private favouriteRepo: Repository<Favourite>,
     @InjectRepository(TimeBlock)
     private timeBlockRepo: Repository<TimeBlock>,
     @InjectRepository(Booking)
@@ -32,31 +36,179 @@ export class ProvidersService {
     private availabilityRepo: Repository<AvailabilitySchedule>,
     @InjectRepository(Review)
     private reviewRepo: Repository<Review>,
+    private geocodingService: GeocodingService,
   ) {}
 
   async findByUserId(userId: string) {
     return this.providerRepo.findOne({ where: { userId } });
   }
 
-  async findAll(query: Record<string, string>) {
+  private normalizeSearchSort(sort?: string) {
+    if (sort === 'bewertung') return 'bewertung';
+    if (sort === 'entfernung') return 'entfernung';
+    return 'empfohlen';
+  }
+
+  private toOptionalNumber(value?: string): number | null {
+    if (value === undefined || value === null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private calculateDistanceKm(
+    fromLat: number,
+    fromLng: number,
+    toLat?: number | null,
+    toLng?: number | null,
+  ): number | null {
+    if (toLat === null || toLat === undefined || toLng === null || toLng === undefined) {
+      return null;
+    }
+
+    if (
+      Number.isNaN(fromLat) ||
+      Number.isNaN(fromLng) ||
+      Number.isNaN(toLat) ||
+      Number.isNaN(toLng) ||
+      (toLat === 0 && toLng === 0)
+    ) {
+      return null;
+    }
+
+    const toRadians = (value: number) => (value * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+    const dLat = toRadians(toLat - fromLat);
+    const dLng = toRadians(toLng - fromLng);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRadians(fromLat)) *
+        Math.cos(toRadians(toLat)) *
+        Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((earthRadiusKm * c).toFixed(1));
+  }
+
+  private hasProviderAddress(provider: Pick<Provider, 'street' | 'houseNumber' | 'city' | 'postalCode'>) {
+    return Boolean(
+      provider.street?.trim() &&
+        provider.houseNumber?.trim() &&
+        provider.city?.trim() &&
+        provider.postalCode?.trim(),
+    );
+  }
+
+  private async syncProviderCoordinates(
+    provider: Provider,
+    clearWhenUnavailable = false,
+  ): Promise<void> {
+    if (!this.hasProviderAddress(provider)) {
+      if (clearWhenUnavailable) {
+        (provider as any).lat = null;
+        (provider as any).lng = null;
+      }
+      return;
+    }
+
+    const result = await this.geocodingService.geocodeAddress({
+      street: provider.street,
+      houseNumber: provider.houseNumber,
+      city: provider.city,
+      postalCode: provider.postalCode,
+    });
+
+    if (result.status === 'success') {
+      provider.lat = result.coordinates.lat as any;
+      provider.lng = result.coordinates.lng as any;
+      return;
+    }
+
+    if (result.status === 'not_found' && clearWhenUnavailable) {
+      (provider as any).lat = null;
+      (provider as any).lng = null;
+    }
+  }
+
+  async findAll(query: Record<string, string>, user?: { id?: string; sub?: string; role?: string }) {
     const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
     const page = Math.max(Number(query.page) || 1, 1);
+    const search = query.search?.trim().toLowerCase();
+    const categoryId = query.categoryId || query.services || query.category;
+    const sort = this.normalizeSearchSort(query.sort);
+    const lat = this.toOptionalNumber(query.lat);
+    const lng = this.toOptionalNumber(query.lng);
+    const hasLocation = lat !== null && lng !== null;
+
     const qb = this.providerRepo
       .createQueryBuilder('p')
       .where('p.status = :status', { status: ProviderStatus.APPROVED });
+
+    if (search || categoryId) {
+      qb.distinct(true);
+      qb.leftJoin(
+        Service,
+        'service',
+        'service.providerId = p.id AND service.isActive = true',
+      );
+    }
+
     if (query.availableToday === 'true') {
       qb.andWhere('p.isOnline = :online', { online: true });
     }
-    const [providers, total] = await qb
-      .orderBy('p.createdAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+
+    if (categoryId) {
+      qb.andWhere('service.categoryId = :categoryId', { categoryId });
+    }
+
+    if (search) {
+      const searchTerm = `%${search}%`;
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('LOWER(p.businessName) LIKE :searchTerm', { searchTerm })
+            .orWhere('LOWER(p.city) LIKE :searchTerm', { searchTerm })
+            .orWhere('LOWER(service.name) LIKE :searchTerm', { searchTerm })
+            .orWhere('LOWER(service.description) LIKE :searchTerm', { searchTerm });
+        }),
+      );
+    }
+
+    if (sort === 'bewertung') {
+      qb
+        .orderBy('p.avgRating', 'DESC')
+        .addOrderBy('p.totalReviews', 'DESC')
+        .addOrderBy('p.isOnline', 'DESC')
+        .addOrderBy('p.createdAt', 'DESC');
+    } else if (sort === 'entfernung' && hasLocation) {
+      const distanceOrderExpression = `
+        CASE
+          WHEN p.lat IS NULL OR p.lng IS NULL THEN NULL
+          ELSE sqrt(
+            power(CAST(p.lat AS double precision) - :lat, 2) +
+            power(CAST(p.lng AS double precision) - :lng, 2)
+          )
+        END
+      `;
+      qb
+        .orderBy(distanceOrderExpression, 'ASC', 'NULLS LAST')
+        .addOrderBy('p.avgRating', 'DESC')
+        .addOrderBy('p.totalReviews', 'DESC')
+        .setParameters({ lat, lng });
+    } else {
+      qb
+        .orderBy('p.isOnline', 'DESC')
+        .addOrderBy('p.avgRating', 'DESC')
+        .addOrderBy('p.totalReviews', 'DESC')
+        .addOrderBy('p.createdAt', 'DESC');
+    }
+
+    const [providers, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
 
     const ids = providers.map((p) => p.id);
     const priceMap = new Map<string, number>();
+    const tagMap = new Map<string, string[]>();
+    const favouriteIds = new Set<string>();
     if (ids.length) {
-      const rows = await this.serviceRepo
+      const priceRows = await this.serviceRepo
         .createQueryBuilder('s')
         .select('s.providerId', 'providerId')
         .addSelect('MIN(s.price)', 'minPrice')
@@ -64,13 +216,45 @@ export class ProvidersService {
         .andWhere('s.isActive = true')
         .groupBy('s.providerId')
         .getRawMany();
-      for (const r of rows) {
+      for (const r of priceRows) {
         priceMap.set(r.providerId, Number(r.minPrice));
+      }
+
+      const activeServices = await this.serviceRepo.find({
+        where: { providerId: In(ids), isActive: true },
+        order: { sortOrder: 'ASC', name: 'ASC' },
+      });
+
+      for (const service of activeServices) {
+        const tags = tagMap.get(service.providerId) ?? [];
+        if (tags.length < 3 && !tags.includes(service.name)) {
+          tags.push(service.name);
+          tagMap.set(service.providerId, tags);
+        }
+      }
+
+      const userId = user?.sub || user?.id;
+      if (userId && user?.role === 'client') {
+        const favourites = await this.favouriteRepo.find({
+          where: { clientId: userId, providerId: In(ids) },
+        });
+        for (const favourite of favourites) {
+          favouriteIds.add(favourite.providerId);
+        }
       }
     }
 
-    return {
-      data: providers.map((p) => ({
+    const data = providers.map((p) => {
+      const distanceKm = hasLocation
+        ? this.calculateDistanceKm(
+            lat!,
+            lng!,
+            p.lat === null || p.lat === undefined ? null : Number(p.lat),
+            p.lng === null || p.lng === undefined ? null : Number(p.lng),
+          )
+        : null;
+
+      return {
         id: p.id,
         businessName: p.businessName,
         providerType: p.providerType,
@@ -80,9 +264,35 @@ export class ProvidersService {
         totalReviews: p.totalReviews ?? 0,
         startingPrice: priceMap.get(p.id) ?? 0,
         isAvailableToday: p.isOnline,
-        distanceKm: null as number | null,
-      })),
-      meta: { total, page, limit },
+        distanceKm,
+        specialisationTags: tagMap.get(p.id) ?? [],
+        isFavourited: favouriteIds.has(p.id),
+      };
+    });
+
+    if (sort === 'entfernung' && hasLocation) {
+      data.sort((a, b) => {
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+        if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating;
+        return (b.totalReviews || 0) - (a.totalReviews || 0);
+      });
+    }
+
+    const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        appliedSort: sort,
+      },
     };
   }
 
@@ -112,6 +322,7 @@ export class ProvidersService {
       status: 'pending' as any,
       isOnline: false,
     });
+    await this.syncProviderCoordinates(provider, true);
     return this.providerRepo.save(provider);
   }
 
@@ -125,10 +336,18 @@ export class ProvidersService {
     const provider = await this.getMe(userId);
     const allowedFields = ['businessName', 'bio', 'street', 'houseNumber', 'city', 'postalCode',
       'serviceRadius', 'languages', 'cancellationPolicy', 'bufferMinutes'];
+    const addressFields = new Set(['street', 'houseNumber', 'city', 'postalCode']);
+    let addressChanged = false;
     for (const key of allowedFields) {
       if (data[key] !== undefined) {
         (provider as any)[key] = data[key];
+        if (addressFields.has(key)) {
+          addressChanged = true;
+        }
       }
+    }
+    if (addressChanged) {
+      await this.syncProviderCoordinates(provider, true);
     }
     return this.providerRepo.save(provider);
   }
@@ -254,13 +473,13 @@ export class ProvidersService {
 
   // ═════ Public /:id endpoints ═════
 
-  async getPublicProfile(providerId: string) {
+  async getPublicProfile(providerId: string, queryLat?: string, queryLng?: string) {
     const provider = await this.providerRepo.findOne({ where: { id: providerId } });
     if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
 
     // Strip private fields per CLAUDE.md /me vs /:id contract
     const { status, idDocumentUrl, street, houseNumber, postalCode,
-            bufferMinutes, lat, lng, ...publicData } = provider as any;
+            bufferMinutes, lat: providerLat, lng: providerLng, ...publicData } = provider as any;
 
     // Derive startingPrice from cheapest active service
     const cheapestService = await this.serviceRepo
@@ -269,9 +488,20 @@ export class ProvidersService {
       .orderBy('s.price', 'ASC')
       .getOne();
 
+    const distanceKm =
+      queryLat !== undefined && queryLng !== undefined
+        ? this.calculateDistanceKm(
+            Number(queryLat),
+            Number(queryLng),
+            providerLat === null || providerLat === undefined ? null : Number(providerLat),
+            providerLng === null || providerLng === undefined ? null : Number(providerLng),
+          )
+        : null;
+
     return {
       ...publicData,
       startingPrice: cheapestService ? Number(cheapestService.price) : null,
+      distanceKm,
     };
   }
 
@@ -284,23 +514,125 @@ export class ProvidersService {
     });
   }
 
-  async getPublicReviews(providerId: string) {
+  async getPublicReviews(
+    providerId: string,
+    page = 1,
+    limit = 20,
+    rating?: number,
+  ) {
     const provider = await this.providerRepo.findOne({ where: { id: providerId } });
     if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
-    const reviews = await this.reviewRepo.find({
-      where: { providerId },
-      relations: ['client'],
-      order: { createdAt: 'DESC' },
-      take: 50,
-    });
-    return reviews.map(r => ({
-      id: r.id,
-      rating: r.rating,
-      comment: r.comment,
-      clientName: r.client ? `${r.client.firstName} ${r.client.lastName?.charAt(0)}.` : 'Kunde',
-      providerResponse: r.providerResponse,
-      createdAt: r.createdAt,
-    }));
+
+    const safeLimit = Math.max(1, Math.min(50, limit));
+    const safePage = Math.max(1, page);
+    const skip = (safePage - 1) * safeLimit;
+
+    const baseQb = this.reviewRepo
+      .createQueryBuilder('r')
+      .where('r.providerId = :providerId', { providerId });
+
+    if (rating !== undefined) {
+      baseQb.andWhere('r.rating = :rating', { rating });
+    }
+
+    const total = await baseQb.getCount();
+
+    const pageIds = await baseQb
+      .clone()
+      .select(['r.id'])
+      .orderBy('r.createdAt', 'DESC')
+      .skip(skip)
+      .take(safeLimit)
+      .getMany();
+
+    const ids = pageIds.map((r) => r.id);
+    const detailed =
+      ids.length === 0
+        ? []
+        : await this.reviewRepo.find({
+            where: { id: In(ids) },
+            relations: ['client', 'booking', 'booking.services'],
+            order: { createdAt: 'DESC' },
+          });
+
+    const distributionRows = await this.reviewRepo
+      .createQueryBuilder('r')
+      .select('r.rating', 'rating')
+      .addSelect('COUNT(*)', 'count')
+      .where('r.providerId = :providerId', { providerId })
+      .groupBy('r.rating')
+      .getRawMany<{ rating: string; count: string }>();
+
+    const ratingDistribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    for (const row of distributionRows) {
+      const key = String(row.rating);
+      ratingDistribution[key] = Number(row.count);
+    }
+
+    const computedTotalReviews = Object.values(ratingDistribution).reduce(
+      (sum, v) => sum + v,
+      0,
+    );
+    const computedAvgRating =
+      computedTotalReviews === 0
+        ? 0
+        : Number(
+            (
+              (ratingDistribution['1'] * 1 +
+                ratingDistribution['2'] * 2 +
+                ratingDistribution['3'] * 3 +
+                ratingDistribution['4'] * 4 +
+                ratingDistribution['5'] * 5) /
+              computedTotalReviews
+            ).toFixed(1),
+          );
+
+    const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+    const hasNext = safePage < totalPages;
+    const hasPrev = safePage > 1;
+
+    return {
+      summary: {
+        avgRating: computedAvgRating,
+        totalReviews: computedTotalReviews,
+        ratingDistribution,
+      },
+      data: detailed.map((r) => {
+        const serviceName =
+          r.booking?.services?.[0]?.name ??
+          null;
+
+        const clientFirstName = r.client?.firstName ?? 'Kunde';
+        const clientLastInitial = r.client?.lastName ? `${r.client.lastName.charAt(0)}.` : '';
+
+        return {
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.createdAt,
+          serviceName,
+          client: {
+            firstName: r.client?.firstName ?? null,
+            lastName: r.client?.lastName ?? null,
+            name: `${clientFirstName}${clientLastInitial ? ` ${clientLastInitial}` : ''}`,
+            avatarUrl: r.client?.avatarUrl ?? null,
+          },
+          providerResponse: r.providerResponse ?? null,
+          response: r.providerResponse ?? null,
+          respondedAt: r.respondedAt ?? null,
+        };
+      }),
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        hasNext,
+        hasPrev,
+        hasNextPage: hasNext,
+        hasPrevPage: hasPrev,
+      },
+    };
   }
 
   async getAvailableSlots(providerId: string, dateStr: string) {
@@ -312,6 +644,11 @@ export class ProvidersService {
       where: { id: providerId }
     });
     if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
+
+    // When a provider is offline, clients should not be able to pick bookable slots.
+    if (!provider.isOnline) {
+      return { date: dateStr, providerId, slots: [] };
+    }
 
     // Get day of week (0=Sunday, 1=Monday ... 6=Saturday)
     const date = new Date(dateStr);

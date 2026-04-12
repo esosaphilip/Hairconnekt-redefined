@@ -9,6 +9,7 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { addFavourite, removeFavourite } from '../../../utils/favourites';
 import { API } from '../../../utils/api';
+import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 
 const { width } = Dimensions.get('window');
 
@@ -41,13 +42,13 @@ export default function ProviderProfile() {
 
       const token = await tokenStorage.getAccessToken();
       const headers = { Authorization: `Bearer ${token}` };
-
-      // Optional placeholder logic for coords if needed, defaults omitted or set raw
-      const lat = '51.2562';
-      const lng = '7.1508';
+      const coords = await getDiscoveryCoordinates();
+      const locationQuery = coords
+        ? `?lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}`
+        : '';
 
       const [provRes, servRes, portRes, revRes, favRes] = await Promise.all([
-        axios.get(`${API}/providers/${id}?lat=${lat}&lng=${lng}`, { headers }),
+        axios.get(`${API}/providers/${id}${locationQuery}`, { headers }),
         axios.get(`${API}/providers/${id}/services`, { headers }),
         axios.get(`${API}/providers/${id}/portfolio`, { headers }),
         axios.get(`${API}/providers/${id}/reviews?limit=20`, { headers }),

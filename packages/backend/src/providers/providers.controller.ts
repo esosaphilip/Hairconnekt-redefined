@@ -240,8 +240,11 @@ export class ProvidersController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLIENT, Role.PROVIDER)
-  async findAll(@Query() query: Record<string, string>) {
-    return this.providersService.findAll(query);
+  async findAll(
+    @Query() query: Record<string, string>,
+    @CurrentUser() user: User,
+  ) {
+    return this.providersService.findAll(query, user);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -250,8 +253,12 @@ export class ProvidersController {
   // ═══════════════════════════════════════════════════════
 
   @Get(':id')
-  async getPublicProfile(@Param('id', ParseUUIDPipe) providerId: string) {
-    return this.providersService.getPublicProfile(providerId);
+  async getPublicProfile(
+    @Param('id', ParseUUIDPipe) providerId: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.providersService.getPublicProfile(providerId, lat, lng);
   }
 
   @Get(':id/services')
@@ -262,8 +269,27 @@ export class ProvidersController {
 
 
   @Get(':id/reviews')
-  async getPublicReviews(@Param('id', ParseUUIDPipe) providerId: string) {
-    return this.providersService.getPublicReviews(providerId);
+  async getPublicReviews(
+    @Param('id', ParseUUIDPipe) providerId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('rating') rating?: string,
+  ) {
+    const parsedPage = page ? Number(page) : 1;
+    const parsedLimit = limit ? Number(limit) : 20;
+    const parsedRating =
+      rating !== undefined && rating !== null && rating !== ''
+        ? Number(rating)
+        : undefined;
+
+    return this.providersService.getPublicReviews(
+      providerId,
+      Number.isFinite(parsedPage) ? parsedPage : 1,
+      Number.isFinite(parsedLimit) ? parsedLimit : 20,
+      parsedRating !== undefined && Number.isFinite(parsedRating)
+        ? parsedRating
+        : undefined,
+    );
   }
 
   @Get(':id/slots')

@@ -70,4 +70,39 @@ export class ReviewsService {
 
     return review;
   }
+
+  async respondToReview(
+    providerUserId: string,
+    reviewId: string,
+    response: string,
+    allowEdit: boolean,
+  ) {
+    const provider = await this.providerRepository.findOne({
+      where: { userId: providerUserId },
+    });
+    if (!provider) {
+      throw new NotFoundException('Anbieter nicht gefunden.');
+    }
+
+    const review = await this.reviewRepository.findOne({
+      where: { id: reviewId, providerId: provider.id },
+    });
+    if (!review) {
+      throw new NotFoundException('Bewertung nicht gefunden.');
+    }
+
+    if (!allowEdit && review.providerResponse) {
+      throw new ConflictException('Antwort wurde bereits gesendet.');
+    }
+
+    review.providerResponse = response;
+    review.respondedAt = new Date();
+    await this.reviewRepository.save(review);
+
+    return {
+      id: review.id,
+      response: review.providerResponse,
+      respondedAt: review.respondedAt,
+    };
+  }
 }

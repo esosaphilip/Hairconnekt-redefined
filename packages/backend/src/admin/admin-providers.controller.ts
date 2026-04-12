@@ -19,6 +19,17 @@ export class AdminProvidersController {
     private readonly userRepo: Repository<User>,
   ) {}
 
+  private isProtectedAddress(provider: Provider) {
+    const street = provider.street?.trim().toLowerCase();
+    const city = provider.city?.trim().toLowerCase();
+    const postalCode = provider.postalCode?.trim();
+
+    return (
+      street === 'mühlenweg' ||
+      (city === 'wuppertal' && postalCode === '42275')
+    );
+  }
+
   // GET /admin/providers?status=pending
   @Get()
   async findAll(@Query('status') status?: string) {
@@ -45,6 +56,56 @@ export class AdminProvidersController {
         },
       },
     });
+  }
+
+  // GET /admin/providers/geocoding/report — provider geo data health
+  @Get('geocoding/report')
+  async getGeocodingReport() {
+    const providers = await this.providerRepo.find({
+      order: { createdAt: 'ASC' },
+      select: {
+        id: true,
+        businessName: true,
+        street: true,
+        houseNumber: true,
+        city: true,
+        postalCode: true,
+        lat: true,
+        lng: true,
+      },
+    });
+
+    const geocoded = providers.filter(
+      (provider) => provider.lat !== null && provider.lng !== null,
+    );
+    const missing = providers.filter(
+      (provider) => provider.lat === null || provider.lng === null,
+    );
+    const protectedMissing = missing.filter((provider) =>
+      this.isProtectedAddress(provider),
+    );
+    const actionableMissing = missing.filter(
+      (provider) => !this.isProtectedAddress(provider),
+    );
+
+    return {
+      summary: {
+        totalProviders: providers.length,
+        geocodedProviders: geocoded.length,
+        missingCoordinateProviders: missing.length,
+        protectedSkippedProviders: protectedMissing.length,
+        actionableMissingProviders: actionableMissing.length,
+      },
+      missingDetails: missing.map((provider) => ({
+        id: provider.id,
+        businessName: provider.businessName,
+        street: provider.street,
+        houseNumber: provider.houseNumber,
+        city: provider.city,
+        postalCode: provider.postalCode,
+        protected: this.isProtectedAddress(provider),
+      })),
+    };
   }
 
   // GET /admin/providers/:id — full provider detail

@@ -7,6 +7,7 @@ import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../../theme';
 import { API } from '../../../utils/api';
+import { AuthService } from '../../../services/authService';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -110,13 +111,21 @@ export default function ClientProfileScreen() {
     ]);
   };
 
-  const handleProviderSwitch = async () => {
-    if (user && user.role === 'provider') {
-      await tokenStorage.setUserRole('provider');
-      router.replace('/(provider)' as any);
-    } else {
-      router.push('/(provider)/register/type');
-    }
+  const handleProviderSwitch = () => {
+    Alert.alert(
+      'Zu anderem Anbieter-Konto wechseln',
+      'Du wirst abgemeldet und kannst dich danach mit einem separaten Anbieter-Konto anmelden.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Weiter',
+          onPress: async () => {
+            await AuthService.logout();
+            router.replace('/(auth)/login?role=provider' as any);
+          },
+        },
+      ]
+    );
   };
 
   // BUG 2: R2 always returns full https:// URLs — use directly, no prefix logic needed
@@ -215,7 +224,7 @@ export default function ClientProfileScreen() {
           <View style={styles.providerEmojiCircle}>
             <Text style={{ fontSize: 24 }}>💇</Text>
           </View>
-          <Text style={styles.providerCardText}>Zum Anbieter-Modus wechseln</Text>
+          <Text style={styles.providerCardText}>Mit anderem Anbieter-Konto anmelden</Text>
         </TouchableOpacity>
 
         {/* Logout */}

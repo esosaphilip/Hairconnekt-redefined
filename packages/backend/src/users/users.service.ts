@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { Address } from '../entities/address.entity';
+import { Provider, ProviderStatus } from '../entities/provider.entity';
+import { RefreshToken } from '../auth/entities/refresh-token.entity';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +14,10 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(Address)
     private addressRepository: Repository<Address>,
+    @InjectRepository(Provider)
+    private providerRepository: Repository<Provider>,
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
   async getMe(userId: string): Promise<User> {
@@ -102,5 +109,43 @@ export class UsersService {
     await this.userRepository.save(user);
 
     return { avatarUrl };
+  }
+
+  async deleteAccount(userId: string, password: string): Promise<void> {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :userId', { userId })
+      .andWhere('user.isActive = true')
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException('Benutzer nicht gefunden.');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Falsches Passwort. Bitte versuche es erneut.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Falsches Passwort. Bitte versuche es erneut.');
+    }
+
+    if (user.role === 'provider') {
+      const provider = await this.providerRepository.findOne({ where: { userId } });
+      if (provider) {
+        await this.providerRepository.update(provider.id, {
+          status: ProviderStatus.SUSPENDED,
+          isOnline: false,
+        });
+        await this.providerRepository.softDelete(provider.id);
+      }
+    }
+
+    await this.refreshTokenRepository.delete({ userId } as any);
+
+    await this.userRepository.update(userId, { isActive: false });
+    await this.userRepository.softDelete(userId);
   }
 }

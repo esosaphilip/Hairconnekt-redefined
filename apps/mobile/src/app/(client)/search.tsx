@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
@@ -10,22 +10,30 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
+import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
 
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
 
 export default function ClientSearch() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ query?: string; sort?: SortOption }>();
+  const initialQuery = typeof params.query === 'string' ? params.query : '';
+  const initialSort: SortOption =
+    params.sort === 'entfernung' || params.sort === 'bewertung'
+      ? params.sort
+      : 'empfohlen';
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState('Alle');
   const [availableToday, setAvailableToday] = useState(false);
-  const [sortOption, setSortOption] = useState<SortOption>('empfohlen');
+  const [sortOption, setSortOption] = useState<SortOption>(initialSort);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   const [providers, setProviders] = useState<ProviderProps[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [totalResults, setTotalResults] = useState(0);
   
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -38,11 +46,21 @@ export default function ClientSearch() {
 
   // Categories from API (id + name pairs)
   const [categoryList, setCategoryList] = useState<{ id: string; name: string }[]>([]);
+  const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
+  const [isLocating, setIsLocating] = useState(initialSort === 'entfernung');
 
   const sortMap: Record<SortOption, string> = {
     empfohlen: 'Empfohlen',
     entfernung: 'Entfernung',
     bewertung: 'Bewertung'
+  };
+
+  const loadDiscoveryLocation = async () => {
+    setIsLocating(true);
+    const coords = await getDiscoveryCoordinates();
+    setDiscoveryLocation(coords);
+    setIsLocating(false);
+    return coords;
   };
 
   useEffect(() => {
@@ -67,19 +85,33 @@ export default function ClientSearch() {
 
     loadCategories();
     loadFavourites();
+    loadDiscoveryLocation();
   }, []);
+
+  useEffect(() => {
+    setSearchQuery(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    setSortOption(initialSort);
+  }, [initialSort]);
 
   useEffect(() => {
     // Only fetch when we have categories loaded (or Alle is selected)
     if (activeCategory === 'Alle' || categoryList.length > 0) {
       setPage(1);
       setHasMore(true);
+      setTotalResults(0);
       setProviders([]);
-      fetchProviders(1, true);
+      fetchProviders(1, true, initialQuery);
     }
-  }, [activeCategory, availableToday, sortOption, categoryList]);
+  }, [activeCategory, availableToday, sortOption, categoryList, initialQuery, discoveryLocation]);
 
-  const fetchProviders = async (pageNumber: number, isInitial = false) => {
+  const fetchProviders = async (
+    pageNumber: number,
+    isInitial = false,
+    queryOverride?: string,
+  ) => {
     try {
       if (isInitial) setIsLoading(true);
       else setIsFetchingMore(true);
@@ -87,23 +119,38 @@ export default function ClientSearch() {
 
       const token = await tokenStorage.getAccessToken();
       
-      const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
+      const trimmedQuery = (queryOverride ?? searchQuery).trim();
+      const searchParam = trimmedQuery ? `&search=${encodeURIComponent(trimmedQuery)}` : '';
       // Map the selected display name back to its ID
       const selectedCat = categoryList.find(c => c.name === activeCategory);
-      const categoryParam = selectedCat ? `&services=${encodeURIComponent(selectedCat.id)}` : '';
+      const categoryParam = selectedCat ? `&categoryId=${encodeURIComponent(selectedCat.id)}` : '';
       const availParam = availableToday ? `&availableToday=true` : '';
+      const locationParam = discoveryLocation
+        ? `&lat=${encodeURIComponent(String(discoveryLocation.lat))}&lng=${encodeURIComponent(String(discoveryLocation.lng))}`
+        : '';
       
-      const url = `${API}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}`;
+      const url = `${API}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}${locationParam}`;
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const newData = response.data.data || response.data;
-      
-      if (newData.length < 20) {
-        setHasMore(false);
-      }
+      const meta = response.data.meta ?? {};
+      const nextHasMore =
+        typeof meta.hasNext === 'boolean'
+          ? meta.hasNext
+          : newData.length === 20;
+
+      setTotalResults(typeof meta.total === 'number' ? meta.total : newData.length);
+      setHasMore(nextHasMore);
+
+      setFavouriteIds((prev) => {
+        const backendFavourites = newData
+          .filter((provider: ProviderProps) => provider.isFavourited)
+          .map((provider: ProviderProps) => provider.id);
+        return Array.from(new Set([...prev, ...backendFavourites]));
+      });
 
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
     } catch (err: any) {
@@ -120,7 +167,26 @@ export default function ClientSearch() {
     Keyboard.dismiss();
     setPage(1);
     setHasMore(true);
-    fetchProviders(1, true);
+    setTotalResults(0);
+    setProviders([]);
+    fetchProviders(1, true, searchQuery);
+  };
+
+  const handleSelectSort = async (nextSort: SortOption) => {
+    setShowSortDropdown(false);
+
+    if (nextSort === 'entfernung' && !discoveryLocation) {
+      const coords = await loadDiscoveryLocation();
+      if (!coords) {
+        setErrorMessage(
+          'Standortzugriff wird benötigt, um Braider nach Entfernung zu sortieren.'
+        );
+        setErrorVisible(true);
+        return;
+      }
+    }
+
+    setSortOption(nextSort);
   };
 
   const handleLoadMore = () => {
@@ -227,7 +293,15 @@ export default function ClientSearch() {
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); handleSearchSubmit(); }}>
+            <TouchableOpacity onPress={() => {
+              Keyboard.dismiss();
+              setSearchQuery('');
+              setPage(1);
+              setHasMore(true);
+              setTotalResults(0);
+              setProviders([]);
+              fetchProviders(1, true, '');
+            }}>
               <Feather name="x" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -238,7 +312,7 @@ export default function ClientSearch() {
 
       <View style={styles.toolsRow}>
         <Text style={styles.resultCount}>
-          {isLoading ? 'Lade...' : `${providers.length} Braider gefunden`}
+          {isLoading || isLocating ? 'Lade...' : `${totalResults} Braider gefunden`}
         </Text>
         
         <View style={{ position: 'relative', zIndex: 10 }}>
@@ -257,8 +331,7 @@ export default function ClientSearch() {
                   key={key} 
                   style={styles.dropdownItem}
                   onPress={() => {
-                    setSortOption(key);
-                    setShowSortDropdown(false);
+                    handleSelectSort(key);
                   }}
                 >
                   <Text style={[styles.dropdownItemText, sortOption === key && styles.dropdownItemActive]}>

@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-  UpdateDateColumn, ManyToOne, JoinColumn,
+  UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -85,4 +85,7 @@ export class Provider {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }

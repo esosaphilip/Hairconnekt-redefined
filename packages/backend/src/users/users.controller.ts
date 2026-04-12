@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, ParseUUIDPipe,
   UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException,
+  HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -36,6 +37,27 @@ export class UsersController {
     @Body() body: { firstName?: string; lastName?: string; phone?: string },
   ) {
     return this.usersService.updateMe(user.id, body);
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(
+    @CurrentUser() user: User,
+    @Body() body: { password: string },
+  ) {
+    if (!body?.password) {
+      throw new BadRequestException(
+        'Passwort ist erforderlich um das Konto zu löschen.',
+      );
+    }
+
+    await this.usersService.deleteAccount(user.id, body.password);
+
+    return {
+      message: 'Dein Konto wurde erfolgreich gelöscht.',
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   @Get('me/addresses')

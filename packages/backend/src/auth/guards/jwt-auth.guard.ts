@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 /**
@@ -6,4 +6,11 @@ import { AuthGuard } from '@nestjs/passport';
  * Usage: @UseGuards(JwtAuthGuard) on controller or route level.
  */
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  handleRequest(err: unknown, user: unknown) {
+    if (err || !user) {
+      throw new UnauthorizedException('Nicht autorisiert. Bitte melde dich erneut an.');
+    }
+    return user as any;
+  }
+}

@@ -14,12 +14,17 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "de.hairconnekt.app"
+      "bundleIdentifier": "de.hairconnekt.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen."
+      }
     },
     "android": {
       "package": "de.hairconnekt.app",
       "versionCode": 1,
       "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -59,6 +64,12 @@
         {
           "photosPermission": "HairConnekt benötigt Zugriff auf deine Fotos, um Profilbilder und Portfolio-Fotos hochzuladen."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen."
+        }
       ]
     ],
     "experiments": {
@@ -66,4 +77,3 @@
     }
   }
 }
-

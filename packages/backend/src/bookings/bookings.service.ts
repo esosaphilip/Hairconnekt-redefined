@@ -1,9 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, Raw } from 'typeorm';
+import { Repository, In, Raw } from 'typeorm';
 import { Booking, BookingStatus, CancelledBy } from '../entities/booking.entity';
 import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
+import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
+import { TimeBlock } from '../entities/time-block.entity';
 import { UserRole } from '../entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
@@ -13,11 +21,15 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 export class BookingsService {
   constructor(
     @InjectRepository(Booking)
-    private readonly bookingRepository: Repository<Booking>,
+    private readonly bookingRepo: Repository<Booking>,
     @InjectRepository(Service)
-    private readonly serviceRepository: Repository<Service>,
+    private readonly serviceRepo: Repository<Service>,
     @InjectRepository(Provider)
-    private readonly providerRepository: Repository<Provider>,
+    private readonly providerRepo: Repository<Provider>,
+    @InjectRepository(AvailabilitySchedule)
+    private readonly availabilityScheduleRepo: Repository<AvailabilitySchedule>,
+    @InjectRepository(TimeBlock)
+    private readonly timeBlockRepo: Repository<TimeBlock>,
   ) {}
 
   private generateBookingNumber(dateStr: string): string {
@@ -26,22 +38,149 @@ export class BookingsService {
     return `HC-${compactDate}-${randomSuffix}`;
   }
 
-  async createBooking(clientId: string, dto: CreateBookingDto) {
-    const { providerId, serviceIds, scheduledDate, scheduledTime, isMobile, clientNotes } = dto;
+  // Helper: convert HH:MM or HH:MM:SS into total minutes since midnight
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
 
-    const provider = await this.providerRepository.findOne({ where: { id: providerId } });
+  /**
+   * validateBookingSlot — called by createBooking() and rescheduleBooking()
+   * Throws a specific exception for each failure reason.
+   */
+  private async validateBookingSlot(
+    providerId: string,
+    scheduledDate: string,
+    scheduledTime: string,
+    excludeBookingId?: string,
+  ): Promise<void> {
+    const provider = await this.providerRepo.findOne({
+      where: { id: providerId },
+      select: ['id', 'isOnline', 'status'],
+    });
+
     if (!provider) {
-      throw new NotFoundException('Provider not found');
+      throw new NotFoundException('Anbieter nicht gefunden.');
     }
 
-    const services = await this.serviceRepository.findBy({ id: In(serviceIds) });
+    if (!provider.isOnline) {
+      throw new BadRequestException(
+        'Der Anbieter nimmt derzeit keine Buchungen an.',
+      );
+    }
+
+    if (provider.status?.toLowerCase() !== 'approved') {
+      throw new BadRequestException(
+        'Dieser Anbieter ist nicht freigeschaltet.',
+      );
+    }
+
+    const dateObj = new Date(`${scheduledDate}T${scheduledTime}:00`);
+    const dayOfWeek = dateObj.getDay();
+
+    const schedule = await this.availabilityScheduleRepo.findOne({
+      where: {
+        providerId,
+        dayOfWeek,
+      },
+    });
+
+    if (!schedule || !schedule.isOpen) {
+      throw new BadRequestException(
+        'Der Anbieter ist an diesem Wochentag nicht verfuegbar.',
+      );
+    }
+
+    if (!schedule.openTime || !schedule.closeTime) {
+      throw new BadRequestException(
+        'Für diesen Tag sind keine gueltigen Oeffnungszeiten hinterlegt.',
+      );
+    }
+
+    const requestedMinutes = this.timeToMinutes(scheduledTime);
+    const openMinutes = this.timeToMinutes(schedule.openTime);
+    const closeMinutes = this.timeToMinutes(schedule.closeTime);
+
+    if (requestedMinutes < openMinutes || requestedMinutes >= closeMinutes) {
+      throw new BadRequestException(
+        `Der Anbieter ist nur zwischen ${schedule.openTime.slice(0, 5)} und ${schedule.closeTime.slice(0, 5)} Uhr verfügbar.`,
+      );
+    }
+
+    const activeBlocks = await this.timeBlockRepo.find({
+      where: { providerId },
+    });
+
+    for (const block of activeBlocks) {
+      if (scheduledDate >= block.startDate && scheduledDate <= block.endDate) {
+        if (block.isAllDay) {
+          throw new ConflictException(
+            'Der Anbieter ist an diesem Tag nicht verfügbar (blockiert).',
+          );
+        }
+
+        if (block.startTime && block.endTime) {
+          const blockStartMin = this.timeToMinutes(block.startTime);
+          const blockEndMin = this.timeToMinutes(block.endTime);
+
+          if (
+            requestedMinutes >= blockStartMin &&
+            requestedMinutes < blockEndMin
+          ) {
+            throw new ConflictException(
+              'Der Anbieter ist zu dieser Uhrzeit nicht verfügbar (blockiert).',
+            );
+          }
+        }
+      }
+    }
+
+    const conflictQuery = this.bookingRepo
+      .createQueryBuilder('booking')
+      .where('booking.providerId = :providerId', { providerId })
+      .andWhere('booking.scheduledDate = :scheduledDate', { scheduledDate })
+      .andWhere('booking.scheduledTime = :scheduledTime', { scheduledTime })
+      .andWhere('booking.status NOT IN (:...inactiveStatuses)', {
+        inactiveStatuses: [BookingStatus.CANCELLED],
+      });
+
+    if (excludeBookingId) {
+      conflictQuery.andWhere('booking.id != :excludeBookingId', {
+        excludeBookingId,
+      });
+    }
+
+    const conflict = await conflictQuery.getOne();
+    if (conflict) {
+      throw new ConflictException(
+        'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.',
+      );
+    }
+  }
+
+  async createBooking(clientId: string, dto: CreateBookingDto) {
+    const { providerId, serviceIds, scheduledDate, scheduledTime, isMobile, clientNotes } = dto;
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+
+    if (!dateRegex.test(scheduledDate)) {
+      throw new BadRequestException('scheduledDate must be in YYYY-MM-DD format');
+    }
+
+    if (!timeRegex.test(scheduledTime)) {
+      throw new BadRequestException('scheduledTime must be in HH:MM format');
+    }
+
+    await this.validateBookingSlot(providerId, scheduledDate, scheduledTime);
+
+    const services = await this.serviceRepo.findBy({ id: In(serviceIds) });
     if (services.length !== serviceIds.length) {
       throw new BadRequestException('One or more services could not be resolved');
     }
 
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
 
-    const booking = this.bookingRepository.create({
+    const booking = this.bookingRepo.create({
       bookingNumber: this.generateBookingNumber(scheduledDate),
       clientId,
       providerId,
@@ -55,11 +194,11 @@ export class BookingsService {
       paymentMethod: 'CASH', // Locked safely in Phase 1 constraints mapping explicitly
     });
 
-    const savedBooking = await this.bookingRepository.save(booking);
+    const savedBooking = await this.bookingRepo.save(booking);
 
     return {
       message: 'Booking created successfully',
-      booking: await this.bookingRepository.findOne({
+      booking: await this.bookingRepo.findOne({
         where: { id: savedBooking.id },
         relations: ['services', 'provider', 'provider.user'],
       }),
@@ -67,7 +206,7 @@ export class BookingsService {
   }
 
   async findOne(id: string, user: any) {
-    const booking = await this.bookingRepository.findOne({
+    const booking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider', 'provider.user', 'services', 'client'],
     });
@@ -82,7 +221,7 @@ export class BookingsService {
     }
     
     if (user.role === UserRole.PROVIDER) {
-      const provider = await this.providerRepository.findOne({ where: { userId } });
+      const provider = await this.providerRepo.findOne({ where: { userId } });
       if (!provider || booking.providerId !== provider.id) {
         throw new NotFoundException('Booking not found');
       }
@@ -99,7 +238,7 @@ export class BookingsService {
     if (role === UserRole.CLIENT) {
       where.clientId = userId;
     } else if (role === UserRole.PROVIDER) {
-      const provider = await this.providerRepository.findOne({ where: { userId } });
+      const provider = await this.providerRepo.findOne({ where: { userId } });
       if (provider) {
         where.providerId = provider.id;
       } else {
@@ -117,7 +256,7 @@ export class BookingsService {
       where.status = In(statuses);
     }
 
-    const [data, total] = await this.bookingRepository.findAndCount({
+    const [data, total] = await this.bookingRepo.findAndCount({
       where,
       relations: ['provider', 'provider.user', 'services', 'client'],
       order: {
@@ -132,8 +271,18 @@ export class BookingsService {
   }
 
   async rescheduleBooking(id: string, user: any, dto: RescheduleBookingDto) {
-    // Find booking and verify ownership
-    const booking = await this.bookingRepository.findOne({
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+
+    if (!dateRegex.test(dto.scheduledDate)) {
+      throw new BadRequestException('scheduledDate must be in YYYY-MM-DD format');
+    }
+
+    if (!timeRegex.test(dto.scheduledTime)) {
+      throw new BadRequestException('scheduledTime must be in HH:MM format');
+    }
+
+    const booking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider'],
     });
@@ -155,39 +304,29 @@ export class BookingsService {
       );
     }
 
-    // Check new slot is available
-    const conflict = await this.bookingRepository.findOne({
-      where: {
-        providerId: booking.providerId,
-        scheduledDate: dto.scheduledDate,
-        scheduledTime: dto.scheduledTime,
-        status: Not(In(['cancelled', 'CANCELLED'])),
-      },
-    });
-    
-    if (conflict && conflict.id !== id) {
-      throw new ConflictException(
-        'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.'
-      );
-    }
+    await this.validateBookingSlot(
+      booking.providerId,
+      dto.scheduledDate,
+      dto.scheduledTime,
+      id,
+    );
 
-    // Update the booking
     booking.scheduledDate = dto.scheduledDate;
     booking.scheduledTime = dto.scheduledTime;
-    booking.status = BookingStatus.PENDING; // Reset to pending when rescheduled
-    
+    booking.status = BookingStatus.PENDING;
+
     if (dto.reason) {
-      booking.clientNotes = booking.clientNotes 
-        ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}` 
+      booking.clientNotes = booking.clientNotes
+        ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
         : `[Reschedule Reason]: ${dto.reason}`;
     }
 
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 
   async cancelBooking(id: string, user: any, dto: CancelBookingDto) {
-    const booking = await this.bookingRepository.findOne({
+    const booking = await this.bookingRepo.findOne({
       where: { id },
     });
 
@@ -214,7 +353,7 @@ export class BookingsService {
         ? `${booking.clientNotes}\n\n${cancelDetails}` 
         : cancelDetails;
 
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 
@@ -222,13 +361,13 @@ export class BookingsService {
 
   private async findBookingForProvider(bookingId: string, user: any) {
     const userId = user.sub || user.id;
-    const booking = await this.bookingRepository.findOne({
+    const booking = await this.bookingRepo.findOne({
       where: { id: bookingId },
       relations: ['provider', 'provider.user', 'services', 'client'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const provider = await this.providerRepository.findOne({ where: { userId } });
+    const provider = await this.providerRepo.findOne({ where: { userId } });
     if (!provider || booking.providerId !== provider.id) {
       throw new ForbiddenException('Not your booking');
     }
@@ -241,7 +380,7 @@ export class BookingsService {
       throw new BadRequestException('Only PENDING bookings can be accepted');
     }
     booking.status = BookingStatus.CONFIRMED;
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 
@@ -253,7 +392,7 @@ export class BookingsService {
     booking.status = BookingStatus.CANCELLED;
     booking.cancelledBy = CancelledBy.PROVIDER;
     booking.cancelledAt = new Date();
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 
@@ -263,7 +402,7 @@ export class BookingsService {
       throw new BadRequestException('Only CONFIRMED bookings can be started');
     }
     booking.status = BookingStatus.IN_PROGRESS;
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 
@@ -273,7 +412,7 @@ export class BookingsService {
       throw new BadRequestException('Only IN_PROGRESS bookings can be completed');
     }
     booking.status = BookingStatus.COMPLETED;
-    await this.bookingRepository.save(booking);
+    await this.bookingRepo.save(booking);
     return this.findOne(id, user);
   }
 }

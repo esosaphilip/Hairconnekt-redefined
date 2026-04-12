@@ -7,7 +7,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main",
     "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "backfill:provider-geocodes": "ts-node -r tsconfig-paths/register src/scripts/backfill-provider-geocodes.ts",
+    "normalize:provider-test-addresses": "ts-node -r tsconfig-paths/register src/scripts/normalize-provider-test-addresses.ts",
+    "report:provider-geocodes": "ts-node -r tsconfig-paths/register src/scripts/report-provider-geocodes.ts"
   },
   "keywords": [],
   "author": "",

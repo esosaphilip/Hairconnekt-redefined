@@ -132,12 +132,19 @@ export default function RescheduleAppointment() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        const backendMessage = Array.isArray(err?.message) ? err.message[0] : err?.message;
         if (res.status === 409) {
           throw new Error(
             'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.'
           );
         }
-        throw new Error(mapHttpError(res.status));
+        if (res.status === 400) {
+          throw new Error(
+            backendMessage ??
+              'Dieser Termin ist leider nicht möglich. Bitte wähle ein anderes Datum oder Uhrzeit.'
+          );
+        }
+        throw new Error(backendMessage ?? mapHttpError(res.status));
       }
 
       // Success → navigate back to appointment detail

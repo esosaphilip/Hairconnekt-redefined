@@ -113,24 +113,17 @@ export default function BookingDetails() {
       });
       
     } catch (err: any) {
-      // Debug: Log the full error
-      console.log('Booking error:', err);
-      console.log('Error response:', err.response?.data);
-      console.log('Error status:', err.response?.status);
-      
       const status = err.response?.status;
       if (status === 409) {
-        setErrorMessage('Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle eine andere Zeit.');
+        setErrorMessage('Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.');
       } else if (status === 400) {
-        // Show more detailed error for debugging
-        const errorData = err.response?.data;
-        if (errorData?.message) {
-          setErrorMessage(`Fehler: ${errorData.message}`);
-        } else if (errorData?.error) {
-          setErrorMessage(`Fehler: ${errorData.error}`);
-        } else {
-          setErrorMessage('Ungültige Eingabe. Bitte prüfe deine Daten.');
-        }
+        const backendMessage = err.response?.data?.message;
+        setErrorMessage(
+          Array.isArray(backendMessage)
+            ? backendMessage[0]
+            : backendMessage ??
+                'Dieser Termin ist leider nicht möglich. Bitte wähle ein anderes Datum oder Uhrzeit.'
+        );
       } else {
         setErrorMessage(mapHttpError(status));
       }

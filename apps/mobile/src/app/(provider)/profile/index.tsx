@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { AuthService } from '../../../services/authService';
 
 
 export default function ProviderProfileHubScreen() {
@@ -98,13 +99,21 @@ export default function ProviderProfileHubScreen() {
     }
   };
 
-  const switchToClientMode = async () => {
-    try {
-      await tokenStorage.setUserRole('client');
-      router.replace('/(client)');
-    } catch (error) {
-      console.log('Error switching mode:', error);
-    }
+  const switchToClientMode = () => {
+    Alert.alert(
+      'Zu anderem Kunden-Konto wechseln',
+      'Du wirst abgemeldet und kannst dich danach mit einem separaten Kunden-Konto anmelden.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Weiter',
+          onPress: async () => {
+            await AuthService.logout();
+            router.replace('/(auth)/login?role=client' as any);
+          },
+        },
+      ]
+    );
   };
 
   const handleLogout = () => {
@@ -244,7 +253,7 @@ export default function ProviderProfileHubScreen() {
         <View style={styles.menuContainer}>
           <TouchableOpacity style={[styles.menuCard, styles.switchModeCard]} onPress={switchToClientMode}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.switchModeText}>👤 Zum Kunden-Modus wechseln</Text>
+              <Text style={styles.switchModeText}>👤 Mit anderem Kunden-Konto anmelden</Text>
             </View>
           </TouchableOpacity>
         </View>
