@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { bookingStatus } from '../../../utils/booking-status';
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -21,6 +22,12 @@ export default function ProviderAppointmentDetailScreen() {
       fetchBookingDetails();
     }
   }, [id]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (id) fetchBookingDetails();
+    }, [id]),
+  );
 
   const fetchBookingDetails = async () => {
     try {
@@ -125,22 +132,22 @@ export default function ProviderAppointmentDetailScreen() {
   };
 
   const getStatusText = (status: string) => {
-    switch(status) {
-      case 'PENDING': return 'Ausstehend';
-      case 'CONFIRMED': return 'Bestätigt';
-      case 'IN_PROGRESS': return 'Aktiv';
-      case 'COMPLETED': return 'Abgeschlossen';
-      case 'CANCELLED': return 'Storniert';
+    switch (bookingStatus(status)) {
+      case 'pending': return 'Ausstehend';
+      case 'confirmed': return 'Bestätigt';
+      case 'in_progress': return 'Aktiv';
+      case 'completed': return 'Abgeschlossen';
+      case 'cancelled': return 'Storniert';
       default: return status;
     }
   };
 
   const getStatusColor = (status: string) => {
     // Provider view uses BLUE for status
-    if (status === 'PENDING') return '#E65100';
-    if (status === 'CONFIRMED' || status === 'IN_PROGRESS') return '#1976D2'; 
-    if (status === 'COMPLETED') return colors.green;
-    if (status === 'CANCELLED') return colors.error;
+    if (bookingStatus(status) === 'pending') return '#E65100';
+    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return '#1976D2';
+    if (bookingStatus(status) === 'completed') return colors.green;
+    if (bookingStatus(status) === 'cancelled') return colors.error;
     return colors.textSecondary;
   };
 
@@ -288,7 +295,7 @@ export default function ProviderAppointmentDetailScreen() {
       </ScrollView>
 
       {/* Action Buttons Footer */}
-      {booking.status === 'PENDING' && (
+      {bookingStatus(booking.status) === 'pending' && (
         <View style={styles.footer}>
           <PrimaryButton
             label="Buchung annehmen"
@@ -312,7 +319,7 @@ export default function ProviderAppointmentDetailScreen() {
         </View>
       )}
 
-      {booking.status === 'CONFIRMED' && (
+      {bookingStatus(booking.status) === 'confirmed' && (
         <View style={styles.footer}>
           <PrimaryButton 
             label="Termin starten" 
@@ -322,7 +329,7 @@ export default function ProviderAppointmentDetailScreen() {
         </View>
       )}
       
-      {booking.status === 'IN_PROGRESS' && (
+      {bookingStatus(booking.status) === 'in_progress' && (
         <View style={styles.footer}>
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: colors.green }]} 

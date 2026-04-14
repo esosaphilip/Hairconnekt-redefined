@@ -144,6 +144,8 @@ export default function ProviderProfileHubScreen() {
 
   const fullName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
   const displayName = provider?.businessName || (fullName.length > 0 ? fullName : 'Mein Profil');
+  const avgRating = Number(provider?.avgRating);
+  const totalReviews = Number(provider?.totalReviews);
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -184,9 +186,9 @@ export default function ProviderProfileHubScreen() {
             <Text style={styles.locationText}>{provider?.city || 'Nicht angegeben'}</Text>
           </View>
 
-          {provider?.avgRating > 0 && (
+          {Number.isFinite(avgRating) && avgRating > 0 && (
             <Text style={styles.ratingText}>
-              ⭐ {provider.avgRating.toFixed(1)} ({provider.totalReviews} Bewertungen)
+              ⭐ {avgRating.toFixed(1)} ({Number.isFinite(totalReviews) ? totalReviews : 0} Bewertungen)
             </Text>
           )}
 

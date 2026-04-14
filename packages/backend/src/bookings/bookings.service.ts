@@ -369,7 +369,7 @@ export class BookingsService {
 
     const provider = await this.providerRepo.findOne({ where: { userId } });
     if (!provider || booking.providerId !== provider.id) {
-      throw new ForbiddenException('Not your booking');
+      throw new ForbiddenException('Du hast keine Berechtigung für diese Buchung.');
     }
     return booking;
   }
@@ -380,7 +380,7 @@ export class BookingsService {
       return this.findOne(id, user);
     }
     if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Only PENDING bookings can be accepted');
+      throw new BadRequestException('Nur ausstehende Buchungen können bestätigt werden.');
     }
     booking.status = BookingStatus.CONFIRMED;
     await this.bookingRepo.save(booking);
@@ -393,7 +393,7 @@ export class BookingsService {
       return this.findOne(id, user);
     }
     if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Only PENDING bookings can be declined');
+      throw new BadRequestException('Nur ausstehende Buchungen können abgelehnt werden.');
     }
     booking.status = BookingStatus.CANCELLED;
     booking.cancelledBy = CancelledBy.PROVIDER;
@@ -404,8 +404,11 @@ export class BookingsService {
 
   async startBooking(id: string, user: any) {
     const booking = await this.findBookingForProvider(id, user);
+    if (booking.status === BookingStatus.IN_PROGRESS) {
+      return this.findOne(id, user);
+    }
     if (booking.status !== BookingStatus.CONFIRMED) {
-      throw new BadRequestException('Only CONFIRMED bookings can be started');
+      throw new BadRequestException('Nur bestätigte Buchungen können gestartet werden.');
     }
     booking.status = BookingStatus.IN_PROGRESS;
     await this.bookingRepo.save(booking);
@@ -414,8 +417,11 @@ export class BookingsService {
 
   async completeBooking(id: string, user: any) {
     const booking = await this.findBookingForProvider(id, user);
+    if (booking.status === BookingStatus.COMPLETED) {
+      return this.findOne(id, user);
+    }
     if (booking.status !== BookingStatus.IN_PROGRESS) {
-      throw new BadRequestException('Only IN_PROGRESS bookings can be completed');
+      throw new BadRequestException('Nur laufende Buchungen können abgeschlossen werden.');
     }
     booking.status = BookingStatus.COMPLETED;
     await this.bookingRepo.save(booking);

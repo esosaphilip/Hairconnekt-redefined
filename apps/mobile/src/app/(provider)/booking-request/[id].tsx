@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { bookingStatus } from '../../../utils/booking-status';
 
 export default function BookingRequestScreen() {
   const router = useRouter();
@@ -54,8 +55,7 @@ export default function BookingRequestScreen() {
       });
 
       if (res.ok) {
-        // In a real app we might show a toast here
-        router.replace('/(provider)/calendar');
+        router.replace(`/(provider)/appointments/${id}`);
       } else {
         let msg = 'Buchung konnte nicht bestätigt werden.';
         try {
@@ -149,9 +149,10 @@ export default function BookingRequestScreen() {
   const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   
   const getStatusBadge = () => {
-    if (booking.status?.toLowerCase() === 'pending') return <View style={styles.badgePending}><Text style={styles.badgePendingText}>Ausstehend</Text></View>;
-    if (booking.status === 'CONFIRMED') return <View style={styles.badgeConfirmed}><Text style={styles.badgeConfirmedText}>Bestätigt</Text></View>;
-    if (booking.status === 'CANCELLED') return <View style={styles.badgeCancelled}><Text style={styles.badgeCancelledText}>Abgelehnt</Text></View>;
+    const s = bookingStatus(booking.status);
+    if (s === 'pending') return <View style={styles.badgePending}><Text style={styles.badgePendingText}>Ausstehend</Text></View>;
+    if (s === 'confirmed') return <View style={styles.badgeConfirmed}><Text style={styles.badgeConfirmedText}>Bestätigt</Text></View>;
+    if (s === 'cancelled') return <View style={styles.badgeCancelled}><Text style={styles.badgeCancelledText}>Abgelehnt</Text></View>;
     return <View style={styles.badgeDefault}><Text style={styles.badgeDefaultText}>{booking.status}</Text></View>;
   };
 
@@ -166,7 +167,7 @@ export default function BookingRequestScreen() {
       </View>
 
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
-        {booking.status?.toLowerCase() === 'pending' && (
+        {bookingStatus(booking.status) === 'pending' && (
           <View style={styles.alertBanner}>
             <Text style={styles.alertBannerTitle}>⚡ Schnell antworten!</Text>
             <Text style={styles.alertBannerSub}>Kunden warten auf deine Bestätigung</Text>
@@ -258,7 +259,7 @@ export default function BookingRequestScreen() {
 
       {/* BOTTOM ACTIONS */}
       <View style={styles.bottomActions}>
-        {booking.status?.toLowerCase() === 'pending' ? (
+        {bookingStatus(booking.status) === 'pending' ? (
           <>
             <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={isAccepting || isDeclining}>
               {isAccepting ? <ActivityIndicator color={colors.background} /> : <Text style={styles.acceptBtnText}>Annehmen</Text>}
@@ -268,9 +269,9 @@ export default function BookingRequestScreen() {
             </TouchableOpacity>
           </>
         ) : (
-          <View style={[styles.statusCard, booking.status === 'CONFIRMED' ? styles.statusCardConfirmed : styles.statusCardCancelled]}>
-            <Text style={[styles.statusCardText, booking.status === 'CONFIRMED' ? styles.statusCardTextConfirmed : styles.statusCardTextCancelled]}>
-              {booking.status === 'CONFIRMED' ? '✓ Du hast diesen Termin bestätigt' : '✗ Abgelehnt'}
+          <View style={[styles.statusCard, bookingStatus(booking.status) === 'confirmed' ? styles.statusCardConfirmed : styles.statusCardCancelled]}>
+            <Text style={[styles.statusCardText, bookingStatus(booking.status) === 'confirmed' ? styles.statusCardTextConfirmed : styles.statusCardTextCancelled]}>
+              {bookingStatus(booking.status) === 'confirmed' ? '✓ Du hast diesen Termin bestätigt' : '✗ Abgelehnt'}
             </Text>
           </View>
         )}
