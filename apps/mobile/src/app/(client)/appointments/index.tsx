@@ -9,7 +9,6 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
 import { bookingStatus } from '../../../utils/booking-status';
-import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -137,7 +136,9 @@ export default function AppointmentsList() {
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatar} />
           ) : (
-            <Image source={avatarPlaceholder} style={styles.avatar} />
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Feather name="user" size={24} color={colors.textTertiary} />
+            </View>
           )}
           <Text style={styles.providerName} numberOfLines={1}>{providerName}</Text>
           <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
@@ -279,6 +280,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   avatar: { width: 48, height: 48, borderRadius: 24, marginRight: spacing.sm },
+  avatarFallback: { backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' },
   providerName: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   statusBadgeText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.surface },

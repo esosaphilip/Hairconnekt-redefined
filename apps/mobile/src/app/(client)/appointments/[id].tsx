@@ -9,8 +9,6 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
 import { bookingStatus } from '../../../utils/booking-status';
-// BUG 26: local bundled placeholder instead of external URL
-import avatarPlaceholder from '../../../assets/avatar-placeholder.png';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -147,7 +145,9 @@ export default function AppointmentDetails() {
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.providerAvatar} />
             ) : (
-              <Image source={avatarPlaceholder} style={styles.providerAvatar} />
+              <View style={[styles.providerAvatar, styles.providerAvatarFallback]}>
+                <Feather name="user" size={28} color={colors.textTertiary} />
+              </View>
             )}
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>{providerName}</Text>
@@ -311,6 +311,7 @@ const styles = StyleSheet.create({
   },
   providerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   providerAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.md },
+  providerAvatarFallback: { backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' },
   providerInfo: { flex: 1 },
   providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: 4 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },

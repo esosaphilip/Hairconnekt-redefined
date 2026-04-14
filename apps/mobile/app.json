@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "HairConnekt",
-    "slug": "hairconnekt",
+    "slug": "hairconnekt-redefined",
+    "owner": "esosaphilip",
     "version": "1.0.0",
     "scheme": "hairconnekt",
     "orientation": "portrait",
@@ -28,7 +29,8 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -47,7 +49,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "predictiveBackGestureEnabled": false
@@ -74,6 +79,17 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cf78514f-f8c9-478b-b2fb-d6a784f93262"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cf78514f-f8c9-478b-b2fb-d6a784f93262"
     }
   }
 }
