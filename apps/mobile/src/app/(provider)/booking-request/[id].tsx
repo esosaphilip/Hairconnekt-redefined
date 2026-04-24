@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
-import { bookingStatus } from '../../../utils/booking-status';
+import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 
 export default function BookingRequestScreen() {
   const router = useRouter();
@@ -150,10 +150,16 @@ export default function BookingRequestScreen() {
   
   const getStatusBadge = () => {
     const s = bookingStatus(booking.status);
-    if (s === 'pending') return <View style={styles.badgePending}><Text style={styles.badgePendingText}>Ausstehend</Text></View>;
-    if (s === 'confirmed') return <View style={styles.badgeConfirmed}><Text style={styles.badgeConfirmedText}>Bestätigt</Text></View>;
-    if (s === 'cancelled') return <View style={styles.badgeCancelled}><Text style={styles.badgeCancelledText}>Abgelehnt</Text></View>;
-    return <View style={styles.badgeDefault}><Text style={styles.badgeDefaultText}>{booking.status}</Text></View>;
+    const label = bookingStatusLabel(booking.status);
+    if (s === 'pending')
+      return <View style={styles.badgePending}><Text style={styles.badgePendingText}>{label}</Text></View>;
+    if (s === 'confirmed' || s === 'in_progress')
+      return <View style={styles.badgeConfirmed}><Text style={styles.badgeConfirmedText}>{label}</Text></View>;
+    if (s === 'completed')
+      return <View style={styles.badgeConfirmed}><Text style={styles.badgeConfirmedText}>{label}</Text></View>;
+    if (s === 'cancelled')
+      return <View style={styles.badgeCancelled}><Text style={styles.badgeCancelledText}>{label}</Text></View>;
+    return <View style={styles.badgeDefault}><Text style={styles.badgeDefaultText}>{label}</Text></View>;
   };
 
   return (

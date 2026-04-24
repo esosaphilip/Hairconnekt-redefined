@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
-import { bookingStatus } from '../../../utils/booking-status';
+import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -132,14 +132,8 @@ export default function ProviderAppointmentDetailScreen() {
   };
 
   const getStatusText = (status: string) => {
-    switch (bookingStatus(status)) {
-      case 'pending': return 'Ausstehend';
-      case 'confirmed': return 'Bestätigt';
-      case 'in_progress': return 'Aktiv';
-      case 'completed': return 'Abgeschlossen';
-      case 'cancelled': return 'Storniert';
-      default: return status;
-    }
+    const s = bookingStatus(status);
+    return bookingStatusLabel(s);
   };
 
   const getStatusColor = (status: string) => {

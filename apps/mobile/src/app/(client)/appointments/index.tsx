@@ -8,7 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
-import { bookingStatus } from '../../../utils/booking-status';
+import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -63,13 +63,20 @@ export default function AppointmentsList() {
   };
 
   const getBadgeProps = (status: string) => {
-    switch (status) {
-      case 'pending': return { bg: '#BF6000', text: 'Ausstehend' };
-      case 'CONFIRMED': 
-      case 'IN_PROGRESS': return { bg: '#2E7D32', text: 'Bestätigt' };
-      case 'COMPLETED': return { bg: '#6B6B6B', text: 'Abgeschlossen' };
-      case 'CANCELLED': return { bg: '#C62828', text: 'Abgesagt' };
-      default: return { bg: colors.border, text: status };
+    const s = bookingStatus(status);
+    switch (s) {
+      case 'pending':
+        return { bg: '#BF6000', text: bookingStatusLabel(status) };
+      case 'confirmed':
+        return { bg: '#2E7D32', text: bookingStatusLabel(status) };
+      case 'in_progress':
+        return { bg: '#2E7D32', text: bookingStatusLabel(status) };
+      case 'completed':
+        return { bg: '#6B6B6B', text: bookingStatusLabel(status) };
+      case 'cancelled':
+        return { bg: '#C62828', text: bookingStatusLabel(status) };
+      default:
+        return { bg: colors.border, text: bookingStatusLabel(status) };
     }
   };
 

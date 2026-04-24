@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
-import { bookingStatus } from '../../utils/booking-status';
+import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -291,8 +291,7 @@ export default function ProviderDashboardScreen() {
                     bookingStatus(booking.status) === 'confirmed' ? { color: colors.green } : 
                     bookingStatus(booking.status) === 'in_progress' ? { color: colors.orange } : {}
                   ]}>
-                    {bookingStatus(booking.status) === 'confirmed' ? 'Bestätigt' : 
-                     bookingStatus(booking.status) === 'in_progress' ? 'Aktiv' : booking.status}
+                    {bookingStatusLabel(booking.status)}
                   </Text>
                 </View>
               </View>

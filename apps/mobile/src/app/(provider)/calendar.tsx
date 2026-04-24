@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
+import { bookingStatusLabel } from '../../utils/booking-status';
 
 interface BookingItem {
   id: string;
@@ -264,10 +265,7 @@ export default function ProviderCalendarScreen() {
                         styles.statusText, 
                         booking.status === 'CONFIRMED' ? styles.statusConfirmedText : styles.statusPendingText
                       ]}>
-                        {booking.status === 'CONFIRMED' ? 'Bestätigt' : 
-                         booking.status === 'PENDING' ? 'Ausstehend' :
-                         booking.status === 'IN_PROGRESS' ? 'Aktiv' :
-                         booking.status === 'COMPLETED' ? 'Abgeschlossen' : booking.status}
+                        {bookingStatusLabel(booking.status)}
                       </Text>
                     </View>
                   </View>
