@@ -5,8 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { tokenStorage } from '@/utils/token-storage';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '@/theme';
-
-const API = process.env.EXPO_PUBLIC_API_URL!;
+import { API } from '@/utils/api';
 
 export default function ProviderChatDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

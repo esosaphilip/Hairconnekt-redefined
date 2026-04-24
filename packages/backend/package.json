@@ -27,6 +27,7 @@
     "@nestjs/platform-socket.io": "^11.1.17",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.17",
+    "@sendgrid/mail": "^8.1.6",
     "@types/bcrypt": "^6.0.0",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.5.0",
@@ -47,6 +48,5 @@
     "tsconfig-paths": "^4.2.0",
     "typeorm": "^0.3.28",
     "typescript": "^5.9.3"
-  },
-  "devDependencies": {}
+  }
 }

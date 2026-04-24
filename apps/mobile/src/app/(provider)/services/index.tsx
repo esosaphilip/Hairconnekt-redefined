@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { API } from '../../../utils/api';
 
 export default function ProviderServicesListScreen() {
   const router = useRouter();
@@ -22,7 +23,6 @@ export default function ProviderServicesListScreen() {
     try {
       setLoading(true);
       const token = await tokenStorage.getAccessToken();
-      const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
       
       const [catRes, svcRes] = await Promise.all([
         fetch(`${API}/services/categories`),
@@ -58,7 +58,6 @@ export default function ProviderServicesListScreen() {
     setServices(prev => prev.map(s => s.id === id ? { ...s, isActive: targetStatus } : s));
     try {
       const token = await tokenStorage.getAccessToken();
-      const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
       const res = await fetch(`${API}/providers/me/services/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -81,7 +80,6 @@ export default function ProviderServicesListScreen() {
     setServices(prev => prev.filter(s => s.id !== id));
     try {
       const token = await tokenStorage.getAccessToken();
-      const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
       await fetch(`${API}/providers/me/services/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }

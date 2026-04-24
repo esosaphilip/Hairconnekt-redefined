@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, spacing, borderRadius } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { API } from '../../../utils/api';
 
 export default function ProviderServiceEditScreen() {
   const router = useRouter();
@@ -35,7 +36,6 @@ export default function ProviderServiceEditScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
       const catRes = await fetch(`${API}/services/categories`);
       let fetchedCategories = [];
       if (catRes.ok) {
@@ -92,7 +92,6 @@ export default function ProviderServiceEditScreen() {
     
     try {
       const token = await tokenStorage.getAccessToken();
-      const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
       
       const payload = {
         name: form.name.trim(),

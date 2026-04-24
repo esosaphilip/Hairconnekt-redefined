@@ -4,13 +4,17 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  GoneException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import * as sgMail from '@sendgrid/mail';
+import { createHash, randomBytes } from 'crypto';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -21,8 +25,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
-// In-memory OTP store for Phase 1 (swap for Redis in Phase 2)
-const otpStore = new Map<string, { otp: string; expiresAt: Date }>();
+let sendgridInitialized = false;
 
 @Injectable()
 export class AuthService {
@@ -32,6 +35,9 @@ export class AuthService {
 
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepo: Repository<RefreshToken>,
+
+    @InjectRepository(PasswordResetRequest)
+    private readonly passwordResetRepo: Repository<PasswordResetRequest>,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -175,66 +181,145 @@ export class AuthService {
 
   // ─── FORGOT PASSWORD ───────────────────────────────────────────────────────
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
-    const user = await this.userRepo.findOne({
-      where: { email: dto.email.toLowerCase() },
-    });
+    const email = dto.email.toLowerCase();
+    const user = await this.userRepo.findOne({ where: { email } });
 
-    // Always return success to prevent email enumeration attacks
-    if (!user) {
-      return { message: 'Falls ein Konto mit dieser E-Mail existiert, wurde ein Code gesendet.' };
-    }
+    const message =
+      'Falls ein Konto mit dieser E-Mail existiert, wurde ein Code gesendet.';
+
+    if (!user) return { message };
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(
-      Date.now() + (parseInt(process.env.OTP_EXPIRES_MINUTES ?? '10') * 60 * 1000),
+      Date.now() +
+        parseInt(process.env.OTP_EXPIRES_MINUTES ?? '10') * 60 * 1000,
     );
 
-    otpStore.set(dto.email.toLowerCase(), { otp, expiresAt });
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
+    const otpHash = await bcrypt.hash(otp, rounds);
 
-    // TODO: Send OTP via email service (SMTP — DOC09 SMTP vars)
-    // await this.emailService.sendOtp(user.email, otp);
-    console.log(`[DEV] OTP for ${dto.email}: ${otp}`); // Remove in production
+    const reset = this.passwordResetRepo.create({
+      userId: user.id,
+      otpHash,
+      resetTokenHash: null,
+      expiresAt,
+      otpVerifiedAt: null,
+      usedAt: null,
+    });
+    await this.passwordResetRepo.save(reset);
 
-    return { message: 'Falls ein Konto mit dieser E-Mail existiert, wurde ein Code gesendet.' };
+    await this.sendOtpEmail(user.email, otp).catch(() => {});
+
+    const isDev =
+      (process.env.NODE_ENV ?? 'development') !== 'production' &&
+      process.env.OTP_DEV_MODE === 'true';
+    if (isDev) {
+      return { message: `${message} (DEV Code: ${otp})` };
+    }
+
+    return { message };
   }
 
   // ─── VERIFY OTP ────────────────────────────────────────────────────────────
-  async verifyOtp(dto: VerifyOtpDto): Promise<{ valid: boolean }> {
-    const stored = otpStore.get(dto.email.toLowerCase());
-    if (!stored) throw new BadRequestException('Kein Code für diese E-Mail gefunden.');
-    if (stored.expiresAt < new Date()) throw new BadRequestException('Code abgelaufen. Bitte neuen Code anfordern.');
-    if (stored.otp !== dto.otp) throw new BadRequestException('Falscher Code. Bitte erneut versuchen.');
+  async verifyOtp(dto: VerifyOtpDto): Promise<{ resetToken: string }> {
+    const email = dto.email.toLowerCase();
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) {
+      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    }
 
-    return { valid: true };
+    const req = await this.passwordResetRepo.findOne({
+      where: { userId: user.id, usedAt: null },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!req) {
+      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    }
+
+    if (req.expiresAt < new Date()) {
+      throw new GoneException('Code abgelaufen. Bitte fordere einen neuen an.');
+    }
+
+    const ok = await bcrypt.compare(dto.otp, req.otpHash);
+    if (!ok) {
+      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const resetTokenHash = createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    req.resetTokenHash = resetTokenHash;
+    req.otpVerifiedAt = new Date();
+    await this.passwordResetRepo.save(req);
+
+    return { resetToken };
   }
 
   // ─── RESET PASSWORD ────────────────────────────────────────────────────────
-  async resetPassword(dto: ResetPasswordDto): Promise<AuthResponseDto> {
-    // Verify OTP first
-    await this.verifyOtp({ email: dto.email, otp: dto.otp });
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const tokenHash = createHash('sha256')
+      .update(dto.resetToken)
+      .digest('hex');
+
+    const req = await this.passwordResetRepo.findOne({
+      where: { resetTokenHash: tokenHash, usedAt: null },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!req || req.expiresAt < new Date() || !req.otpVerifiedAt) {
+      throw new BadRequestException(
+        'Code-Verifizierung fehlgeschlagen. Bitte starte den Vorgang neu.',
+      );
+    }
 
     const user = await this.userRepo
       .createQueryBuilder('u')
       .addSelect('u.passwordHash')
-      .where('u.email = :email', { email: dto.email.toLowerCase() })
+      .where('u.id = :id', { id: req.userId })
       .getOne();
 
     if (!user) throw new NotFoundException('Konto nicht gefunden.');
 
     const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
-    user.passwordHash = await bcrypt.hash(dto.newPassword, rounds);
+    user.passwordHash = await bcrypt.hash(dto.password, rounds);
     await this.userRepo.save(user);
 
-    // Revoke all refresh tokens for security after password reset
     await this.refreshTokenRepo.update({ userId: user.id }, { isRevoked: true });
 
-    // Clear OTP
-    otpStore.delete(dto.email.toLowerCase());
+    req.usedAt = new Date();
+    await this.passwordResetRepo.save(req);
 
-    return this.generateAuthResponse(user);
+    return { message: 'Passwort wurde erfolgreich geändert.' };
   }
 
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────
+  private initSendgrid() {
+    if (sendgridInitialized) return;
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) return;
+    sgMail.setApiKey(apiKey);
+    sendgridInitialized = true;
+  }
+
+  private async sendOtpEmail(to: string, otp: string): Promise<void> {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const from = process.env.SENDGRID_FROM_EMAIL;
+    if (!apiKey || !from) return;
+
+    this.initSendgrid();
+
+    await sgMail.send({
+      to,
+      from,
+      subject: 'Dein HairConnekt Verifizierungscode',
+      text: `Dein Code lautet: ${otp}. Gültig für 10 Minuten.`,
+      html: `<p>Dein Code lautet: <strong>${otp}</strong></p><p>Gültig für 10 Minuten.</p>`,
+    });
+  }
+
   private async generateAuthResponse(user: User): Promise<AuthResponseDto> {
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
 

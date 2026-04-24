@@ -106,7 +106,7 @@ export class AuthController {
    */
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ valid: boolean }> {
+  verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ resetToken: string }> {
     return this.authService.verifyOtp(dto);
   }
 
@@ -117,7 +117,7 @@ export class AuthController {
    */
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  resetPassword(@Body() dto: ResetPasswordDto): Promise<AuthResponseDto> {
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
     return this.authService.resetPassword(dto);
   }
 }

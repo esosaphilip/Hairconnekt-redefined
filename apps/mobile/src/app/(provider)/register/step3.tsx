@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { API } from '../../../utils/api';
 
 export default function RegisterStep3Screen() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function RegisterStep3Screen() {
     const fetchServices = async () => {
       try {
         setLoadingServices(true);
-        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}/services/categories`);
+        const res = await fetch(`${API}/services/categories`);
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         setAvailableCategories(data || []);

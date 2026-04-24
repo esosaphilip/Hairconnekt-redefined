@@ -1,6 +1,5 @@
 import { tokenStorage } from './token-storage';
-
-const API = process.env.EXPO_PUBLIC_API_URL!;
+import { API } from './api';
 
 export async function getFavouriteIds(): Promise<string[]> {
   try {

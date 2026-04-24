@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshJwtStrategy } from './strategies/refresh-jwt.strategy';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { User } from '../entities/user.entity';
 
 @Module({
@@ -17,7 +18,7 @@ import { User } from '../entities/user.entity';
       secret: process.env.JWT_ACCESS_SECRET,
       signOptions: { expiresIn: (process.env.JWT_ACCESS_EXPIRES ?? '15m') as any },
     }),
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, PasswordResetRequest]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RefreshJwtStrategy],

@@ -9,22 +9,15 @@ import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
 
-const CANCEL_REASONS = [
-  'Anderer Termin dazwischengekommen', // Maps to 'Andere Pläne' for UI logic, but DTO expects explicit strings. 
-  'Gesundheitliche Gründe',             // Maps to 'Krank'
-  'Finanzielle Gründe',                 // We'll map this to 'Notfall' or 'Sonstiges' later based on DTO constraints. 
-  'Möchte einen anderen Anbieter',      // Maps to 'Anbieter abgesagt' / 'Sonstiges'
-  'Sonstiges'
-];
+type BackendReason = 'Andere Pläne' | 'Krank' | 'Notfall' | 'Anbieter abgesagt' | 'Sonstiges';
 
-// Re-map constraints matching Backend strictly
-const UI_TO_API_MAP: Record<string, string> = {
-  'Anderer Termin dazwischengekommen': 'Andere Pläne',
-  'Gesundheitliche Gründe': 'Krank',
-  'Finanzielle Gründe': 'Notfall', // Or Sonstiges, we'll map to Notfall
-  'Möchte einen anderen Anbieter': 'Anbieter abgesagt',
-  'Sonstiges': 'Sonstiges'
-};
+const CANCEL_REASONS: { label: string; apiValue: BackendReason }[] = [
+  { label: 'Anderer Termin dazwischengekommen', apiValue: 'Andere Pläne' },
+  { label: 'Gesundheitliche Gründe', apiValue: 'Krank' },
+  { label: 'Notfall', apiValue: 'Notfall' },
+  { label: 'Möchte einen anderen Anbieter', apiValue: 'Anbieter abgesagt' },
+  { label: 'Sonstiges', apiValue: 'Sonstiges' },
+];
 
 export default function CancelAppointment() {
   const router = useRouter();
@@ -32,7 +25,7 @@ export default function CancelAppointment() {
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [reasonUI, setReasonUI] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<BackendReason | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
@@ -59,7 +52,7 @@ export default function CancelAppointment() {
   }, [id]);
 
   const handleCancelClick = () => {
-    if (!reasonUI) return;
+    if (!selectedReason) return;
     Alert.alert(
       "Termin wirklich stornieren?",
       "Möchtest du diesen Termin wirklich stornieren? Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -71,22 +64,26 @@ export default function CancelAppointment() {
   };
 
   const submitCancel = async () => {
+    if (!selectedReason) return;
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
-      
-      const mappedReason = UI_TO_API_MAP[reasonUI] || 'Sonstiges';
 
       await axios.patch(`${API}/bookings/${id}/cancel`, {
-        reason: mappedReason,
+        reason: selectedReason,
         notes: notes.trim() || undefined
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       router.replace(`/(client)/appointments` as any);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      const status = err.response?.status;
+      if (status === 409) {
+        setErrorMessage('Dieser Termin kann nicht mehr storniert werden.');
+      } else {
+        setErrorMessage(mapHttpError(status));
+      }
       setErrorVisible(true);
       setIsSubmitting(false);
     }
@@ -149,18 +146,18 @@ export default function CancelAppointment() {
         <Text style={styles.sectionTitle}>Grund für Stornierung</Text>
 
         <View style={styles.reasonsList}>
-          {CANCEL_REASONS.map((r, idx) => {
-            const isSelected = reasonUI === r;
+          {CANCEL_REASONS.map((item, idx) => {
+            const isSelected = selectedReason === item.apiValue;
             return (
               <TouchableOpacity
                 key={idx}
                 style={[styles.radioRow, isSelected && styles.radioRowActive]}
-                onPress={() => setReasonUI(r)}
+                onPress={() => setSelectedReason(item.apiValue)}
               >
                 <View style={[styles.radioCircle, isSelected && styles.radioCircleActive]}>
                   {isSelected && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.radioText}>{r}</Text>
+                <Text style={styles.radioText}>{item.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -181,9 +178,9 @@ export default function CancelAppointment() {
         </View>
 
         <TouchableOpacity 
-          style={[styles.cancelButton, (!reasonUI || isSubmitting) && styles.cancelButtonDisabled]}
+          style={[styles.cancelButton, (!selectedReason || isSubmitting) && styles.cancelButtonDisabled]}
           onPress={handleCancelClick}
-          disabled={!reasonUI || isSubmitting}
+          disabled={!selectedReason || isSubmitting}
         >
           {isSubmitting ? (
              <ActivityIndicator color="#FFF" />

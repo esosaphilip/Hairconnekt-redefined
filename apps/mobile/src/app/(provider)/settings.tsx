@@ -7,8 +7,7 @@ import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { API } from '../../utils/api';
 
 export default function ProviderSettingsScreen() {
   const router = useRouter();
