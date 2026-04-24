@@ -32,6 +32,11 @@ export default function PasswordResetScreen() {
     setErrorVisible(true);
   }
 
+  const resetOtpAndFocusFirst = () => {
+    setOtp(Array(6).fill(''));
+    setTimeout(() => otpRefs.current[0]?.focus(), 50);
+  };
+
   const handleBack = () => {
     if (step === 1) {
       router.back();
@@ -46,11 +51,13 @@ export default function PasswordResetScreen() {
       showError(mapHttpError(400, 'Bitte gib deine E-Mail-Adresse ein.'));
       return;
     }
+    resetOtpAndFocusFirst();
     try {
       setIsLoading(true);
       setErrorVisible(false);
       await axios.post(`${API}/auth/forgot-password`, { email });
       setStep(2);
+      setTimeout(() => otpRefs.current[0]?.focus(), 50);
     } catch (err: any) {
       const status = err.response?.status;
       showError(mapHttpError(status), status);
@@ -69,7 +76,8 @@ export default function PasswordResetScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       const res = await axios.post(`${API}/auth/verify-otp`, { email, otp: code });
-      setResetToken(res.data.resetToken);
+      const token = res.data?.resetToken ?? res.data?.data?.resetToken;
+      setResetToken(token);
       setStep(3);
     } catch (err: any) {
       const status = err.response?.status;
@@ -86,6 +94,11 @@ export default function PasswordResetScreen() {
   };
 
   const handleResetPassword = async () => {
+    if (!resetToken) {
+      showError('Code-Verifizierung fehlgeschlagen. Bitte starte den Vorgang neu.');
+      setStep(1);
+      return;
+    }
     if (!newPassword || newPassword !== confirmPassword) {
       showError('Passwörter stimmen nicht überein.');
       return;
@@ -104,10 +117,25 @@ export default function PasswordResetScreen() {
   };
 
   const handleOtpChange = (text: string, index: number) => {
+    const cleaned = text.replace(/\D/g, '');
+
+    if (cleaned.length > 1) {
+      const chars = cleaned.slice(0, 6 - index).split('');
+      const newOtp = [...otp];
+      for (let i = 0; i < chars.length; i++) {
+        newOtp[index + i] = chars[i];
+      }
+      setOtp(newOtp);
+
+      const lastFilledIndex = Math.min(index + chars.length - 1, 5);
+      setTimeout(() => otpRefs.current[lastFilledIndex]?.focus(), 0);
+      return;
+    }
+
     const newOtp = [...otp];
-    newOtp[index] = text;
+    newOtp[index] = cleaned;
     setOtp(newOtp);
-    if (text !== '' && index < 5) {
+    if (cleaned !== '' && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };
