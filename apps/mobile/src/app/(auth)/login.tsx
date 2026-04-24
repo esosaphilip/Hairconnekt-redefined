@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -129,14 +128,6 @@ export default function LoginScreen() {
           <PrimaryButton label="Anmelden" onPress={handleLogin} loading={isLoading} />
         </View>
 
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Oder</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <PrimaryButton label="Mit Google fortfahren" onPress={() => {}} variant="outline" disabled={isLoading} />
-
         <TouchableOpacity style={styles.footer} onPress={() => router.push(role === 'provider' ? '/(provider)/register/type' as any : '/(auth)/register' as any)}>
           <Text style={styles.footerText}>
             {role === 'client' ? 'Noch kein Konto? Als Kunde registrieren' : 'Noch kein Konto? Als Anbieter registrieren'}
@@ -159,9 +150,6 @@ const styles = StyleSheet.create({
   roleToggleTextActive: { fontFamily: fonts.bodyBold, color: '#FFFFFF' },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxxl, color: colors.primary, marginBottom: spacing.xl, textAlign: 'center' },
   forgotPassword: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.teal, textAlign: 'right', marginTop: spacing.xs },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.xl },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginHorizontal: spacing.md },
   footer: { alignItems: 'center', marginTop: spacing.xl },
   footerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
 });

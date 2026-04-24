@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Req,
+  Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Req, HttpException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -58,7 +58,10 @@ export class AuthController {
   @Post('google')
   @HttpCode(HttpStatus.OK)
   googleAuth(@Body() dto: GoogleAuthDto): Promise<AuthResponseDto> {
-    return this.authService.googleAuth(dto);
+    throw new HttpException(
+      'Google OAuth not available in Phase 1',
+      HttpStatus.NOT_IMPLEMENTED,
+    );
   }
 
   /**

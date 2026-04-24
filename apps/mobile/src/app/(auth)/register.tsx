@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
@@ -9,7 +8,6 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-import { FontAwesome5 } from '@expo/vector-icons';
 import { API } from '../../utils/api';
 
 export default function RegisterScreen() {
@@ -94,17 +92,6 @@ export default function RegisterScreen() {
 
         <PrimaryButton label="Konto erstellen" onPress={handleRegister} loading={isLoading} />
 
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Oder</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}} disabled={isLoading}>
-          <FontAwesome5 name="google" size={20} color={colors.textPrimary} style={styles.googleIcon} />
-          <Text style={styles.googleText}>Mit Google fortfahren</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.footer} onPress={() => router.push('/(auth)/login?role=client' as any)}>
           <Text style={styles.footerText}>Bereits registriert? Anmelden</Text>
         </TouchableOpacity>
@@ -123,12 +110,6 @@ const styles = StyleSheet.create({
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },
   checkboxChecked: { backgroundColor: colors.coral, borderColor: colors.coral },
   checkboxText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.xl },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginHorizontal: spacing.md },
   footer: { alignItems: 'center', marginTop: spacing.xl },
   footerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
-  googleButton: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, width: '100%' },
-  googleIcon: { marginRight: spacing.sm },
-  googleText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
 });
