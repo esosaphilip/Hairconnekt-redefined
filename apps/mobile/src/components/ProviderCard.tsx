@@ -23,6 +23,16 @@ interface Props {
 }
 
 export function ProviderCard({ provider, onPress, onFavourite }: Props) {
+  const tags =
+    provider.specialisationTags && provider.specialisationTags.length > 0
+      ? provider.specialisationTags
+      : ['Allgemein'];
+
+  const priceText =
+    typeof provider.startingPrice === 'number' && provider.startingPrice > 0
+      ? `ab €${provider.startingPrice}`
+      : 'Preis auf Anfrage';
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       <View style={styles.header}>
@@ -51,7 +61,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
       </View>
 
       <View style={styles.tagsRow}>
-        {provider.specialisationTags?.slice(0, 3).map((tag, idx) => (
+        {tags.slice(0, 3).map((tag, idx) => (
           <View key={idx} style={styles.tagChip}>
             <Text style={styles.tagText}>{tag}</Text>
           </View>
@@ -59,7 +69,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.price}>ab €{provider.startingPrice}</Text>
+        <Text style={styles.price}>{priceText}</Text>
         {provider.isAvailableToday && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Heute verfügbar</Text>
@@ -73,7 +83,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.md, ...shadows.card },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  avatarContainer: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.gold, padding: 2 },
+  avatarContainer: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: colors.gold, padding: 2 },
   avatar: { width: '100%', height: '100%', borderRadius: 24 },
   placeholderAvatar: { backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   placeholderText: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.primary },

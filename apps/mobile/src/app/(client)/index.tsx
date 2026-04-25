@@ -11,6 +11,7 @@ import { tokenStorage } from '../../utils/token-storage';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
 import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
+import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 
 
 const BELIEBTE_STYLES = [
@@ -64,6 +65,22 @@ export default function ClientHome() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
+  const [radiusKm, setRadiusKm] = useState(100);
+
+  const filteredProviders = providers.filter((p) => {
+    const name = (p.businessName ?? '').toLowerCase();
+    if (name.includes('test') || name.includes('accept')) return false;
+    if (discoveryLocation) {
+      const d = p.distanceKm;
+      if (typeof d !== 'number' || Number.isNaN(d)) return false;
+      return d <= radiusKm;
+    }
+    return true;
+  });
+
+  const handleChangeRadius = () => {
+    setRadiusKm((r) => (r === 100 ? 200 : r === 200 ? 300 : 100));
+  };
 
   useEffect(() => {
     loadUser();
@@ -272,12 +289,12 @@ export default function ClientHome() {
 
         {isLoading ? (
           <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
-        ) : providers.length === 0 ? (
+        ) : filteredProviders.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>Keine Braider verfügbar</Text>
+            <NoBraidersNearby radiusKm={radiusKm} onChangeRadius={handleChangeRadius} />
           </View>
         ) : (
-          providers.map((provider) => (
+          filteredProviders.map((provider) => (
             <ProviderCard
               key={provider.id}
               provider={{
