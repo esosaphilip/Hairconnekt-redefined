@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { Provider } from '../src/entities/provider.entity';
+import { User } from '../src/entities/user.entity';
 
 const requireEnv = (key: string): string => {
   const v = process.env[key];
@@ -24,7 +25,7 @@ const main = async () => {
     type: 'postgres',
     url: databaseUrl,
     ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
-    entities: [Provider],
+    entities: [Provider, User],
   });
 
   await dataSource.initialize();
@@ -63,4 +64,3 @@ main().catch((err) => {
   console.error(err?.message ?? err);
   process.exit(1);
 });
-
