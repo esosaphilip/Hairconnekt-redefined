@@ -21,7 +21,7 @@ import { AdminModule } from './admin/admin.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
       autoLoadEntities: true,
       synchronize: false, // Disable auto-sync in production
       logging: 'all',
@@ -44,4 +44,3 @@ import { AdminModule } from './admin/admin.module';
   ],
 })
 export class AppModule {}
-
