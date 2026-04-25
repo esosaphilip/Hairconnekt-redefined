@@ -23,7 +23,7 @@ services:
         sync: false
       - key: SENDGRID_FROM_EMAIL
         sync: false
-      - key: R2_BUCKET
+      - key: R2_BUCKET_NAME
         sync: false
       - key: R2_ENDPOINT
         sync: false
@@ -31,7 +31,7 @@ services:
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
-      - key: R2_PUBLIC_BASE_URL
+      - key: R2_PUBLIC_URL
         sync: false
 
   - type: web
@@ -58,7 +58,7 @@ services:
         sync: false
       - key: SENDGRID_FROM_EMAIL
         sync: false
-      - key: R2_BUCKET
+      - key: R2_BUCKET_NAME
         sync: false
       - key: R2_ENDPOINT
         sync: false
@@ -66,5 +66,5 @@ services:
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
-      - key: R2_PUBLIC_BASE_URL
+      - key: R2_PUBLIC_URL
         sync: false
