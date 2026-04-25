@@ -311,12 +311,81 @@ export class AuthService {
 
     this.initSendgrid();
 
+    const subject = 'Dein HairConnekt Sicherheitscode';
+    const text = [
+      'Hallo,',
+      '',
+      'hier ist dein Sicherheitscode für HairConnekt:',
+      '',
+      `${otp}`,
+      '',
+      'Gültig für 10 Minuten.',
+      '',
+      'Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.',
+      '',
+      'Liebe Grüße',
+      'Dein HairConnekt Team',
+    ].join('\n');
+
     await sgMail.send({
       to,
       from,
-      subject: 'Dein HairConnekt Verifizierungscode',
-      text: `Dein Code lautet: ${otp}. Gültig für 10 Minuten.`,
-      html: `<p>Dein Code lautet: <strong>${otp}</strong></p><p>Gültig für 10 Minuten.</p>`,
+      subject,
+      text,
+      html: `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${subject}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f7f7f7;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Dein Code ist ${otp} (10 Minuten gültig).
+    </div>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f7f7f7;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="520" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+            <tr>
+              <td style="padding:22px 24px 8px 24px;">
+                <div style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#777777;">
+                  HairConnekt
+                </div>
+                <div style="font-size:22px;line-height:1.25;color:#111111;margin-top:8px;font-weight:700;">
+                  Sicherheitscode
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 18px 24px;color:#222222;font-size:15px;line-height:1.5;">
+                <div style="margin-top:6px;">Hallo,</div>
+                <div style="margin-top:10px;">hier ist dein Sicherheitscode für HairConnekt:</div>
+                <div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#f3f4f6;text-align:center;">
+                  <div style="font-size:28px;letter-spacing:0.22em;font-weight:800;color:#111111;">
+                    ${otp}
+                  </div>
+                </div>
+                <div style="margin-top:14px;color:#444444;">
+                  Gültig für <strong>10 Minuten</strong>.
+                </div>
+                <div style="margin-top:14px;color:#555555;">
+                  Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:14px 24px 22px 24px;border-top:1px solid #eeeeee;color:#666666;font-size:12px;line-height:1.5;">
+                <div>Liebe Grüße</div>
+                <div style="font-weight:700;color:#444444;">Dein HairConnekt Team</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`,
     });
   }
 
