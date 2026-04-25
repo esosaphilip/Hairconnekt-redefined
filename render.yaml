@@ -5,10 +5,12 @@ services:
     branch: main
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
-    startCommand: npm start
+    startCommand: node dist/src/main
     autoDeploy: true
     plan: starter
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
       - key: NODE_ENV
         value: production
       - key: DATABASE_SSL
@@ -40,10 +42,12 @@ services:
     branch: develop
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
-    startCommand: npm start
+    startCommand: node dist/src/main
     autoDeploy: true
     plan: starter
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
       - key: NODE_ENV
         value: staging
       - key: DATABASE_SSL
