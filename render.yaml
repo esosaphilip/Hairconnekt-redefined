@@ -1,12 +1,13 @@
 services:
   - type: web
     name: hairconnekt-api-prod
-    runtime: node
+    env: node
     branch: main
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
     startCommand: npm start
     autoDeploy: true
+    plan: starter
     envVars:
       - key: NODE_ENV
         value: production
@@ -35,12 +36,13 @@ services:
 
   - type: web
     name: hairconnekt-api-staging
-    runtime: node
+    env: node
     branch: develop
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
     startCommand: npm start
     autoDeploy: true
+    plan: starter
     envVars:
       - key: NODE_ENV
         value: staging
@@ -66,4 +68,3 @@ services:
         sync: false
       - key: R2_PUBLIC_BASE_URL
         sync: false
-
