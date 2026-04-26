@@ -1,50 +1,12 @@
 services:
   - type: web
-    name: hairconnekt-api-prod
-    env: node
-    branch: main
-    region: frankfurt
-    rootDir: packages/backend
-    buildCommand: npm ci && npm run build
-    startCommand: node dist/src/main
-    autoDeploy: true
-    plan: starter
-    envVars:
-      - key: NODE_VERSION
-        value: "20.18.1"
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_SSL
-        value: "true"
-      - key: DATABASE_URL
-        sync: false
-      - key: JWT_ACCESS_SECRET
-        sync: false
-      - key: JWT_REFRESH_SECRET
-        sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: SENDGRID_FROM_EMAIL
-        sync: false
-      - key: R2_BUCKET_NAME
-        sync: false
-      - key: R2_ENDPOINT
-        sync: false
-      - key: R2_ACCESS_KEY_ID
-        sync: false
-      - key: R2_SECRET_ACCESS_KEY
-        sync: false
-      - key: R2_PUBLIC_URL
-        sync: false
-
-  - type: web
     name: hairconnekt-api-staging
     env: node
     branch: develop
     region: frankfurt
-    rootDir: packages/backend
-    buildCommand: npm ci && npm run build
-    startCommand: node dist/src/main
+    rootDir: .
+    buildCommand: cd packages/backend && npm ci && npm run build
+    startCommand: cd packages/backend && node dist/src/main
     autoDeploy: true
     plan: starter
     envVars:
@@ -60,9 +22,19 @@ services:
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
+      - key: JWT_ACCESS_EXPIRES
+        sync: false
+      - key: JWT_REFRESH_EXPIRES
+        sync: false
       - key: SENDGRID_API_KEY
         sync: false
       - key: SENDGRID_FROM_EMAIL
+        sync: false
+      - key: OTP_EXPIRES_MINUTES
+        sync: false
+      - key: OTP_DEV_MODE
+        sync: false
+      - key: BCRYPT_ROUNDS
         sync: false
       - key: R2_BUCKET_NAME
         sync: false
@@ -73,4 +45,8 @@ services:
       - key: R2_SECRET_ACCESS_KEY
         sync: false
       - key: R2_PUBLIC_URL
+        sync: false
+      - key: GEOCODING_BASE_URL
+        sync: false
+      - key: GEOCODING_USER_AGENT
         sync: false
