@@ -42,7 +42,7 @@ export default function RegisterScreen() {
       return;
     }
     if (!acceptedTerms) {
-      showError('Bitte akzeptiere die AGB.');
+      showError('Bitte akzeptiere die AGB und die Datenschutzerklärung.');
       return;
     }
 
@@ -59,7 +59,8 @@ export default function RegisterScreen() {
       await tokenStorage.save(accessToken, refreshToken, user.role as 'client' | 'provider');
       await tokenStorage.setUser(user);
 
-      router.replace('/(client)/' as any);
+      const targetEmail = user?.email ?? email;
+      router.replace(`/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}` as any);
     } catch (err: any) {
       const status = err.response?.status;
       showError(mapHttpError(status), status);

@@ -15,7 +15,6 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import axios from 'axios';
 import { tokenStorage } from '@/utils/token-storage';
 import { API } from '@/utils/api';
 import { colors } from '@/theme/colors';
@@ -80,6 +79,22 @@ export default function SplashScreen() {
         const role = await tokenStorage.getUserRole();
 
         if (accessToken && role) {
+          try {
+            const meRes = await fetch(`${API}/users/me`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (meRes.ok) {
+              const me = await meRes.json();
+              await tokenStorage.setUser(me);
+              if (me?.isEmailVerified === false) {
+                router.replace(
+                  `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
+                );
+                return;
+              }
+            }
+          } catch {}
+
           // Token exists — navigate to the correct home
           if (role === 'provider') {
             try {

@@ -5,6 +5,9 @@ import {
   NotFoundException,
   BadRequestException,
   GoneException,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -12,9 +15,11 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as sgMail from '@sendgrid/mail';
 import { createHash, randomBytes } from 'crypto';
+import disposableEmailDomains from 'disposable-email-domains';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
+import { EmailVerification } from './entities/email-verification.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -29,6 +34,8 @@ let sendgridInitialized = false;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -39,14 +46,26 @@ export class AuthService {
     @InjectRepository(PasswordResetRequest)
     private readonly passwordResetRepo: Repository<PasswordResetRequest>,
 
+    @InjectRepository(EmailVerification)
+    private readonly emailVerificationRepo: Repository<EmailVerification>,
+
     private readonly jwtService: JwtService,
   ) {}
 
   // ─── REGISTER ──────────────────────────────────────────────────────────────
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
+    const email = dto.email.toLowerCase();
+    const emailDomain = email.split('@')[1]?.trim()?.toLowerCase();
+    if (!emailDomain) {
+      throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
+    }
+    if ((disposableEmailDomains as string[]).includes(emailDomain)) {
+      throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
+    }
+
     // Check if email already exists
     const existing = await this.userRepo.findOne({
-      where: { email: dto.email.toLowerCase() },
+      where: { email },
     });
     if (existing) {
       throw new ConflictException('Diese E-Mail-Adresse ist bereits registriert.');
@@ -58,7 +77,7 @@ export class AuthService {
     const user = this.userRepo.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
-      email: dto.email.toLowerCase(),
+      email,
       phone: dto.phone,
       passwordHash,
       role: dto.role,
@@ -66,8 +85,21 @@ export class AuthService {
 
     await this.userRepo.save(user);
 
-    // NOTE: if role=provider, the Provider profile is created separately
-    // via POST /providers/register — NOT here. (DOC08 rule)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const otpHash = await bcrypt.hash(otp, rounds);
+
+    const verification = this.emailVerificationRepo.create({
+      userId: user.id,
+      otpHash,
+      expiresAt,
+      usedAt: null,
+    });
+    await this.emailVerificationRepo.save(verification);
+
+    await this.sendEmailVerificationOtpEmail(user.email, otp).catch((err) => {
+      this.logger.error('SendGrid email verification send failed', err);
+    });
 
     return this.generateAuthResponse(user);
   }
@@ -295,6 +327,79 @@ export class AuthService {
     return { message: 'Passwort wurde erfolgreich geändert.' };
   }
 
+  // ─── VERIFY EMAIL ──────────────────────────────────────────────────────────
+  async verifyEmail(userId: string, otp: string): Promise<{ message: string }> {
+    const user = await this.userRepo.findOne({ where: { id: userId, isActive: true } });
+    if (!user) throw new UnauthorizedException('Nicht autorisiert.');
+
+    if (user.isEmailVerified) {
+      return { message: 'E-Mail erfolgreich verifiziert' };
+    }
+
+    const req = await this.emailVerificationRepo
+      .createQueryBuilder('e')
+      .where('e.userId = :userId', { userId })
+      .andWhere('e.usedAt IS NULL')
+      .orderBy('e.createdAt', 'DESC')
+      .getOne();
+
+    if (!req) {
+      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    }
+
+    if (req.expiresAt < new Date()) {
+      throw new GoneException('Code abgelaufen. Bitte fordere einen neuen an.');
+    }
+
+    const ok = await bcrypt.compare(otp, req.otpHash);
+    if (!ok) {
+      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    }
+
+    await this.userRepo.update({ id: userId }, { isEmailVerified: true });
+    req.usedAt = new Date();
+    await this.emailVerificationRepo.save(req);
+
+    return { message: 'E-Mail erfolgreich verifiziert' };
+  }
+
+  // ─── RESEND EMAIL VERIFICATION ─────────────────────────────────────────────
+  async resendEmailVerification(userId: string): Promise<{ message: string }> {
+    const user = await this.userRepo.findOne({ where: { id: userId, isActive: true } });
+    if (!user) throw new UnauthorizedException('Nicht autorisiert.');
+
+    if (user.isEmailVerified) {
+      return { message: 'E-Mail ist bereits verifiziert.' };
+    }
+
+    await this.emailVerificationRepo
+      .createQueryBuilder()
+      .update(EmailVerification)
+      .set({ usedAt: new Date() })
+      .where('"userId" = :userId', { userId })
+      .andWhere('"usedAt" IS NULL')
+      .execute();
+
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const otpHash = await bcrypt.hash(otp, rounds);
+
+    const verification = this.emailVerificationRepo.create({
+      userId,
+      otpHash,
+      expiresAt,
+      usedAt: null,
+    });
+    await this.emailVerificationRepo.save(verification);
+
+    await this.sendEmailVerificationOtpEmail(user.email, otp).catch((err) => {
+      this.logger.error('SendGrid email verification resend failed', err);
+    });
+
+    return { message: 'Bestätigungscode wurde erneut gesendet.' };
+  }
+
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────
   private initSendgrid() {
     if (sendgridInitialized) return;
@@ -302,6 +407,22 @@ export class AuthService {
     if (!apiKey) return;
     sgMail.setApiKey(apiKey);
     sendgridInitialized = true;
+  }
+
+  private async sendEmailVerificationOtpEmail(to: string, otp: string): Promise<void> {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const from = process.env.SENDGRID_FROM_EMAIL;
+    if (!apiKey || !from) return;
+
+    this.initSendgrid();
+
+    await sgMail.send({
+      to,
+      from,
+      subject: 'Dein HairConnekt Bestätigungscode',
+      text: `Dein Code lautet: ${otp}. Gültig für 15 Minuten.`,
+      html: `<p>Dein Code lautet: <strong>${otp}</strong>. Gültig für 15 Minuten.</p>`,
+    });
   }
 
   private async sendOtpEmail(to: string, otp: string): Promise<void> {

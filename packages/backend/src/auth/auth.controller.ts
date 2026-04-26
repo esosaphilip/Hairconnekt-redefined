@@ -9,10 +9,14 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { IpThrottlerGuard } from './guards/ip-throttler.guard';
+import { UserThrottlerGuard } from './guards/user-throttler.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -20,10 +24,11 @@ export class AuthController {
 
   /**
    * POST /auth/register
-   * Creates a User (+ pending Provider if role=provider)
    * Returns: AuthResponseDto (accessToken + refreshToken + user)
    */
   @Post('register')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
   register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(dto);
@@ -119,5 +124,24 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('verify-email')
+  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 15 * 60 } })
+  @HttpCode(HttpStatus.OK)
+  verifyEmail(
+    @CurrentUser() user: User,
+    @Body() dto: VerifyEmailDto,
+  ): Promise<{ message: string }> {
+    return this.authService.verifyEmail(user.id, dto.otp);
+  }
+
+  @Post('resend-verification')
+  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60 * 60 } })
+  @HttpCode(HttpStatus.OK)
+  resendVerification(@CurrentUser() user: User): Promise<{ message: string }> {
+    return this.authService.resendEmailVerification(user.id);
   }
 }
