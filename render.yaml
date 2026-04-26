@@ -3,6 +3,7 @@ services:
     name: hairconnekt-api-prod
     env: node
     branch: main
+    region: frankfurt
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
     startCommand: node dist/src/main
@@ -40,6 +41,7 @@ services:
     name: hairconnekt-api-staging
     env: node
     branch: develop
+    region: frankfurt
     rootDir: packages/backend
     buildCommand: npm ci && npm run build
     startCommand: node dist/src/main
