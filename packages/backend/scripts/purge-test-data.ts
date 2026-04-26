@@ -9,16 +9,30 @@ const requireEnv = (key: string): string => {
   return v;
 };
 
+const getDbHost = (databaseUrl: string): string => {
+  try {
+    const u = new URL(databaseUrl);
+    return u.hostname;
+  } catch {
+    throw new Error('DATABASE_URL ist ungültig.');
+  }
+};
+
 const main = async () => {
   const databaseUrl = requireEnv('DATABASE_URL');
   const prodHost = requireEnv('PRODUCTION_DB_HOST');
 
-  if (databaseUrl.includes(prodHost)) {
-    throw new Error('Abbruch: PRODUCTION_DB_HOST erkannt. Dieses Script darf nicht auf Production laufen.');
-  }
+  const dbHost = getDbHost(databaseUrl);
+  const isProd = dbHost === prodHost;
 
   if (process.env.CONFIRM_PURGE_TEST_DATA !== 'true') {
     throw new Error('Abbruch: Setze CONFIRM_PURGE_TEST_DATA=true um fortzufahren.');
+  }
+
+  if (isProd && process.env.ALLOW_PRODUCTION_PURGE !== 'true') {
+    throw new Error(
+      'Abbruch: Production erkannt. Setze zusätzlich ALLOW_PRODUCTION_PURGE=true um fortzufahren.',
+    );
   }
 
   const dataSource = new DataSource({
@@ -44,6 +58,14 @@ const main = async () => {
 
     if (matches.length === 0) {
       console.log('Keine Test-Provider gefunden.');
+      return;
+    }
+
+    console.log(`DB Host: ${dbHost}`);
+    console.log(`Gefundene Test-Provider: ${matches.length}`);
+
+    if (process.env.DRY_RUN === 'true') {
+      console.log('DRY_RUN=true — keine Änderungen wurden durchgeführt.');
       return;
     }
 
