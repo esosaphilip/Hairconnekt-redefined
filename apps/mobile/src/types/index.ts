@@ -1,6 +1,7 @@
 // Export all types
 export * from './auth';
 export * from './booking';
+export * from './chat';
 export * from './user';
 
 // Re-export commonly used types for convenience
