@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Booking } from '../entities/booking.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
+import { Provider } from '../entities/provider.entity';
 import { User } from '../entities/user.entity';
+import { ChatPresenceService } from './chat-presence.service';
 
 type ConversationListItem = {
   id: string;
@@ -13,6 +16,7 @@ type ConversationListItem = {
     lastName: string;
     avatarUrl?: string;
     isOnline: boolean;
+    phone?: string;
   };
   lastMessage?: {
     content: string;
@@ -20,6 +24,33 @@ type ConversationListItem = {
   };
   unreadCount: number;
   bookingReference?: string;
+};
+
+type ConversationDetail = {
+  id: string;
+  otherUser: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    isOnline: boolean;
+    phone?: string;
+  };
+  bookingReference: {
+    id: string;
+    bookingNumber: string;
+    serviceName: string;
+    date: string;
+    status: string;
+  } | null;
+  messages: Array<{
+    id: string;
+    content: string;
+    senderId: string;
+    createdAt: string;
+    isRead: boolean;
+  }>;
+  myUserId: string;
 };
 
 @Injectable()
@@ -31,7 +62,42 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Provider)
+    private readonly providerRepo: Repository<Provider>,
+    @InjectRepository(Booking)
+    private readonly bookingRepo: Repository<Booking>,
+    private readonly presence: ChatPresenceService,
   ) {}
+
+  private getOtherUserId(conversation: Conversation, userId: string): string {
+    return conversation.participant1Id === userId
+      ? conversation.participant2Id
+      : conversation.participant1Id;
+  }
+
+  private async getConversationForUserOrThrow(userId: string, conversationId: string): Promise<Conversation> {
+    const convo = await this.conversationRepo.findOne({ where: { id: conversationId } });
+    if (!convo) {
+      throw new NotFoundException('Konversation nicht gefunden.');
+    }
+    if (convo.participant1Id !== userId && convo.participant2Id !== userId) {
+      throw new ForbiddenException('Nicht autorisiert.');
+    }
+    return convo;
+  }
+
+  async canAccessConversation(userId: string, conversationId: string): Promise<boolean> {
+    const convo = await this.conversationRepo.findOne({ where: { id: conversationId } });
+    if (!convo) return false;
+    return convo.participant1Id === userId || convo.participant2Id === userId;
+  }
+
+  async getOtherParticipantId(userId: string, conversationId: string): Promise<string | null> {
+    const convo = await this.conversationRepo.findOne({ where: { id: conversationId } });
+    if (!convo) return null;
+    if (convo.participant1Id !== userId && convo.participant2Id !== userId) return null;
+    return this.getOtherUserId(convo, userId);
+  }
 
   async listConversationsForUser(userId: string): Promise<ConversationListItem[]> {
     const conversations = await this.conversationRepo.find({
@@ -43,11 +109,11 @@ export class ChatService {
     const items: ConversationListItem[] = [];
 
     for (const c of conversations) {
-      const otherUserId = c.participant1Id === userId ? c.participant2Id : c.participant1Id;
+      const otherUserId = this.getOtherUserId(c, userId);
 
       const otherUser = await this.userRepo.findOne({
         where: { id: otherUserId, isActive: true },
-        select: ['id', 'firstName', 'lastName', 'avatarUrl', 'phone', 'role', 'isActive'],
+        select: ['id', 'firstName', 'lastName', 'avatarUrl', 'phone', 'isActive'],
       });
 
       if (!otherUser) continue;
@@ -74,7 +140,8 @@ export class ChatService {
           firstName: otherUser.firstName,
           lastName: otherUser.lastName,
           avatarUrl: otherUser.avatarUrl ?? undefined,
-          isOnline: false,
+          isOnline: this.presence.isOnline(otherUser.id),
+          phone: otherUser.phone ?? undefined,
         },
         lastMessage,
         unreadCount,
@@ -83,5 +150,164 @@ export class ChatService {
 
     return items;
   }
-}
 
+  async createOrGetConversation(userId: string, recipientId: string): Promise<{ id: string }> {
+    if (!recipientId || recipientId === userId) {
+      throw new BadRequestException('Ungültiger Empfänger.');
+    }
+
+    const recipient = await this.userRepo.findOne({ where: { id: recipientId, isActive: true } });
+    if (!recipient) {
+      throw new NotFoundException('Empfänger nicht gefunden.');
+    }
+
+    const existing = await this.conversationRepo.findOne({
+      where: [
+        { participant1Id: userId, participant2Id: recipientId },
+        { participant1Id: recipientId, participant2Id: userId },
+      ],
+    });
+    if (existing) return { id: existing.id };
+
+    const convo = this.conversationRepo.create({
+      participant1Id: userId,
+      participant2Id: recipientId,
+      lastMessageAt: null,
+      lastMessagePreview: null,
+    });
+    const saved = await this.conversationRepo.save(convo);
+    return { id: saved.id };
+  }
+
+  async getConversationDetail(userId: string, conversationId: string): Promise<ConversationDetail> {
+    const convo = await this.getConversationForUserOrThrow(userId, conversationId);
+    const otherUserId = this.getOtherUserId(convo, userId);
+
+    const otherUser = await this.userRepo.findOne({
+      where: { id: otherUserId, isActive: true },
+      select: ['id', 'firstName', 'lastName', 'avatarUrl', 'phone', 'isActive'],
+    });
+    if (!otherUser) throw new NotFoundException('Nutzer nicht gefunden.');
+
+    const messages = await this.messageRepo.find({
+      where: { conversationId: convo.id },
+      order: { createdAt: 'DESC' },
+      take: 200,
+    });
+
+    const bookingReference = await this.findLatestBookingReference(userId, otherUserId);
+
+    return {
+      id: convo.id,
+      otherUser: {
+        id: otherUser.id,
+        firstName: otherUser.firstName,
+        lastName: otherUser.lastName,
+        avatarUrl: otherUser.avatarUrl ?? undefined,
+        isOnline: this.presence.isOnline(otherUser.id),
+        phone: otherUser.phone ?? undefined,
+      },
+      bookingReference,
+      messages: messages.map((m) => ({
+        id: m.id,
+        content: m.content,
+        senderId: m.senderId,
+        createdAt: m.createdAt.toISOString(),
+        isRead: m.isRead,
+      })),
+      myUserId: userId,
+    };
+  }
+
+  private async findLatestBookingReference(userId: string, otherUserId: string): Promise<ConversationDetail['bookingReference']> {
+    const otherUser = await this.userRepo.findOne({ where: { id: otherUserId, isActive: true } });
+    if (!otherUser) return null;
+
+    let booking: Booking | null = null;
+
+    if (otherUser.role === 'provider') {
+      const provider = await this.providerRepo.findOne({ where: { userId: otherUserId } });
+      if (!provider) return null;
+      booking = await this.bookingRepo.findOne({
+        where: { clientId: userId, providerId: provider.id },
+        order: { createdAt: 'DESC' },
+        relations: ['services'],
+      });
+    } else {
+      const myProvider = await this.providerRepo.findOne({ where: { userId } });
+      if (!myProvider) return null;
+      booking = await this.bookingRepo.findOne({
+        where: { clientId: otherUserId, providerId: myProvider.id },
+        order: { createdAt: 'DESC' },
+        relations: ['services'],
+      });
+    }
+
+    if (!booking) return null;
+
+    const serviceName = Array.isArray(booking.services) && booking.services.length > 0
+      ? booking.services[0].name
+      : '';
+    const date = new Date(`${booking.scheduledDate}T00:00:00.000Z`).toLocaleDateString('de-DE', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    return {
+      id: booking.id,
+      bookingNumber: booking.bookingNumber,
+      serviceName,
+      date,
+      status: booking.status,
+    };
+  }
+
+  async sendMessage(userId: string, conversationId: string, content: string): Promise<ConversationDetail['messages'][number]> {
+    const text = (content ?? '').trim();
+    if (!text) throw new BadRequestException('Nachricht darf nicht leer sein.');
+    if (text.length > 500) throw new BadRequestException('Nachricht ist zu lang.');
+
+    const convo = await this.getConversationForUserOrThrow(userId, conversationId);
+
+    const msg = this.messageRepo.create({
+      conversationId: convo.id,
+      senderId: userId,
+      content: text,
+      isRead: false,
+      readAt: null,
+    });
+    const saved = await this.messageRepo.save(msg);
+
+    const preview = text.length > 140 ? `${text.slice(0, 140)}` : text;
+    convo.lastMessageAt = saved.createdAt;
+    convo.lastMessagePreview = preview;
+    await this.conversationRepo.save(convo);
+
+    return {
+      id: saved.id,
+      content: saved.content,
+      senderId: saved.senderId,
+      createdAt: saved.createdAt.toISOString(),
+      isRead: saved.isRead,
+    };
+  }
+
+  async markMessageRead(
+    userId: string,
+    messageId: string,
+  ): Promise<{ conversationId: string; messageId: string } | null> {
+    const message = await this.messageRepo.findOne({ where: { id: messageId } });
+    if (!message) return null;
+
+    const convo = await this.conversationRepo.findOne({ where: { id: message.conversationId } });
+    if (!convo) return null;
+    if (convo.participant1Id !== userId && convo.participant2Id !== userId) return null;
+
+    if (message.senderId === userId) return null;
+    if (message.isRead) return null;
+
+    await this.messageRepo.update({ id: message.id }, { isRead: true, readAt: new Date() });
+    return { conversationId: message.conversationId, messageId: message.id };
+  }
+}

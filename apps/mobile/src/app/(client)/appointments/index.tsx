@@ -103,13 +103,9 @@ export default function AppointmentsList() {
       if (res.ok) {
         const data = await res.json();
         const conversationId = data.data?.id ?? data.id;
-        router.push(`/(client)/chat/${conversationId}` as any);
-      } else {
-        // Fallback: navigate with provider ID so chat screen can handle it
-        router.push(`/(client)/chat/${providerId}` as any);
+        router.push(`/(shared)/chat/${conversationId}` as any);
       }
     } catch {
-      router.push(`/(client)/chat/${providerId}` as any);
     }
   };
 

@@ -48,6 +48,24 @@ export default function ProviderAppointmentDetailScreen() {
     }
   };
 
+  const openChat = async () => {
+    const recipientId = booking?.client?.id as string | undefined;
+    if (!recipientId) return;
+    try {
+      const token = await tokenStorage.getAccessToken();
+      const res = await fetch(`${API}/chat/conversations`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const conversationId = data.data?.id ?? data.id;
+        router.push(`/(shared)/chat/${conversationId}` as any);
+      }
+    } catch {}
+  };
+
   const updateBookingStatus = async (action: 'start' | 'complete') => {
     try {
       const token = await tokenStorage.getAccessToken();
@@ -211,7 +229,7 @@ export default function ProviderAppointmentDetailScreen() {
           </View>
 
           <View style={styles.clientActions}>
-            <TouchableOpacity style={styles.greyButton} onPress={() => router.push('/(provider)/chat')}>
+            <TouchableOpacity style={styles.greyButton} onPress={openChat}>
               <Text style={styles.greyButtonText}>Nachricht</Text>
             </TouchableOpacity>
             <TouchableOpacity 

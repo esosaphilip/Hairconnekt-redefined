@@ -112,9 +112,22 @@ export default function BookingRequestScreen() {
     );
   };
 
-  const handleMessage = () => {
-    // Navigate to chat, passing client ID so we can start or resume conversation
-    router.push({ pathname: '/(provider)/chat/[id]' as any, params: { id: booking.client.id } });
+  const handleMessage = async () => {
+    const recipientId = booking?.client?.id as string | undefined;
+    if (!recipientId) return;
+    try {
+      const token = await tokenStorage.getAccessToken();
+      const res = await fetch(`${API}/chat/conversations`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const conversationId = data.data?.id ?? data.id;
+        router.push(`/(shared)/chat/${conversationId}` as any);
+      }
+    } catch {}
   };
 
   const handleCall = () => {

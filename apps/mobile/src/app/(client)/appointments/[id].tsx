@@ -123,6 +123,23 @@ export default function AppointmentDetails() {
   const avatarUri = user.avatarUrl as string | undefined;
   const city = user.city as string | undefined;
 
+  const openChat = async (providerUserId: string) => {
+    if (!providerUserId) return;
+    try {
+      const token = await tokenStorage.getAccessToken();
+      const res = await fetch(`${API}/chat/conversations`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: providerUserId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const conversationId = data.data?.id ?? data.id;
+        router.push(`/(shared)/chat/${conversationId}` as any);
+      }
+    } catch {}
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
@@ -163,7 +180,7 @@ export default function AppointmentDetails() {
           <View style={styles.providerActions}>
             <TouchableOpacity 
               style={styles.providerBtn} 
-              onPress={() => router.push(`/(client)/chat/${provider.id}` as any)}
+              onPress={() => openChat(provider.userId || provider.user?.id)}
             >
               <Feather name="message-circle" size={18} color={colors.primary} />
               <Text style={styles.providerBtnText}>Nachricht</Text>
