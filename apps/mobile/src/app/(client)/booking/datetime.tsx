@@ -87,8 +87,8 @@ export default function ClientBookingDateTime() {
         providerId, 
         selectedServiceIds, 
         totalPrice, 
-        scheduledDate: selectedDate,  // ← details.tsx expects 'scheduledDate'
-        scheduledTime: selectedTime    // ← details.tsx expects 'scheduledTime'
+        date: selectedDate,
+        time: selectedTime
       }
     } as any);
   };

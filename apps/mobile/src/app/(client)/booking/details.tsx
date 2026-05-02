@@ -12,14 +12,13 @@ import { API } from '../../../utils/api';
 
 export default function BookingDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  
-  // Support multiple possible param names from datetime screen
-  const scheduledDate = (params.scheduledDate ?? params.date ?? '') as string;
-  const scheduledTime = (params.scheduledTime ?? params.time ?? '') as string;
-  const providerId = (params.providerId ?? '') as string;
-  const serviceIds = (params.serviceIds ?? params.selectedServiceIds ?? '') as string;
-  const totalPrice = (params.totalPrice ?? '') as string;
+  const { providerId, selectedServiceIds, totalPrice, date, time } = useLocalSearchParams();
+
+  const providerIdValue = (Array.isArray(providerId) ? providerId[0] : providerId) as string;
+  const selectedServiceIdsValue = (Array.isArray(selectedServiceIds) ? selectedServiceIds[0] : selectedServiceIds) as string;
+  const dateValue = (Array.isArray(date) ? date[0] : date) as string;
+  const timeValue = (Array.isArray(time) ? time[0] : time) as string;
+  const totalPriceValue = (Array.isArray(totalPrice) ? totalPrice[0] : totalPrice) as string;
   
   const [ids, setIds] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -33,12 +32,12 @@ export default function BookingDetails() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (serviceIds) {
-      try {
-        setIds(JSON.parse(serviceIds as string));
-      } catch (e) {
-        setIds([serviceIds as string]);
-      }
+    if (selectedServiceIdsValue) {
+      const parsed = selectedServiceIdsValue
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      setIds(parsed);
     }
     
     // Fetch names for UI gracefully
@@ -46,8 +45,8 @@ export default function BookingDetails() {
       try {
         const token = await tokenStorage.getAccessToken();
         const [providerRes, servicesRes] = await Promise.all([
-          axios.get(`${API}/providers/${providerId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/providers/${providerId}/services`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${API}/providers/${providerIdValue}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API}/providers/${providerIdValue}/services`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
         
         const provData = providerRes.data.data || providerRes.data;
@@ -61,7 +60,9 @@ export default function BookingDetails() {
           setProviderName('Anbieter');
         }
         
-        const activeIds = typeof serviceIds === 'string' ? JSON.parse(serviceIds) : [];
+        const activeIds = typeof selectedServiceIdsValue === 'string'
+          ? selectedServiceIdsValue.split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
         const matchedServices = servData.filter((s: any) => activeIds.includes(s.id));
         if (matchedServices.length > 0) {
           setServiceNames(matchedServices.map((s: any) => s.name).join(', '));
@@ -75,7 +76,7 @@ export default function BookingDetails() {
     };
     
     fetchNames();
-  }, [providerId, serviceIds]);
+  }, [providerIdValue, selectedServiceIdsValue]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -92,10 +93,10 @@ export default function BookingDetails() {
       
       // Ensure all data is properly converted to strings
       const bookingData = {
-        providerId: String(providerId),
+        providerId: String(providerIdValue),
         serviceIds: ids,
-        scheduledDate: String(scheduledDate),
-        scheduledTime: String(scheduledTime),
+        scheduledDate: String(dateValue),
+        scheduledTime: String(timeValue),
         isMobile,
         clientNotes
       };
@@ -166,19 +167,19 @@ export default function BookingDetails() {
           
           <View style={styles.summaryRow}>
             <Feather name="calendar" size={18} color={colors.textSecondary} />
-            <Text style={styles.summaryText}>{formatDate(scheduledDate as string)}</Text>
+            <Text style={styles.summaryText}>{formatDate(dateValue)}</Text>
           </View>
           
           <View style={styles.summaryRow}>
             <Feather name="clock" size={18} color={colors.textSecondary} />
-            <Text style={styles.summaryText}>{scheduledTime} Uhr</Text>
+            <Text style={styles.summaryText}>{timeValue} Uhr</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
             <Text style={styles.totalLabel}>Gesamt</Text>
-            <Text style={styles.totalValue}>€{totalPrice}</Text>
+            <Text style={styles.totalValue}>€{totalPriceValue}</Text>
           </View>
         </View>
 

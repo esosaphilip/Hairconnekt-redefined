@@ -44,8 +44,7 @@ export default function ClientSearch() {
   // Favourites
   const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
 
-  // Categories from API (id + name pairs)
-  const [categoryList, setCategoryList] = useState<{ id: string; name: string }[]>([]);
+  const [categoryMap, setCategoryMap] = useState<{ id: string; name: string }[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
   const [isLocating, setIsLocating] = useState(initialSort === 'entfernung');
 
@@ -64,16 +63,18 @@ export default function ClientSearch() {
   };
 
   useEffect(() => {
-    // Load service categories for filter chips
     const loadCategories = async () => {
       try {
-        const res = await fetch(`${API}/services/categories`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const list: { id: string; name: string }[] = data.data ?? data ?? [];
-        setCategoryList(list);
-      } catch {
-        // Keep empty — chips will not appear but app won't crash
+        const base = process.env.EXPO_PUBLIC_API_URL;
+        if (!base) return;
+        const res = await fetch(`${base}/services/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          const cats = data.data || data || [];
+          setCategoryMap(cats);
+        }
+      } catch (e) {
+        console.log('Failed to load categories', e);
       }
     };
 
@@ -97,15 +98,14 @@ export default function ClientSearch() {
   }, [initialSort]);
 
   useEffect(() => {
-    // Only fetch when we have categories loaded (or Alle is selected)
-    if (activeCategory === 'Alle' || categoryList.length > 0) {
+    if (activeCategory === 'Alle' || categoryMap.length > 0) {
       setPage(1);
       setHasMore(true);
       setTotalResults(0);
       setProviders([]);
       fetchProviders(1, true, initialQuery);
     }
-  }, [activeCategory, availableToday, sortOption, categoryList, initialQuery, discoveryLocation]);
+  }, [activeCategory, availableToday, sortOption, categoryMap, initialQuery, discoveryLocation]);
 
   const fetchProviders = async (
     pageNumber: number,
@@ -121,9 +121,9 @@ export default function ClientSearch() {
       
       const trimmedQuery = (queryOverride ?? searchQuery).trim();
       const searchParam = trimmedQuery ? `&search=${encodeURIComponent(trimmedQuery)}` : '';
-      // Map the selected display name back to its ID
-      const selectedCat = categoryList.find(c => c.name === activeCategory);
-      const categoryParam = selectedCat ? `&categoryId=${encodeURIComponent(selectedCat.id)}` : '';
+      const categoryParam = activeCategory !== 'Alle'
+        ? `&category=${encodeURIComponent(activeCategory)}`
+        : '';
       const availParam = availableToday ? `&availableToday=true` : '';
       const locationParam = discoveryLocation
         ? `&lat=${encodeURIComponent(String(discoveryLocation.lat))}&lng=${encodeURIComponent(String(discoveryLocation.lng))}`
@@ -239,18 +239,18 @@ export default function ClientSearch() {
       </TouchableOpacity>
 
       {/* Dynamic category chips from /services/categories */}
-      {categoryList.map(cat => (
+      {categoryMap.map((cat) => (
         <TouchableOpacity
           key={cat.id}
           style={[
             styles.chip,
-            activeCategory === cat.name && styles.chipActive,
+            activeCategory === cat.id && styles.chipActive,
           ]}
-          onPress={() => setActiveCategory(cat.name)}
+          onPress={() => setActiveCategory(cat.id)}
         >
           <Text style={[
             styles.chipText,
-            activeCategory === cat.name && styles.chipTextActive,
+            activeCategory === cat.id && styles.chipTextActive,
           ]}>
             {cat.name}
           </Text>
