@@ -95,20 +95,27 @@ export default function AppointmentsList() {
     Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
   };
 
-  const openChat = async (providerId: string, providerUserId: string) => {
+  const openChat = async (providerUserId: string) => {
+    if (!providerUserId) return;
     try {
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API}/chat/conversations`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ recipientId: providerUserId }),
       });
       if (res.ok) {
         const data = await res.json();
-        const conversationId = data.data?.id ?? data.id;
-        router.push(`/(shared)/chat/${conversationId}` as any);
+        const conversationId = data?.data?.id ?? data?.id;
+        if (conversationId) {
+          router.push(`/(shared)/chat/${conversationId}` as any);
+        }
       }
-    } catch {
+    } catch (err) {
+      console.log('openChat error:', err);
     }
   };
 
@@ -173,7 +180,7 @@ export default function AppointmentsList() {
               <Text style={styles.actionButtonText}>{t('appointmentsRoute')}</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.actionButton} onPress={() => openChat(provider.id, provider.userId || provider.user?.id)}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => openChat(provider.userId || provider.user?.id)}>
             <Feather name="message-circle" size={16} color={colors.primary} style={styles.actionIcon} />
             <Text style={styles.actionButtonText}>{t('profileMessage')}</Text>
           </TouchableOpacity>

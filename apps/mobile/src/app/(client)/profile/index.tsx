@@ -5,12 +5,14 @@ import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, fonts, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '@/theme';
 import { API } from '../../../utils/api';
 import { AuthService } from '../../../services/authService';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -102,9 +104,9 @@ export default function ClientProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden?', [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Abmelden', style: 'destructive', onPress: async () => {
+    Alert.alert(t('settingsLogoutConfirm'), t('settingsLogoutBody'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('settingsLogout'), style: 'destructive', onPress: async () => {
         await tokenStorage.clear();
         router.replace('/(auth)/login');
       } }
@@ -113,12 +115,12 @@ export default function ClientProfileScreen() {
 
   const handleProviderSwitch = () => {
     Alert.alert(
-      'Zu anderem Anbieter-Konto wechseln',
-      'Du wirst abgemeldet und kannst dich danach mit einem separaten Anbieter-Konto anmelden.',
+      t('clientProfileSwitchMode'),
+      t('clientProfileSwitchBody'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Weiter',
+          text: t('next'),
           onPress: async () => {
             await AuthService.logout();
             router.replace('/(auth)/login?role=provider' as any);
@@ -130,7 +132,7 @@ export default function ClientProfileScreen() {
 
   // BUG 2: R2 always returns full https:// URLs — use directly, no prefix logic needed
   const avatarUri = user?.avatarUrl as string | undefined;
-  const fullName = user?.firstName ? `${user.firstName} ${user.lastName}` : 'Kunde';
+  const fullName = user?.firstName ? `${user.firstName} ${user.lastName}` : t('clientNameDefault');
   const email = user?.email || '';
   const phone = user?.phone || '';
   const emailVerified = user?.isEmailVerified;
@@ -149,7 +151,7 @@ export default function ClientProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 40 }} />
-        <Text style={styles.headerTitle}>Profil</Text>
+        <Text style={styles.headerTitle}>{t('clientProfileTitle')}</Text>
         <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/(shared)/settings' as any)}>
           <Feather name="settings" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -189,13 +191,13 @@ export default function ClientProfileScreen() {
             {emailVerified && (
               <View style={styles.badge}>
                 <Feather name="check" size={14} color={colors.green} />
-                <Text style={styles.badgeText}>E-Mail verifiziert</Text>
+                <Text style={styles.badgeText}>{t('emailVerified')}</Text>
               </View>
             )}
             {phoneVerified && (
               <View style={styles.badge}>
                 <Feather name="check" size={14} color={colors.green} />
-                <Text style={styles.badgeText}>Telefon verifiziert</Text>
+                <Text style={styles.badgeText}>{t('phoneVerified')}</Text>
               </View>
             )}
           </View>
@@ -203,20 +205,20 @@ export default function ClientProfileScreen() {
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
-          <MenuItem icon="user" title="Persönliche Informationen" onPress={() => router.push('/(client)/profile/edit')} />
+          <MenuItem icon="user" title={t('settingsPersonalInfo')} onPress={() => router.push('/(client)/profile/edit')} />
           <MenuItem 
             icon="map-pin" 
-            title="Meine Adressen" 
+            title={t('clientProfileAddresses')} 
             rightComponent={
               <View style={styles.badgeCount}>
-                <Text style={styles.badgeCountText}>2 gespeichert</Text>
+                <Text style={styles.badgeCountText}>2 {t('clientProfileSaved')}</Text>
               </View>
             }
             onPress={() => router.push('/(shared)/addresses')} 
           />
-          <MenuItem icon="star" title="Meine Bewertungen" onPress={() => router.push('/(client)/profile/reviews')} />
-          <MenuItem icon="calendar" title="Buchungshistorie" onPress={() => router.push('/(client)/appointments/')} />
-          <MenuItem icon="heart" title="Meine Favoriten" onPress={() => router.push('/(client)/favourites')} />
+          <MenuItem icon="star" title={t('clientProfileReviews')} onPress={() => router.push('/(client)/profile/reviews')} />
+          <MenuItem icon="calendar" title={t('clientProfileHistory')} onPress={() => router.push('/(client)/appointments/')} />
+          <MenuItem icon="heart" title={t('clientProfileFavourites')} onPress={() => router.push('/(client)/favourites')} />
         </View>
 
         {/* Provider Mode Card */}
@@ -224,13 +226,13 @@ export default function ClientProfileScreen() {
           <View style={styles.providerEmojiCircle}>
             <Text style={{ fontSize: 24 }}>💇</Text>
           </View>
-          <Text style={styles.providerCardText}>Mit anderem Anbieter-Konto anmelden</Text>
+          <Text style={styles.providerCardText}>{t('clientProfileSwitchMode')}</Text>
         </TouchableOpacity>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutRow} onPress={handleLogout}>
-          <Feather name="log-out" size={24} color="#C62828" />
-          <Text style={styles.logoutText}>Abmelden</Text>
+          <Feather name="log-out" size={24} color={colors.error} />
+          <Text style={styles.logoutText}>{t('settingsLogout')}</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -256,7 +258,7 @@ function MenuItem({ icon, title, rightComponent, onPress }: { icon: any, title: 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60 },
-  headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary },
+  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   settingsButton: { width: 40, alignItems: 'flex-end', justifyContent: 'center' },
   
   scrollContent: { paddingBottom: 40 },
@@ -264,16 +266,16 @@ const styles = StyleSheet.create({
   profileSection: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.xl },
   avatarContainer: { width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md, position: 'relative' },
   avatar: { width: 116, height: 116, borderRadius: 58 },
-  avatarPlaceholder: { width: 116, height: 116, borderRadius: 58, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontFamily: fonts.bodyBold, fontSize: 40, color: '#666' },
-  avatarLoader: { width: 116, height: 116, borderRadius: 58, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
+  avatarPlaceholder: { width: 116, height: 116, borderRadius: 58, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontFamily: fonts.bodyBold, fontSize: 40, color: colors.textSecondary },
+  avatarLoader: { width: 116, height: 116, borderRadius: 58, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
   cameraIconContainer: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.surface },
   
-  fullName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 24, color: colors.primary, marginBottom: 4 },
-  contactText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#555555', marginBottom: 2 },
+  fullName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: 4 },
+  contactText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: 2 },
   
   verificationRow: { flexDirection: 'row', gap: 12, marginTop: spacing.sm },
-  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
   badgeText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.green },
 
   menuContainer: { paddingHorizontal: spacing.lg, gap: 12, marginBottom: spacing.xl },
@@ -281,13 +283,13 @@ const styles = StyleSheet.create({
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuItemTitle: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
   menuItemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badgeCount: { backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  badgeCount: { backgroundColor: colors.surfaceCard, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   badgeCountText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
 
-  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F9F9', marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.teal, marginBottom: spacing.xl },
+  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.tealLight, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.teal, marginBottom: spacing.xl },
   providerEmojiCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, ...shadows.card },
   providerCardText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.teal, flex: 1 },
 
   logoutRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, gap: 12 },
-  logoutText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#C62828' }
+  logoutText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.error }
 });

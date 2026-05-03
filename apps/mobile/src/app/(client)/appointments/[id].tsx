@@ -132,15 +132,26 @@ export default function AppointmentDetails() {
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API}/chat/conversations`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ recipientId: providerUserId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const conversationId = data.data?.id ?? data.id;
-        router.push(`/(shared)/chat/${conversationId}` as any);
+      if (!res.ok) {
+        console.log('Could not open chat, status:', res.status);
+        return;
       }
-    } catch {}
+      const data = await res.json();
+      const conversationId = data?.data?.id ?? data?.id;
+      if (!conversationId) {
+        console.log('No conversation ID returned');
+        return;
+      }
+      router.push(`/(shared)/chat/${conversationId}` as any);
+    } catch (err) {
+      console.log('openChat error:', err);
+    }
   };
 
   return (

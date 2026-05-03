@@ -130,6 +130,39 @@ export default function ProviderProfile() {
   const specialisationTags = Array.isArray(provider.specialisationTags) ? provider.specialisationTags : Array.isArray(provider.specializations) ? provider.specializations : [];
   const minPrice = services.length > 0 ? Math.min(...services.map((s: any) => Number(s.price))) : (provider.startingPrice || 0);
 
+  const openChat = async (recipientUserId: string) => {
+    if (!recipientUserId) return;
+    try {
+      const token = await tokenStorage.getAccessToken();
+
+      const res = await fetch(`${API}/chat/conversations`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recipientId: recipientUserId }),
+      });
+
+      if (!res.ok) {
+        console.log('Could not open chat, status:', res.status);
+        return;
+      }
+
+      const data = await res.json();
+      const conversationId = data?.data?.id ?? data?.id;
+
+      if (!conversationId) {
+        console.log('No conversation ID returned');
+        return;
+      }
+
+      router.push(`/(shared)/chat/${conversationId}` as any);
+    } catch (err) {
+      console.log('openChat error:', err);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -323,7 +356,13 @@ export default function ProviderProfile() {
           <Text style={styles.footerPriceValue}>{t('cardFrom')} €{formatAmount(minPrice, lang)}</Text>
         </View>
         <View style={styles.footerButtons}>
-          <TouchableOpacity style={styles.messageBtn} onPress={() => router.push(`/(client)/chat/${provider?.conversationId ?? id}` as any)}>
+          <TouchableOpacity
+            style={styles.messageBtn}
+            onPress={() => {
+              const recipientId = provider?.userId ?? provider?.user?.id;
+              openChat(recipientId);
+            }}
+          >
             <Text style={styles.messageBtnText}>{t('profileMessage')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bookBtn} onPress={() => router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any)}>

@@ -281,6 +281,12 @@ export const TRANSLATIONS = {
   clientProfileHistory: { de: 'Buchungshistorie', en: 'Booking history' },
   clientProfileFavourites: { de: 'Meine Favoriten', en: 'My favourites' },
   clientProfileSwitchMode: { de: 'Mit anderem Anbieter-Konto anmelden', en: 'Sign in with a provider account' },
+  clientProfileSwitchBody: {
+    de: 'Du wirst abgemeldet und kannst dich danach mit einem separaten Anbieter-Konto anmelden.',
+    en: 'You will be signed out and can then sign in with a separate provider account.',
+  },
+  emailVerified: { de: 'E-Mail verifiziert', en: 'Email verified' },
+  phoneVerified: { de: 'Telefon verifiziert', en: 'Phone verified' },
 
   favouritesTitle: { de: 'Meine Favoriten', en: 'My favourites' },
   favouritesEmpty: { de: 'Noch keine Favoriten', en: 'No favourites yet' },
