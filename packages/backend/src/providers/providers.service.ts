@@ -179,12 +179,15 @@ export class ProvidersService {
         .addOrderBy('p.isOnline', 'DESC')
         .addOrderBy('p.createdAt', 'DESC');
     } else if (sort === 'entfernung' && hasLocation) {
+      const latExpr = `NULLIF(p.lat::text, '')`;
+      const lngExpr = `NULLIF(p.lng::text, '')`;
       const distanceOrderExpression = `
         CASE
           WHEN p.lat IS NULL OR p.lng IS NULL THEN NULL
+          WHEN ${latExpr} !~ '^-?\\d+(\\.\\d+)?$' OR ${lngExpr} !~ '^-?\\d+(\\.\\d+)?$' THEN NULL
           ELSE sqrt(
-            power(CAST(p.lat AS double precision) - :lat, 2) +
-            power(CAST(p.lng AS double precision) - :lng, 2)
+            power((${latExpr})::double precision - :lat, 2) +
+            power((${lngExpr})::double precision - :lng, 2)
           )
         END
       `;
@@ -201,7 +204,22 @@ export class ProvidersService {
         .addOrderBy('p.createdAt', 'DESC');
     }
 
-    const [providers, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
+    let providers: Provider[];
+    let total: number;
+    try {
+      [providers, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
+    } catch (e) {
+      if (sort === 'entfernung') {
+        qb
+          .orderBy('p.isOnline', 'DESC')
+          .addOrderBy('p.avgRating', 'DESC')
+          .addOrderBy('p.totalReviews', 'DESC')
+          .addOrderBy('p.createdAt', 'DESC');
+        [providers, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
+      } else {
+        throw e;
+      }
+    }
 
     const ids = providers.map((p) => p.id);
     const priceMap = new Map<string, number>();
