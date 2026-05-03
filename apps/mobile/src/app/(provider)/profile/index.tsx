@@ -153,7 +153,7 @@ export default function ProviderProfileHubScreen() {
       <View style={styles.header}>
         <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>Profil</Text>
-        <TouchableOpacity onPress={() => router.push('/(provider)/settings')} style={styles.headerIcon}>
+        <TouchableOpacity onPress={() => router.push('/(shared)/settings' as any)} style={styles.headerIcon}>
           <Feather name="settings" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -243,7 +243,7 @@ export default function ProviderProfileHubScreen() {
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/settings')}>
+          <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(shared)/settings' as any)}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>Einstellungen</Text>
             </View>

@@ -9,11 +9,14 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
+import { formatAmount } from '../../../utils/format';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
 export default function AppointmentsList() {
   const router = useRouter();
+  const { language } = useLanguage();
   
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [bookings, setBookings] = useState<any[]>([]);
@@ -154,7 +157,7 @@ export default function AppointmentsList() {
           <View style={styles.serviceChip}>
             <Text style={styles.serviceChipText} numberOfLines={1}>{serviceNames}</Text>
           </View>
-          <Text style={styles.priceText}>€{item.totalPrice || 0},00</Text>
+          <Text style={styles.priceText}>€{formatAmount(item.totalPrice, language)}</Text>
         </View>
 
         {/* ROW 3: Date & Time */}

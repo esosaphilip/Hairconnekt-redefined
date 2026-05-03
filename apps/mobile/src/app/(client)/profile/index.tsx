@@ -150,7 +150,7 @@ export default function ClientProfileScreen() {
       <View style={styles.header}>
         <View style={{ width: 40 }} />
         <Text style={styles.headerTitle}>Profil</Text>
-        <TouchableOpacity style={styles.settingsButton}>
+        <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/(shared)/settings' as any)}>
           <Feather name="settings" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>

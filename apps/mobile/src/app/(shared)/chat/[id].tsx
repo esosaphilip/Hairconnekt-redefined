@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Linking } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { io, Socket } from 'socket.io-client';
@@ -29,6 +30,7 @@ export default function SharedChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = normalizeParam(params.id as any);
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
@@ -340,7 +342,7 @@ export default function SharedChatScreen() {
   const canSend = input.trim().length > 0 && !isSending;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={fontSizes.xl} color={colors.primary} />
@@ -414,7 +416,7 @@ export default function SharedChatScreen() {
           />
         )}
 
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: spacing.sm + (insets.bottom || 0) }]}>
           <TouchableOpacity style={styles.attachButton} disabled>
             <Feather name="plus" size={fontSizes.xl} color={colors.primary} />
           </TouchableOpacity>

@@ -9,10 +9,13 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
 import { bookingStatus } from '../../../utils/booking-status';
+import { formatAmount } from '../../../utils/format';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AppointmentDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { language } = useLanguage();
   
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -229,7 +232,7 @@ export default function AppointmentDetails() {
           
           <View style={styles.infoRow}>
             <Text style={styles.totalLabel}>Gesamtpreis</Text>
-            <Text style={styles.totalValue}>€{booking.totalPrice || 0},00</Text>
+            <Text style={styles.totalValue}>€{formatAmount(booking.totalPrice, language)}</Text>
           </View>
           
           <View style={styles.divider} />

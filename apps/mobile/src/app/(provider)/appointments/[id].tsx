@@ -7,10 +7,13 @@ import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
+import { formatAmount } from '../../../utils/format';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { language } = useLanguage();
   
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<any>(null);
@@ -278,13 +281,13 @@ export default function ProviderAppointmentDetailScreen() {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Service-Preis</Text>
-            <Text style={styles.infoValue}>€{booking.totalPrice}</Text>
+            <Text style={styles.infoValue}>€{formatAmount(booking.totalPrice, language)}</Text>
           </View>
 
           {(booking.platformFeeAmount > 0) && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Plattform-Gebühr ({booking.platformFeePercent}%)</Text>
-              <Text style={styles.infoValue}>-€{booking.platformFeeAmount}</Text>
+              <Text style={styles.infoValue}>-€{formatAmount(booking.platformFeeAmount, language)}</Text>
             </View>
           )}
 
@@ -294,7 +297,7 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={[styles.infoLabel, styles.boldGreenText]}>
               <Feather name="briefcase" size={16} color={colors.green} /> Deine Auszahlung
             </Text>
-            <Text style={[styles.infoValue, styles.boldGreenText]}>€{booking.providerPayout || booking.totalPrice}</Text>
+            <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(booking.providerPayout ?? booking.totalPrice, language)}</Text>
           </View>
 
           <View style={styles.paymentMethodRow}>

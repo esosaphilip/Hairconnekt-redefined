@@ -9,6 +9,7 @@ const KEYS = {
   REFRESH_TOKEN: 'hc_refresh_token',
   USER_ROLE: 'hc_user_role',
   USER_JSON: 'hc_user',
+  LANGUAGE: 'hc_language',
 } as const;
 
 export const tokenStorage = {
@@ -41,12 +42,22 @@ export const tokenStorage = {
     await AsyncStorage.setItem(KEYS.USER_JSON, JSON.stringify(user));
   },
 
+  async getLanguage(): Promise<'de' | 'en'> {
+    const value = await AsyncStorage.getItem(KEYS.LANGUAGE);
+    return value === 'en' ? 'en' : 'de';
+  },
+
+  async setLanguage(language: 'de' | 'en'): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LANGUAGE, language);
+  },
+
   async clear(): Promise<void> {
     await AsyncStorage.multiRemove([
       KEYS.ACCESS_TOKEN,
       KEYS.REFRESH_TOKEN,
       KEYS.USER_ROLE,
       KEYS.USER_JSON,
+      KEYS.LANGUAGE,
     ]);
   },
 };

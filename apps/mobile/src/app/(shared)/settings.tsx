@@ -10,10 +10,13 @@ import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 export default function SharedSettingsScreen() {
   const router = useRouter();
+  const { language, setLanguage } = useLanguage();
+  const isEn = language === 'en';
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
@@ -32,18 +35,18 @@ export default function SharedSettingsScreen() {
 
   const handleLink = (url: string) => {
     Linking.openURL(url).catch(() => {
-      Alert.alert('Fehler', 'Konnte den Link nicht öffnen.');
+      Alert.alert(isEn ? 'Error' : 'Fehler', isEn ? 'Could not open the link.' : 'Konnte den Link nicht öffnen.');
     });
   };
 
   const handleLogout = () => {
     Alert.alert(
-      "Wirklich abmelden?",
-      "Möchtest du dich wirklich ausloggen?",
+      isEn ? 'Log out?' : 'Wirklich abmelden?',
+      isEn ? 'Do you really want to log out?' : 'Möchtest du dich wirklich ausloggen?',
       [
-        { text: "Abbrechen", style: "cancel" },
+        { text: isEn ? 'Cancel' : 'Abbrechen', style: "cancel" },
         { 
-          text: "Abmelden", 
+          text: isEn ? 'Log out' : 'Abmelden',
           style: "destructive",
           onPress: async () => {
             try {
@@ -83,7 +86,7 @@ export default function SharedSettingsScreen() {
 
   const handleConfirmDelete = async () => {
     if (!password) {
-      setDeleteError('Bitte Passwort eingeben');
+      setDeleteError(isEn ? 'Please enter your password.' : 'Bitte Passwort eingeben');
       return;
     }
 
@@ -132,30 +135,51 @@ export default function SharedSettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Einstellungen</Text>
+        <Text style={styles.headerTitle}>{isEn ? 'Settings' : 'Einstellungen'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* SECTION 1: Account */}
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{isEn ? 'Language' : 'Sprache'}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("user", "Persönliche Informationen", () => {})}
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setLanguage('de')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <Feather name="globe" size={20} color={colors.textPrimary} style={{ marginRight: spacing.md }} />
+              <Text style={styles.rowText}>Deutsch</Text>
+            </View>
+            {language === 'de' ? <Feather name="check" size={20} color={colors.primary} /> : <View style={{ width: 20 }} />}
+          </TouchableOpacity>
           <View style={styles.divider} />
-          {renderRow("lock", "Passwort ändern", () => {})}
-          <View style={styles.divider} />
-          {renderRow("bell", "Benachrichtigungen", () => router.push('/(shared)/notifications' as any))}
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setLanguage('en')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <Feather name="globe" size={20} color={colors.textPrimary} style={{ marginRight: spacing.md }} />
+              <Text style={styles.rowText}>English</Text>
+            </View>
+            {language === 'en' ? <Feather name="check" size={20} color={colors.primary} /> : <View style={{ width: 20 }} />}
+          </TouchableOpacity>
         </View>
 
-        {/* SECTION 2: Sicherheit & Rechtliches */}
-        <Text style={styles.sectionTitle}>Sicherheit & Rechtliches</Text>
+        <Text style={styles.sectionTitle}>{isEn ? 'Account' : 'Account'}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("shield", "Datenschutzerklärung", () => handleLink('https://hairconnekt.de/privacy'))}
+          {renderRow("bell", isEn ? 'Notifications' : 'Benachrichtigungen', () => router.push('/(shared)/notifications' as any))}
+        </View>
+
+        <Text style={styles.sectionTitle}>{isEn ? 'Legal' : 'Sicherheit & Rechtliches'}</Text>
+        <View style={styles.cardGroup}>
+          {renderRow("shield", isEn ? 'Privacy Policy' : 'Datenschutzerklärung', () => handleLink('https://hairconnekt.de/privacy'))}
           <View style={styles.divider} />
-          {renderRow("file-text", "Nutzungsbedingungen", () => handleLink('https://hairconnekt.de/terms'))}
+          {renderRow("file-text", isEn ? 'Terms of Use' : 'Nutzungsbedingungen', () => handleLink('https://hairconnekt.de/terms'))}
           <View style={styles.divider} />
-          {renderRow("info", "Impressum", () => handleLink('https://hairconnekt.de/impressum'))}
+          {renderRow("info", isEn ? 'Imprint' : 'Impressum', () => handleLink('https://hairconnekt.de/impressum'))}
         </View>
 
         <View style={styles.mainDivider} />
@@ -163,13 +187,13 @@ export default function SharedSettingsScreen() {
         {/* LOGOUT */}
         <TouchableOpacity style={styles.actionRow} onPress={handleLogout} activeOpacity={0.7}>
           <Feather name="log-out" size={20} color={colors.coral} style={{ marginRight: spacing.md }} />
-          <Text style={styles.actionTextCoral}>Abmelden</Text>
+          <Text style={styles.actionTextCoral}>{isEn ? 'Log out' : 'Abmelden'}</Text>
         </TouchableOpacity>
 
         {/* DELETE ACCOUNT */}
         <TouchableOpacity style={styles.actionRow} onPress={openDeleteModal} activeOpacity={0.7}>
           <Feather name="trash-2" size={18} color={colors.error} style={{ marginRight: spacing.md }} />
-          <Text style={styles.actionTextSmallRed}>Account löschen</Text>
+          <Text style={styles.actionTextSmallRed}>{isEn ? 'Delete account' : 'Account löschen'}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionText}>HairConnekt v1.0.0</Text>
