@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
@@ -10,8 +10,10 @@ import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
-import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
+import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, setDiscoveryOverride } from '../../utils/discovery-location';
 import { NoBraidersNearby } from '../../components/NoBraidersNearby';
+import * as Location from 'expo-location';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 const BELIEBTE_STYLES = [
@@ -55,8 +57,11 @@ const BELIEBTE_STYLES = [
 
 export default function ClientHome() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const isEn = language === 'en';
   
   const [firstName, setFirstName] = useState('');
+  const [profileCity, setProfileCity] = useState<string>('Deutschland');
   const [userCity, setUserCity] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
@@ -66,6 +71,10 @@ export default function ClientHome() {
   const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
   const [radiusKm, setRadiusKm] = useState(100);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [locationInput, setLocationInput] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
 
   const filteredProviders = providers.filter((p) => {
     const name = (p.businessName ?? '').toLowerCase();
@@ -105,10 +114,56 @@ export default function ClientHome() {
       const u = await res.json();
       const user = u.data ?? u;
       setFirstName(user.firstName ?? 'Kunde');
-      setUserCity(user.city ?? 'Deutschland');
+      const city = user.city ?? 'Deutschland';
+      setProfileCity(city);
+      const override = await getDiscoveryOverride().catch(() => null);
+      setUserCity(override?.city ?? city);
       setUserAvatar(user.avatarUrl ?? null);
     } catch {
       /* keep defaults */
+    }
+  };
+
+  const openLocationModal = () => {
+    setLocationError('');
+    setLocationInput(userCity ?? profileCity ?? '');
+    setLocationModalVisible(true);
+  };
+
+  const handleSaveLocation = async () => {
+    const city = locationInput.trim();
+    setLocationError('');
+    setIsSavingLocation(true);
+    try {
+      if (!city) {
+        await setDiscoveryOverride(null);
+        const coords = await getDiscoveryCoordinates(true);
+        setDiscoveryLocation(coords);
+        setUserCity(profileCity);
+        await fetchProviders(coords);
+        setLocationModalVisible(false);
+        return;
+      }
+
+      const results = await Location.geocodeAsync(city);
+      const first = Array.isArray(results) ? results[0] : null;
+      const lat = first?.latitude;
+      const lng = first?.longitude;
+      if (typeof lat !== 'number' || typeof lng !== 'number') {
+        setLocationError(isEn ? 'City not found.' : 'Stadt nicht gefunden.');
+        return;
+      }
+
+      await setDiscoveryOverride({ city, lat, lng });
+      const coords = { lat, lng };
+      setDiscoveryLocation(coords);
+      setUserCity(city);
+      await fetchProviders(coords);
+      setLocationModalVisible(false);
+    } catch {
+      setLocationError(isEn ? 'Could not update location.' : 'Standort konnte nicht aktualisiert werden.');
+    } finally {
+      setIsSavingLocation(false);
     }
   };
 
@@ -194,11 +249,12 @@ export default function ClientHome() {
             )}
           </View>
           <View style={styles.headerTitles}>
-            <Text style={styles.greeting}>Hallo, {firstName || 'Kunde'}!</Text>
-            <View style={styles.locationRow}>
+            <Text style={styles.greeting}>{isEn ? 'Hello' : 'Hallo'}, {firstName || (isEn ? 'Client' : 'Kunde')}!</Text>
+            <TouchableOpacity style={styles.locationRow} onPress={openLocationModal} activeOpacity={0.7}>
               <Feather name="map-pin" size={14} color={colors.textSecondary} />
               <Text style={styles.locationText}>{userCity ?? 'Deutschland'}</Text>
-            </View>
+              <Feather name="chevron-down" size={14} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.bellButton} onPress={() => router.push('/(shared)/notifications')}>
             <Feather name="bell" size={24} color={colors.primary} />
@@ -309,6 +365,34 @@ export default function ClientHome() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Modal visible={locationModalVisible} transparent animationType="fade" onRequestClose={() => setLocationModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{isEn ? 'Change location' : 'Standort ändern'}</Text>
+            <Text style={styles.modalBody}>{isEn ? 'Enter a city to browse providers and book there.' : 'Gib eine Stadt ein, um dort Anbieter zu sehen und zu buchen.'}</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={locationInput}
+              onChangeText={setLocationInput}
+              placeholder={isEn ? 'City (e.g. Dortmund)' : 'Stadt (z.B. Dortmund)'}
+              autoCapitalize="words"
+            />
+            {locationError ? <Text style={styles.modalError}>{locationError}</Text> : null}
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity style={styles.modalButtonOutline} onPress={() => setLocationModalVisible(false)} disabled={isSavingLocation}>
+                <Text style={styles.modalButtonOutlineText}>{isEn ? 'Cancel' : 'Abbrechen'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButtonSolid} onPress={handleSaveLocation} disabled={isSavingLocation}>
+                <Text style={styles.modalButtonSolidText}>{isSavingLocation ? (isEn ? 'Saving…' : 'Speichern…') : (isEn ? 'Save' : 'Speichern')}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.modalResetRow} onPress={() => { setLocationInput(''); handleSaveLocation(); }} disabled={isSavingLocation}>
+              <Text style={styles.modalResetText}>{isEn ? 'Use current location' : 'Aktuellen Standort nutzen'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -362,5 +446,89 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+  },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.lg,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  modalInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+  },
+  modalError: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  modalButtonOutline: {
+    flex: 1,
+    height: 44,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonOutlineText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+  },
+  modalButtonSolid: {
+    flex: 1,
+    height: 44,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonSolidText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.surface,
+  },
+  modalResetRow: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+  },
+  modalResetText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
   },
 });
