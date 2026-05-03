@@ -22,3 +22,100 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export type ProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+
+export type PopularStyle = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  emoji: string;
+  colorHex: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type CreatePopularStyleInput = {
+  name: string;
+  emoji?: string;
+  colorHex?: string;
+  sortOrder?: number;
+};
+
+export type UpdatePopularStyleInput = Partial<CreatePopularStyleInput> & {
+  isActive?: boolean;
+};
+
+export async function getPopularStyles(): Promise<PopularStyle[]> {
+  const res = await api.get('/admin/popular-styles');
+  return res.data;
+}
+
+export async function createPopularStyle(
+  data: CreatePopularStyleInput,
+): Promise<PopularStyle> {
+  const res = await api.post('/admin/popular-styles', data);
+  return res.data;
+}
+
+export async function updatePopularStyle(
+  id: string,
+  data: UpdatePopularStyleInput,
+): Promise<PopularStyle> {
+  const res = await api.patch(`/admin/popular-styles/${id}`, data);
+  return res.data;
+}
+
+export async function deletePopularStyle(id: string): Promise<void> {
+  await api.delete(`/admin/popular-styles/${id}`);
+}
+
+export async function uploadStyleImage(
+  id: string,
+  file: File,
+): Promise<{ imageUrl: string }> {
+  const formData = new FormData();
+  formData.append('styleImage', file);
+  const res = await api.post(`/admin/popular-styles/${id}/image`, formData);
+  return res.data;
+}
+
+export async function deleteStyleImage(id: string): Promise<void> {
+  await api.delete(`/admin/popular-styles/${id}/image`);
+}
+
+export async function getProviders(status?: ProviderStatus) {
+  const url = status ? `/admin/providers?status=${status}` : '/admin/providers';
+  const res = await api.get(url);
+  return res.data;
+}
+
+export async function getProviderById(id: string) {
+  const res = await api.get(`/admin/providers/${id}`);
+  return res.data;
+}
+
+export async function approveProvider(id: string) {
+  const res = await api.patch(`/admin/providers/${id}/approve`);
+  return res.data;
+}
+
+export async function rejectProvider(id: string, reason?: string) {
+  const res = await api.patch(`/admin/providers/${id}/reject`, { reason });
+  return res.data;
+}
+
+export async function suspendProvider(id: string, reason?: string) {
+  const res = await api.patch(`/admin/providers/${id}/suspend`, { reason });
+  return res.data;
+}
+
+export async function getAdminStats(): Promise<{
+  pendingProviders: number;
+  approvedProviders: number;
+  activeCategories: number;
+  activePopularStyles: number;
+}> {
+  const res = await api.get('/admin/stats');
+  return res.data;
+}

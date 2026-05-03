@@ -14,6 +14,7 @@ import { ServicesModule } from './services/services.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { StorageModule } from './common/storage/storage.module';
 import { AdminModule } from './admin/admin.module';
+import { PopularStylesModule } from './popular-styles/popular-styles.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AdminModule } from './admin/admin.module';
     AvailabilityModule,
     StorageModule,
     AdminModule,
+    PopularStylesModule,
   ],
 })
 export class AppModule {}

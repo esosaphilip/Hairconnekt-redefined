@@ -88,6 +88,7 @@ File upload `FileInterceptor` name MUST exactly match `FormData.append()` name.
 | POST /providers/me/avatar | `avatar` | `FileInterceptor('avatar')` |
 | POST /providers/me/id-document | `idDocument` | `FileInterceptor('idDocument')` |
 | POST /providers/me/portfolio | `portfolio` | `FileInterceptor('portfolio')` |
+| POST /admin/popular-styles/:id/image | `styleImage` | `FileInterceptor('styleImage')` |
 
 ### 2. GERMAN STRINGS EVERYWHERE
 Every user-facing string must be in German.

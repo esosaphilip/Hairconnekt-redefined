@@ -28,6 +28,18 @@ export class R2Service {
   ): Promise<string> {
     const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
     const key = `${folder}/${uuidv4()}.${ext}`;
+    return this.uploadFileWithKey(buffer, mimeType, key);
+  }
+
+  getPublicUrlForKey(key: string): string {
+    return `${this.publicUrl}/${key}`;
+  }
+
+  async uploadFileWithKey(
+    buffer: Buffer,
+    mimeType: string,
+    key: string,
+  ): Promise<string> {
     try {
       await this.client.send(
         new PutObjectCommand({
@@ -38,7 +50,7 @@ export class R2Service {
           CacheControl: 'public, max-age=31536000',
         }),
       );
-      return `${this.publicUrl}/${key}`;
+      return this.getPublicUrlForKey(key);
     } catch (err) {
       console.error('R2 upload error:', err);
       throw new InternalServerErrorException('Bild konnte nicht hochgeladen werden.');
@@ -46,16 +58,19 @@ export class R2Service {
   }
 
   async deleteFile(url: string): Promise<void> {
+    const key = url.replace(`${this.publicUrl}/`, '');
+    await this.deleteByKey(key);
+  }
+
+  async deleteByKey(key: string): Promise<void> {
     try {
-      const key = url.replace(`${this.publicUrl}/`, '');
       await this.client.send(
         new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
       );
     } catch (err) {
       console.error('R2 delete error:', err);
-      // ✅ NOW THROWS — prevents DB deletion if R2 fails
       throw new InternalServerErrorException(
-        'Datei konnte nicht aus dem Speicher gelöscht werden.'
+        'Datei konnte nicht aus dem Speicher gelöscht werden.',
       );
     }
   }

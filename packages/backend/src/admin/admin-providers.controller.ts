@@ -1,6 +1,8 @@
 import {
   Controller, Get, Patch, Param,
   UseGuards, ParseUUIDPipe, Query, Body,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -8,6 +10,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Provider, ProviderStatus } from '../entities/provider.entity';
 import { User } from '../entities/user.entity';
+import { Service } from '../entities/service.entity';
+import { ProviderAdminDto } from './dto/provider-admin.dto';
+import { ProviderStatusReasonDto } from './dto/provider-status-reason.dto';
 
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -17,6 +22,8 @@ export class AdminProvidersController {
     private readonly providerRepo: Repository<Provider>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Service)
+    private readonly serviceRepo: Repository<Service>,
   ) {}
 
   private isProtectedAddress(provider: Provider) {
@@ -33,29 +40,36 @@ export class AdminProvidersController {
   // GET /admin/providers?status=pending
   @Get()
   async findAll(@Query('status') status?: string) {
-    const where = status ? { status: status as ProviderStatus } : {};
-    return this.providerRepo.find({
-      where,
-      relations: ['user'],
-      order: { createdAt: 'DESC' },
-      select: {
-        id: true,
-        businessName: true,
-        status: true,
-        providerType: true,
-        city: true,
-        createdAt: true,
-        idDocumentUrl: true,
-        avatarUrl: true,
-        user: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-        },
-      },
-    });
+    const parsedStatus = this.parseStatus(status);
+
+    const qb = this.providerRepo
+      .createQueryBuilder('provider')
+      .leftJoin('provider.user', 'user')
+      .leftJoin(Service, 'service', 'service.providerId = provider.id')
+      .select('provider.id', 'id')
+      .addSelect('provider.businessName', 'businessName')
+      .addSelect('provider.providerType', 'providerType')
+      .addSelect('provider.status', 'status')
+      .addSelect('provider.city', 'city')
+      .addSelect('provider.idDocumentUrl', 'idDocumentUrl')
+      .addSelect('provider.avatarUrl', 'avatarUrl')
+      .addSelect('provider.createdAt', 'createdAt')
+      .addSelect('user.firstName', 'userFirstName')
+      .addSelect('user.lastName', 'userLastName')
+      .addSelect('user.email', 'userEmail')
+      .addSelect('user.phone', 'userPhone')
+      .addSelect('user.isEmailVerified', 'userIsEmailVerified')
+      .addSelect('COUNT(service.id)', 'servicesCount')
+      .groupBy('provider.id')
+      .addGroupBy('user.id')
+      .orderBy('provider.createdAt', 'DESC');
+
+    if (parsedStatus) {
+      qb.where('provider.status = :status', { status: parsedStatus });
+    }
+
+    const rows = await qb.getRawMany();
+    return rows.map(ProviderAdminDto.fromRaw);
   }
 
   // GET /admin/providers/geocoding/report — provider geo data health
@@ -111,50 +125,69 @@ export class AdminProvidersController {
   // GET /admin/providers/:id — full provider detail
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const provider = await this.providerRepo.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    if (!provider) throw new Error('Anbieter nicht gefunden.');
-    return provider;
+    const row = await this.providerRepo
+      .createQueryBuilder('provider')
+      .leftJoin('provider.user', 'user')
+      .leftJoin(Service, 'service', 'service.providerId = provider.id')
+      .select('provider.id', 'id')
+      .addSelect('provider.businessName', 'businessName')
+      .addSelect('provider.providerType', 'providerType')
+      .addSelect('provider.status', 'status')
+      .addSelect('provider.city', 'city')
+      .addSelect('provider.idDocumentUrl', 'idDocumentUrl')
+      .addSelect('provider.avatarUrl', 'avatarUrl')
+      .addSelect('provider.createdAt', 'createdAt')
+      .addSelect('user.firstName', 'userFirstName')
+      .addSelect('user.lastName', 'userLastName')
+      .addSelect('user.email', 'userEmail')
+      .addSelect('user.phone', 'userPhone')
+      .addSelect('user.isEmailVerified', 'userIsEmailVerified')
+      .addSelect('COUNT(service.id)', 'servicesCount')
+      .where('provider.id = :id', { id })
+      .groupBy('provider.id')
+      .addGroupBy('user.id')
+      .getRawOne();
+
+    if (!row) throw new NotFoundException('Provider not found');
+    return ProviderAdminDto.fromRaw(row);
   }
 
   // PATCH /admin/providers/:id/approve — approve provider
   @Patch(':id/approve')
   async approve(@Param('id', ParseUUIDPipe) id: string) {
-    const provider = await this.providerRepo.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    if (!provider) throw new Error('Anbieter nicht gefunden.');
-    provider.status = ProviderStatus.APPROVED;
-    await this.providerRepo.save(provider);
-    // TODO Phase 2: send approval email via SMTP
-    return { message: 'Anbieter wurde freigeschalten.', provider };
+    const res = await this.providerRepo.update(id, { status: ProviderStatus.APPROVED });
+    if (!res.affected) throw new NotFoundException('Provider not found');
+    return { success: true };
   }
 
   // PATCH /admin/providers/:id/reject — reject provider
   @Patch(':id/reject')
   async reject(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { reason?: string },
+    @Body() _body: ProviderStatusReasonDto,
   ) {
-    const provider = await this.providerRepo.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    if (!provider) throw new Error('Anbieter nicht gefunden.');
-    // Normally store reason in DB, for now just set status:
-    provider.status = ProviderStatus.REJECTED;
-    await this.providerRepo.save(provider);
-    // TODO Phase 2: send rejection email with reason
-    return { message: 'Anbieter wurde abgelehnt.' };
+    const res = await this.providerRepo.update(id, { status: ProviderStatus.REJECTED });
+    if (!res.affected) throw new NotFoundException('Provider not found');
+    return { success: true };
   }
 
   // PATCH /admin/providers/:id/suspend — suspend approved provider
   @Patch(':id/suspend')
-  async suspend(@Param('id', ParseUUIDPipe) id: string) {
-    await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
-    return { message: 'Anbieter wurde gesperrt.' };
+  async suspend(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() _body: ProviderStatusReasonDto,
+  ) {
+    const res = await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
+    if (!res.affected) throw new NotFoundException('Provider not found');
+    return { success: true };
+  }
+
+  private parseStatus(status?: string): ProviderStatus | undefined {
+    if (!status) return undefined;
+    const allowed = Object.values(ProviderStatus);
+    if (!allowed.includes(status as ProviderStatus)) {
+      throw new BadRequestException('Invalid status');
+    }
+    return status as ProviderStatus;
   }
 }

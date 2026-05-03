@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, Users, Tag, LayoutDashboard } from 'lucide-react';
+import { LogOut, Users, Tag, LayoutDashboard, Sparkles } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -23,6 +23,10 @@ export default function Layout() {
           <NavLink to="/providers" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
             <Users size={20} />
             <span style={{ marginLeft: '10px' }}>Anbieter</span>
+          </NavLink>
+          <NavLink to="/popular-styles" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+            <Sparkles size={20} />
+            <span style={{ marginLeft: '10px' }}>Beliebte Styles</span>
           </NavLink>
           <NavLink to="/categories" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
             <Tag size={20} />

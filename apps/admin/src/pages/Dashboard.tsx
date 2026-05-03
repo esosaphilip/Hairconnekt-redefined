@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 import api from '../api';
+import { getAdminStats } from '../api';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
     pending: 0,
     approved: 0,
-    totalCategories: 0
+    totalCategories: 0,
+    activePopularStyles: 0,
   });
 
   useEffect(() => {
@@ -17,11 +19,14 @@ export default function Dashboard() {
           api.get('/admin/providers?status=approved'),
           api.get('/admin/categories')
         ]);
+
+        const adminStats = await getAdminStats();
         
         setStats({
           pending: pendingRes.data.length || 0,
           approved: approvedRes.data.length || 0,
-          totalCategories: catRes.data.length || 0
+          totalCategories: catRes.data.length || 0,
+          activePopularStyles: adminStats.activePopularStyles || 0,
         });
       } catch (err) {
         console.error("Error fetching stats", err);
@@ -63,6 +68,16 @@ export default function Dashboard() {
           <div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Kategorien Aktiv</p>
             <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.totalCategories}</h2>
+          </div>
+        </div>
+
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '16px', color: '#b45309' }}>
+            <Sparkles size={32} />
+          </div>
+          <div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Beliebte Styles Aktiv</p>
+            <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.activePopularStyles}</h2>
           </div>
         </div>
 

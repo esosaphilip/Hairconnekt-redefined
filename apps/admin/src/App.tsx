@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Providers from './pages/Providers';
 import Categories from './pages/Categories';
+import PopularStyles from './pages/PopularStyles';
 import './index.css';
 
 // Protected Route Wrapper
@@ -29,6 +30,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="providers" element={<Providers />} />
+          <Route path="popular-styles" element={<PopularStyles />} />
           <Route path="categories" element={<Categories />} />
         </Route>
         
