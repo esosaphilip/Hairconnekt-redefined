@@ -43,8 +43,13 @@ export default function PopularStyles() {
     try {
       const data = await getPopularStyles();
       setStyles(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setPageError('Fehler beim Laden der Styles.');
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status) {
+        setPageError(`Fehler beim Laden der Styles (Status: ${status}).`);
+      } else {
+        setPageError('Fehler beim Laden der Styles.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -240,8 +245,20 @@ export default function PopularStyles() {
       />
 
       {pageError && (
-        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
-          {pageError}
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.5rem',
+            border: '1px solid var(--danger)',
+            color: 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+          }}
+        >
+          <div>{pageError}</div>
+          <button className="btn btn-outline" onClick={loadStyles}>Erneut versuchen</button>
         </div>
       )}
 
