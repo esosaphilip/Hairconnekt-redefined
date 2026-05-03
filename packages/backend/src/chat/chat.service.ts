@@ -293,6 +293,24 @@ export class ChatService {
     };
   }
 
+  async markConversationRead(
+    userId: string,
+    conversationId: string,
+  ): Promise<{ conversationId: string; updatedCount: number }> {
+    await this.getConversationForUserOrThrow(userId, conversationId);
+
+    const result = await this.messageRepo
+      .createQueryBuilder()
+      .update(Message)
+      .set({ isRead: true, readAt: () => 'NOW()' })
+      .where('conversationId = :conversationId', { conversationId })
+      .andWhere('senderId != :userId', { userId })
+      .andWhere('isRead = false')
+      .execute();
+
+    return { conversationId, updatedCount: result.affected ?? 0 };
+  }
+
   async markMessageRead(
     userId: string,
     messageId: string,

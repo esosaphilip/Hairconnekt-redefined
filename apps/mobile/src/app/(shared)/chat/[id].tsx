@@ -99,6 +99,13 @@ export default function SharedChatScreen() {
       setMessages(Array.isArray(payload?.messages) ? payload.messages : []);
       setMyUserId(payload?.myUserId ?? '');
       myUserIdRef.current = payload?.myUserId ?? '';
+
+      await fetch(`${API}/chat/conversations/${id}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+
+      setMessages((prev) => prev.map((m) => (m.senderId !== myUserIdRef.current ? { ...m, isRead: true } : m)));
     } catch {
       showError(500);
     } finally {

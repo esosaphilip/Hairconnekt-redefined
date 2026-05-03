@@ -25,6 +25,13 @@ export class ChatController {
     return this.chatService.getConversationDetail(user.id, id);
   }
 
+  @Post('conversations/:id/read')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async markConversationRead(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.chatService.markConversationRead(user.id, id);
+  }
+
   @Post('conversations')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
