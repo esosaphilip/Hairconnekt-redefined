@@ -15,43 +15,63 @@ import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 import * as Location from 'expo-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+interface PopularStyle {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  emoji: string;
+  colorHex: string;
+  sortOrder: number;
+}
 
-const BELIEBTE_STYLES = [
+const BELIEBTE_STYLES: PopularStyle[] = [
   {
     id: '1',
     name: 'Knotless Braids',
-    color: colors.gold,
+    imageUrl: null,
+    colorHex: colors.gold,
     emoji: '✨',
+    sortOrder: 1,
   },
   {
     id: '2',
     name: 'Box Braids',
-    color: colors.primary,
+    imageUrl: null,
+    colorHex: colors.primary,
     emoji: '💫',
+    sortOrder: 2,
   },
   {
     id: '3',
     name: 'Cornrows',
-    color: colors.teal,
+    imageUrl: null,
+    colorHex: colors.teal,
     emoji: '🌿',
+    sortOrder: 3,
   },
   {
     id: '4',
     name: 'Goddess Locs',
-    color: colors.coral,
+    imageUrl: null,
+    colorHex: colors.coral,
     emoji: '👑',
+    sortOrder: 4,
   },
   {
     id: '5',
     name: 'Twists',
-    color: colors.primaryDark,
+    imageUrl: null,
+    colorHex: colors.primaryDark,
     emoji: '🌀',
+    sortOrder: 5,
   },
   {
     id: '6',
     name: 'Fades',
-    color: colors.green,
+    imageUrl: null,
+    colorHex: colors.green,
     emoji: '✂️',
+    sortOrder: 6,
   },
 ];
 
@@ -273,13 +293,22 @@ export default function ClientHome() {
                 },
               } as any)}
             >
-              {/* Gradient-style background using solid colour */}
-              <View style={[
-                styles.styleImagePlaceholder,
-                { backgroundColor: style.color }
-              ]}>
-                <Text style={{ fontSize: 36 }}>{style.emoji}</Text>
-              </View>
+              {style.imageUrl ? (
+                <View style={[styles.styleImageContainer, { backgroundColor: style.colorHex }]}>
+                  <Image
+                    source={{ uri: style.imageUrl }}
+                    style={styles.styleBackgroundImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.styleEmojiOverlay}>
+                    <Text style={{ fontSize: 28 }}>{style.emoji}</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.styleImagePlaceholder, { backgroundColor: style.colorHex }]}>
+                  <Text style={{ fontSize: 36 }}>{style.emoji}</Text>
+                </View>
+              )}
               <Text style={styles.styleName} numberOfLines={2}>
                 {style.name}
               </Text>
@@ -448,6 +477,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  styleImageContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  styleBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  styleEmojiOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   styleName: {
     fontFamily: fonts.bodyBold,
