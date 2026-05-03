@@ -7,9 +7,12 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [provider, setProvider] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(true);
@@ -103,7 +106,7 @@ export default function ProviderDashboardScreen() {
       }
     } catch (error) {
       console.log('Error loading dashboard data:', error);
-      setError('Fehler beim Laden der Daten.');
+      setError(t('dashboardLoadError'));
     } finally {
       setLoading(false);
     }
@@ -175,7 +178,7 @@ export default function ProviderDashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>Willkommen zurück, {provider?.businessName || provider?.firstName || 'Anbieter'}!</Text>
+          <Text style={styles.greeting}>{t('dashboardWelcome')}, {provider?.businessName || provider?.firstName || t('providerGeneric')}!</Text>
           <Text style={styles.date}>{getTodayDateString()}</Text>
         </View>
         <View style={styles.headerRight}>
@@ -187,7 +190,7 @@ export default function ProviderDashboardScreen() {
             <Feather name="bell" size={22} color={colors.textPrimary} />
           </Pressable>
           <Pressable
-            onPress={() => router.push('/(provider)/settings')}
+            onPress={() => router.push('/(shared)/settings')}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={{ padding: 8 }}
           >
@@ -202,10 +205,10 @@ export default function ProviderDashboardScreen() {
         <View style={[styles.availabilityCard, isOnline ? styles.availabilityOnline : styles.availabilityOffline]}>
           <View style={styles.availabilityInfo}>
             <Text style={[styles.availabilityTitle, { color: isOnline ? colors.green : colors.error }]}>
-              {isOnline ? 'Verfügbar' : 'Nicht verfügbar'}
+              {isOnline ? t('dashboardAvailable') : t('dashboardUnavailable')}
             </Text>
             <Text style={styles.availabilitySub}>
-              {isOnline ? 'Kunden können dich jetzt buchen' : 'Du nimmst keine Buchungen an'}
+              {isOnline ? t('dashboardAvailableSub') : t('dashboardUnavailableSub')}
             </Text>
           </View>
           <Switch
@@ -225,7 +228,7 @@ export default function ProviderDashboardScreen() {
               <Feather name="calendar" size={20} color={colors.coral} />
             </View>
             <Text style={styles.statValue}>{stats?.todayAppointments ?? 0}</Text>
-            <Text style={styles.statLabel}>Heute's Termine</Text>
+            <Text style={styles.statLabel}>{t('dashboardTodayAppts')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(provider)/reviews')}>
@@ -236,7 +239,7 @@ export default function ProviderDashboardScreen() {
               <Text style={styles.statValue}>{stats?.avgRating ? `${stats.avgRating}` : '—'}</Text>
               <Feather name="star" size={16} color={colors.gold} style={{ marginLeft: 4, marginTop: 4 }} />
             </View>
-            <Text style={styles.statLabel}>Bewertung</Text>
+            <Text style={styles.statLabel}>{t('dashboardRating')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.statCard} onPress={() => {}}>
@@ -244,7 +247,7 @@ export default function ProviderDashboardScreen() {
               <Feather name="trending-up" size={20} color={colors.teal} />
             </View>
             <Text style={[styles.statValue, { color: colors.teal }]}>{stats?.weeklyNewBookings ? `+${stats.weeklyNewBookings}` : '+0'}</Text>
-            <Text style={styles.statLabel}>Diese Woche</Text>
+            <Text style={styles.statLabel}>{t('dashboardThisWeek')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(provider)/calendar')}>
@@ -252,15 +255,15 @@ export default function ProviderDashboardScreen() {
               <Feather name="clock" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.statValue, { fontSize: fontSizes.xl }]}>{stats?.nextAppointmentTime ?? '—'}</Text>
-            <Text style={styles.statLabel}>Nächster Termin</Text>
+            <Text style={styles.statLabel}>{t('dashboardNextAppt')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Schedule Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Heutiger Zeitplan</Text>
+          <Text style={styles.sectionTitle}>{t('dashboardTodaySchedule')}</Text>
           <TouchableOpacity onPress={() => router.push('/(provider)/calendar')}>
-            <Text style={styles.linkText}>Kalender öffnen</Text>
+            <Text style={styles.linkText}>{t('dashboardOpenCalendar')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -297,13 +300,15 @@ export default function ProviderDashboardScreen() {
               </View>
               
               <Text style={styles.clientName}>{booking.client?.firstName} {booking.client?.lastName}</Text>
-              <Text style={styles.serviceName}>{booking.services?.[0]?.name || 'Service'} {booking.totalPrice ? `· €${Number(booking.totalPrice).toFixed(0)}` : ''}</Text>
+              <Text style={styles.serviceName}>
+                {booking.services?.[0]?.name || 'Service'} {booking.totalPrice ? `· €${formatAmount(booking.totalPrice, lang)}` : ''}
+              </Text>
               
               <View style={styles.bookingActions}>
                 {bookingStatus(booking.status) === 'confirmed' && (
                   <View style={styles.actionBtnContainer}>
                     <PrimaryButton 
-                      label="Starten" 
+                      label={t('dashboardStart')} 
                       onPress={() => startBooking(booking.id)}
                       variant="filled"
                     />
@@ -311,7 +316,7 @@ export default function ProviderDashboardScreen() {
                 )}
                 <View style={[styles.actionBtnContainer, bookingStatus(booking.status) === 'confirmed' && { marginLeft: spacing.sm }]}>
                   <PrimaryButton 
-                    label="Nachricht" 
+                    label={t('profileMessage')} 
                     onPress={() => router.push('/(provider)/chat')}
                     variant="outline"
                   />
@@ -321,13 +326,13 @@ export default function ProviderDashboardScreen() {
           ))
         ) : (
           <View style={styles.emptySlotCard}>
-            <Text style={styles.emptySlotText}>Keine weiteren Termine heute</Text>
+            <Text style={styles.emptySlotText}>{t('dashboardNoAppts')}</Text>
           </View>
         )}
 
         {/* Quick Links */}
         <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
-          <Text style={styles.sectionTitle}>Schnellzugriff</Text>
+          <Text style={styles.sectionTitle}>{t('dashboardQuickAccess')}</Text>
         </View>
 
         <View style={styles.quickLinksRow}>
@@ -335,14 +340,14 @@ export default function ProviderDashboardScreen() {
             <View style={[styles.quickLinkIcon, { backgroundColor: colors.primaryLight }]}>
               <Text style={{ fontSize: 24 }}>💼</Text>
             </View>
-            <Text style={styles.quickLinkLabel}>Services</Text>
+            <Text style={styles.quickLinkLabel}>{t('profileTabServices')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickLinkCard} onPress={() => router.push('/(provider)/calendar')}>
             <View style={[styles.quickLinkIcon, { backgroundColor: colors.primaryLight }]}>
               <Text style={{ fontSize: 24 }}>📅</Text>
             </View>
-            <Text style={styles.quickLinkLabel}>Kalender</Text>
+            <Text style={styles.quickLinkLabel}>{t('tabCalendar')}</Text>
           </TouchableOpacity>
         </View>
 

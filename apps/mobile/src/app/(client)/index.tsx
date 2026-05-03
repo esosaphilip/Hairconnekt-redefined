@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
@@ -20,48 +20,47 @@ const BELIEBTE_STYLES = [
   {
     id: '1',
     name: 'Knotless Braids',
-    color: '#C8860A',      // gold warm tone
+    color: colors.gold,
     emoji: '✨',
   },
   {
     id: '2',
     name: 'Box Braids',
-    color: '#8B4513',      // colors.primary brown
+    color: colors.primary,
     emoji: '💫',
   },
   {
     id: '3',
     name: 'Cornrows',
-    color: '#1A8C85',      // colors.teal
+    color: colors.teal,
     emoji: '🌿',
   },
   {
     id: '4',
     name: 'Goddess Locs',
-    color: '#E05A4E',      // colors.coral
+    color: colors.coral,
     emoji: '👑',
   },
   {
     id: '5',
     name: 'Twists',
-    color: '#5C2D00',      // colors.primaryDark
+    color: colors.primaryDark,
     emoji: '🌀',
   },
   {
     id: '6',
     name: 'Fades',
-    color: '#2E7D32',      // colors.green
+    color: colors.green,
     emoji: '✂️',
   },
 ];
 
 export default function ClientHome() {
   const router = useRouter();
-  const { language } = useLanguage();
-  const isEn = language === 'en';
+  const { lang, t } = useLanguage();
   
   const [firstName, setFirstName] = useState('');
-  const [profileCity, setProfileCity] = useState<string>('Deutschland');
+  const [profileCity, setProfileCity] = useState<string>('');
   const [userCity, setUserCity] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
@@ -71,10 +70,8 @@ export default function ClientHome() {
   const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
   const [radiusKm, setRadiusKm] = useState(100);
-  const [locationModalVisible, setLocationModalVisible] = useState(false);
-  const [locationInput, setLocationInput] = useState('');
-  const [locationError, setLocationError] = useState('');
-  const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [cityInput, setCityInput] = useState('');
 
   const filteredProviders = providers.filter((p) => {
     const name = (p.businessName ?? '').toLowerCase();
@@ -113,57 +110,14 @@ export default function ClientHome() {
       if (!res.ok) return;
       const u = await res.json();
       const user = u.data ?? u;
-      setFirstName(user.firstName ?? 'Kunde');
-      const city = user.city ?? 'Deutschland';
+      setFirstName(user.firstName ?? '');
+      const city = user.city ?? t('countryDefault');
       setProfileCity(city);
       const override = await getDiscoveryOverride().catch(() => null);
       setUserCity(override?.city ?? city);
       setUserAvatar(user.avatarUrl ?? null);
     } catch {
       /* keep defaults */
-    }
-  };
-
-  const openLocationModal = () => {
-    setLocationError('');
-    setLocationInput(userCity ?? profileCity ?? '');
-    setLocationModalVisible(true);
-  };
-
-  const handleSaveLocation = async () => {
-    const city = locationInput.trim();
-    setLocationError('');
-    setIsSavingLocation(true);
-    try {
-      if (!city) {
-        await setDiscoveryOverride(null);
-        const coords = await getDiscoveryCoordinates(true);
-        setDiscoveryLocation(coords);
-        setUserCity(profileCity);
-        await fetchProviders(coords);
-        setLocationModalVisible(false);
-        return;
-      }
-
-      const results = await Location.geocodeAsync(city);
-      const first = Array.isArray(results) ? results[0] : null;
-      const lat = first?.latitude;
-      const lng = first?.longitude;
-      if (typeof lat !== 'number' || typeof lng !== 'number') {
-        setLocationError(isEn ? 'City not found.' : 'Stadt nicht gefunden.');
-        return;
-      }
-
-      await setDiscoveryOverride({ city, lat, lng });
-      const coords = { lat, lng };
-      setDiscoveryLocation(coords);
-      setUserCity(city);
-      await fetchProviders(coords);
-      setLocationModalVisible(false);
-    } catch {
-      setLocationError(isEn ? 'Could not update location.' : 'Standort konnte nicht aktualisiert werden.');
-    } finally {
-      setIsSavingLocation(false);
     }
   };
 
@@ -184,7 +138,7 @@ export default function ClientHome() {
       });
 
       if (!res.ok) {
-        setErrorMessage(mapHttpError(res.status));
+        setErrorMessage(mapHttpError(res.status, undefined, lang));
         setErrorVisible(true);
         return;
       }
@@ -193,7 +147,7 @@ export default function ClientHome() {
       setProviders(data.data || data);
     } catch (err: any) {
       const status = err.response?.status;
-      setErrorMessage(mapHttpError(status));
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -239,7 +193,7 @@ export default function ClientHome() {
             ) : (
               <View style={styles.avatarRing}>
                 {firstName ? (
-                  <Text style={{ fontFamily: fonts.heading, fontSize: 24, color: colors.primary }}>
+                  <Text style={{ fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary }}>
                     {firstName.charAt(0).toUpperCase()}
                   </Text>
                 ) : (
@@ -249,11 +203,18 @@ export default function ClientHome() {
             )}
           </View>
           <View style={styles.headerTitles}>
-            <Text style={styles.greeting}>{isEn ? 'Hello' : 'Hallo'}, {firstName || (isEn ? 'Client' : 'Kunde')}!</Text>
-            <TouchableOpacity style={styles.locationRow} onPress={openLocationModal} activeOpacity={0.7}>
-              <Feather name="map-pin" size={14} color={colors.textSecondary} />
-              <Text style={styles.locationText}>{userCity ?? 'Deutschland'}</Text>
-              <Feather name="chevron-down" size={14} color={colors.textSecondary} />
+            <Text style={styles.greeting}>{t('homeGreeting')}, {firstName || t('clientNameDefault')}!</Text>
+            <TouchableOpacity
+              style={styles.locationPill}
+              onPress={() => {
+                setCityInput(userCity ?? '');
+                setShowLocationModal(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Feather name="map-pin" size={14} color={colors.primary} />
+              <Text style={styles.locationPillText}>{userCity ?? t('countryDefault')}</Text>
+              <Feather name="chevron-down" size={12} color={colors.primary} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.bellButton} onPress={() => router.push('/(shared)/notifications')}>
@@ -274,13 +235,13 @@ export default function ClientHome() {
           }
         >
           <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-          <Text style={styles.searchText}>Suche nach Styles, Braiders, Salons...</Text>
+          <Text style={styles.searchText}>{t('homeSearchPlaceholder')}</Text>
           <Feather name="sliders" size={20} color={colors.primary} />
         </TouchableOpacity>
 
         {/* ── Beliebte Styles ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Beliebte Styles</Text>
+          <Text style={styles.sectionTitle}>{t('homePopular')}</Text>
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -289,7 +250,7 @@ export default function ClientHome() {
               } as any)
             }
           >
-            <Text style={styles.seeAllText}>Alle anzeigen</Text>
+            <Text style={styles.seeAllText}>{t('homeViewAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -330,7 +291,7 @@ export default function ClientHome() {
 
         {/* Braiders Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Braiders in deiner Nähe</Text>
+          <Text style={styles.sectionTitle}>{t('homeNearby')}</Text>
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -339,7 +300,7 @@ export default function ClientHome() {
               } as any)
             }
           >
-            <Text style={styles.seeAllText}>Alle anzeigen</Text>
+            <Text style={styles.seeAllText}>{t('homeViewAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -366,29 +327,68 @@ export default function ClientHome() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <Modal visible={locationModalVisible} transparent animationType="fade" onRequestClose={() => setLocationModalVisible(false)}>
+      <Modal
+        visible={showLocationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLocationModal(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{isEn ? 'Change location' : 'Standort ändern'}</Text>
-            <Text style={styles.modalBody}>{isEn ? 'Enter a city to browse providers and book there.' : 'Gib eine Stadt ein, um dort Anbieter zu sehen und zu buchen.'}</Text>
+          <View style={styles.locationModal}>
+            <Text style={styles.locationModalTitle}>{t('homeLocationModal')}</Text>
+
             <TextInput
-              style={styles.modalInput}
-              value={locationInput}
-              onChangeText={setLocationInput}
-              placeholder={isEn ? 'City (e.g. Dortmund)' : 'Stadt (z.B. Dortmund)'}
-              autoCapitalize="words"
+              style={styles.locationInput}
+              value={cityInput}
+              onChangeText={setCityInput}
+              placeholder={t('homeLocationPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+              returnKeyType="done"
             />
-            {locationError ? <Text style={styles.modalError}>{locationError}</Text> : null}
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity style={styles.modalButtonOutline} onPress={() => setLocationModalVisible(false)} disabled={isSavingLocation}>
-                <Text style={styles.modalButtonOutlineText}>{isEn ? 'Cancel' : 'Abbrechen'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonSolid} onPress={handleSaveLocation} disabled={isSavingLocation}>
-                <Text style={styles.modalButtonSolidText}>{isSavingLocation ? (isEn ? 'Saving…' : 'Speichern…') : (isEn ? 'Save' : 'Speichern')}</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.modalResetRow} onPress={() => { setLocationInput(''); handleSaveLocation(); }} disabled={isSavingLocation}>
-              <Text style={styles.modalResetText}>{isEn ? 'Use current location' : 'Aktuellen Standort nutzen'}</Text>
+
+            <TouchableOpacity
+              style={styles.locationApplyBtn}
+              onPress={async () => {
+                if (cityInput.trim()) {
+                  const city = cityInput.trim();
+                  setUserCity(city);
+                  try {
+                    const results = await Location.geocodeAsync(city);
+                    const first = Array.isArray(results) ? results[0] : null;
+                    const lat = first?.latitude;
+                    const lng = first?.longitude;
+                    if (typeof lat === 'number' && typeof lng === 'number') {
+                      await setDiscoveryOverride({ city, lat, lng });
+                      const coords = { lat, lng };
+                      setDiscoveryLocation(coords);
+                      await fetchProviders(coords);
+                    }
+                  } catch {}
+                }
+                setShowLocationModal(false);
+              }}
+            >
+              <Text style={styles.locationApplyText}>{t('homeLocationApply')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.locationGpsBtn}
+              onPress={async () => {
+                setShowLocationModal(false);
+                await setDiscoveryOverride(null);
+                const coords = await getDiscoveryCoordinates(true);
+                setDiscoveryLocation(coords);
+                await fetchProviders(coords);
+                setUserCity(t('countryDefault'));
+              }}
+            >
+              <Feather name="navigation" size={16} color={colors.teal} />
+              <Text style={styles.locationGpsText}>{t('homeLocationGps')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.locationCancelBtn} onPress={() => setShowLocationModal(false)}>
+              <Text style={styles.locationCancelText}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -405,8 +405,21 @@ const styles = StyleSheet.create({
   avatarRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   headerTitles: { flex: 1 },
   greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: 4 },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
+  },
+  locationPillText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+  },
   bellButton: { position: 'relative', padding: spacing.xs },
   bellBadge: { position: 'absolute', top: 4, right: 6, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.coral },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: 50, paddingHorizontal: spacing.md, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.border },
@@ -426,7 +439,7 @@ const styles = StyleSheet.create({
   styleCard: {
     width: 130,
     height: 170,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginRight: spacing.md,
     overflow: 'hidden',
     backgroundColor: colors.surface,
@@ -439,9 +452,9 @@ const styles = StyleSheet.create({
   styleName: {
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.sm,
-    color: '#FFFFFF',
+    color: colors.background,
     padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlaySoft,
     position: 'absolute',
     bottom: 0,
     width: '100%',
@@ -449,86 +462,67 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    padding: spacing.lg,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
   },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
+  locationModal: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    padding: spacing.xl,
+    paddingBottom: spacing.xl + spacing.xs,
   },
-  modalTitle: {
+  locationModalTitle: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.lg,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    fontSize: fontSizes.xl,
+    color: colors.primary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
-  modalBody: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  modalInput: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.border,
+  locationInput: {
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
+    height: layout.inputHeight,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
+    marginBottom: spacing.md,
   },
-  modalError: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.error,
-    textAlign: 'center',
+  locationApplyBtn: {
+    backgroundColor: colors.coral,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  modalButtonsRow: {
+  locationApplyText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.background,
+  },
+  locationGpsBtn: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  modalButtonOutline: {
-    flex: 1,
-    height: 44,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
+    height: layout.inputHeight,
+    marginBottom: spacing.sm,
   },
-  modalButtonOutlineText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: fontSizes.sm,
-    color: colors.primary,
-  },
-  modalButtonSolid: {
-    flex: 1,
-    height: 44,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalButtonSolidText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: fontSizes.sm,
-    color: colors.surface,
-  },
-  modalResetRow: {
-    marginTop: spacing.md,
-    alignItems: 'center',
-  },
-  modalResetText: {
+  locationGpsText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.md,
+    color: colors.teal,
+  },
+  locationCancelBtn: {
+    alignItems: 'center',
+    height: layout.inputHeight,
+    justifyContent: 'center',
+  },
+  locationCancelText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.md,
     color: colors.textSecondary,
   },
 });

@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../../theme';
+import { colors, fonts, fontSizes, layout, spacing } from '@/theme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 // Figma confirmed: CLIENT has exactly 5 tabs
@@ -10,24 +10,25 @@ import { colors } from '../../theme';
 
 export default function ClientLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#AAA',
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#EEE',
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 10),
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-          paddingTop: 8,
+          height: (layout.tabBarHeight - spacing.sm) + (insets.bottom > 0 ? insets.bottom : spacing.xs),
+          paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.xs,
+          paddingTop: spacing.xs,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: 'DMSans_400Regular',
+          fontSize: fontSizes.xs,
+          fontFamily: fonts.body,
         },
       }}
     >
@@ -37,7 +38,7 @@ export default function ClientLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Startseite',
+          title: t('tabHome'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -46,7 +47,7 @@ export default function ClientLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Suchen',
+          title: t('tabSearch'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="search" size={size} color={color} />
           ),
@@ -55,7 +56,7 @@ export default function ClientLayout() {
       <Tabs.Screen
         name="appointments/index"
         options={{
-          title: 'Termine',
+          title: t('tabAppointments'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="calendar" size={size} color={color} />
           ),
@@ -64,7 +65,7 @@ export default function ClientLayout() {
       <Tabs.Screen
         name="chat/index"
         options={{
-          title: 'Nachrichten',
+          title: t('tabMessages'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="message-circle" size={size} color={color} />
           ),
@@ -73,7 +74,7 @@ export default function ClientLayout() {
       <Tabs.Screen
         name="profile/index"
         options={{
-          title: 'Profil',
+          title: t('tabProfile'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

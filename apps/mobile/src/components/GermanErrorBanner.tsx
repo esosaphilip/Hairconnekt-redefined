@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../theme';
 import { mapHttpError } from '../utils/error-messages';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   statusCode?: number;
@@ -11,9 +12,10 @@ interface Props {
 }
 
 export function GermanErrorBanner({ statusCode, message, visible, onDismiss }: Props) {
+  const { lang } = useLanguage();
   if (!visible) return null;
 
-  const errorMessage = mapHttpError(statusCode, message);
+  const errorMessage = mapHttpError(statusCode, message, lang);
 
   return (
     <View style={styles.container}>

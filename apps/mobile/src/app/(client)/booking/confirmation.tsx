@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Ima
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 export default function BookingConfirmation() {
   const router = useRouter();
   const { booking: bookingParam } = useLocalSearchParams();
+  const { t, lang } = useLanguage();
   
   let booking: any = null;
   try {
@@ -19,19 +22,19 @@ export default function BookingConfirmation() {
   const bookingNumber = booking?.bookingNumber || 'HC-20260320-0000';
   const provider = booking?.provider || {};
   const user = provider?.user || {};
-  const providerName = provider?.businessName || (user?.firstName ? `${user.firstName} ${user.lastName}` : 'Anbieter');
-  const city = user?.city || 'Düsseldorf';
+  const providerName = provider?.businessName || (user?.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
+  const city = user?.city || t('countryDefault');
   const avatarUrl = user?.avatarUrl || 'https://via.placeholder.com/150';
   
   const services = booking?.services || [];
-  const serviceNames = services.length > 0 ? services.map((s: any) => s.name).join(', ') : 'Gebuchte Services';
+  const serviceNames = services.length > 0 ? services.map((s: any) => s.name).join(', ') : t('bookedServices');
   
   // Compute approximate duration if available, else static fallback
   let durationInMins = 0;
   if (services.length > 0) {
     durationInMins = services.reduce((acc: number, s: any) => acc + (s.durationMinutes || 0), 0);
   }
-  const durationText = durationInMins > 0 ? `${Math.floor(durationInMins / 60)} Std ${durationInMins % 60} Min` : 'Ca. 2-3 Stunden';
+  const durationText = durationInMins > 0 ? `${Math.floor(durationInMins / 60)} ${t('appointmentsHours')} ${durationInMins % 60} ${t('appointmentsMinutes')}` : t('approxDuration');
   
   const dateStr = booking?.scheduledDate || new Date().toISOString().split('T')[0];
   const timeStr = booking?.scheduledTime || '12:00';
@@ -39,7 +42,7 @@ export default function BookingConfirmation() {
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return d;
     }
@@ -54,7 +57,7 @@ export default function BookingConfirmation() {
           <View style={styles.successCircle}>
             <Feather name="check" size={40} color={colors.surface} />
           </View>
-          <Text style={styles.successTitle}>Termin bestätigt! 🎉</Text>
+          <Text style={styles.successTitle}>{t('bookingConfirmed')}</Text>
           <Text style={styles.bookingNumberText}>#{bookingNumber}</Text>
         </View>
 
@@ -74,66 +77,66 @@ export default function BookingConfirmation() {
           <View style={styles.divider} />
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Service</Text>
+            <Text style={styles.infoLabel}>{t('bookingServices')}</Text>
             <Text style={styles.infoValue}>{serviceNames}</Text>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Datum & Zeit</Text>
+            <Text style={styles.infoLabel}>{t('bookingSelectDate')}</Text>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.infoValue}>{formatDate(dateStr)}</Text>
-              <Text style={styles.infoValue}>{timeStr} Uhr</Text>
+              <Text style={styles.infoValue}>{timeStr}{t('timeSuffix')}</Text>
             </View>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Dauer</Text>
+            <Text style={styles.infoLabel}>{t('appointmentsDuration')}</Text>
             <Text style={styles.infoValue}>{durationText}</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={styles.infoRow}>
-            <Text style={styles.totalLabel}>Gesamtpreis</Text>
-            <Text style={styles.totalValue}>€{totalPrice},00</Text>
+            <Text style={styles.totalLabel}>{t('appointmentsTotalPrice')}</Text>
+            <Text style={styles.totalValue}>€{formatAmount(totalPrice, lang)}</Text>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Zahlungsart</Text>
-            <Text style={styles.infoValue}>Vor Ort bar zahlen</Text>
+            <Text style={styles.infoLabel}>{t('bookingPayment')}</Text>
+            <Text style={styles.infoValue}>{t('bookingPaymentMethod')}</Text>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Buchungsnummer</Text>
+            <Text style={styles.infoLabel}>{t('bookingNumber')}</Text>
             <Text style={styles.bookingNumberMono}>{bookingNumber}</Text>
           </View>
         </View>
 
         {/* Next Steps Section */}
         <View style={styles.nextStepsContainer}>
-          <Text style={styles.nextStepsTitle}>WAS KOMMT ALS NÄCHSTES?</Text>
+          <Text style={styles.nextStepsTitle}>{t('bookingWhatsNext')}</Text>
           
           <View style={styles.stepItem}>
             <View style={styles.stepCircle}><Text style={styles.stepNumber}>1</Text></View>
             <View style={styles.stepTexts}>
-              <Text style={styles.stepMainText}>Bestätigung per E-Mail</Text>
-              <Text style={styles.stepSubText}>Sofort</Text>
+              <Text style={styles.stepMainText}>{t('bookingConfirmEmail')}</Text>
+              <Text style={styles.stepSubText}>{t('bookingConfirmSoon')}</Text>
             </View>
           </View>
           
           <View style={styles.stepItem}>
             <View style={styles.stepCircle}><Text style={styles.stepNumber}>2</Text></View>
             <View style={styles.stepTexts}>
-              <Text style={styles.stepMainText}>Anbieter bestätigt deinen Termin</Text>
-              <Text style={styles.stepSubText}>Innerhalb von 1 Stunde</Text>
+              <Text style={styles.stepMainText}>{t('bookingProviderConfirms')}</Text>
+              <Text style={styles.stepSubText}>{t('bookingWithinHour')}</Text>
             </View>
           </View>
           
           <View style={styles.stepItem}>
             <View style={styles.stepCircle}><Text style={styles.stepNumber}>3</Text></View>
             <View style={styles.stepTexts}>
-              <Text style={styles.stepMainText}>Erinnerung 24h vor dem Termin</Text>
-              <Text style={styles.stepSubText}>Automatisch</Text>
+              <Text style={styles.stepMainText}>{t('bookingReminder')}</Text>
+              <Text style={styles.stepSubText}>{t('bookingAutomatic')}</Text>
             </View>
           </View>
         </View>
@@ -149,14 +152,14 @@ export default function BookingConfirmation() {
             router.push({ pathname: '/(client)/chat/[id]' as any, params: { id: pid }});
           }}
         >
-          <Text style={styles.outlineButtonText}>Nachricht senden</Text>
+          <Text style={styles.outlineButtonText}>{t('bookingSendMessage')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.primaryButton}
           onPress={() => router.replace('/(client)/appointments/')}
         >
-          <Text style={styles.primaryButtonText}>Fertig</Text>
+          <Text style={styles.primaryButtonText}>{t('done')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#2E7D32',
+    backgroundColor: colors.green,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,

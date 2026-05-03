@@ -8,10 +8,12 @@ import { mapHttpError } from '../../../utils/error-messages';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import * as ImagePicker from 'expo-image-picker';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 export default function ClientProfileEditScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,7 +58,7 @@ export default function ClientProfileEditScreen() {
       }
     } catch (error: any) {
       console.log('Error loading profile:', error);
-      setErrorMessage(mapHttpError(error?.status || 500));
+      setErrorMessage(mapHttpError(error?.status || 500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -88,12 +90,12 @@ export default function ClientProfileEditScreen() {
         router.back();
       } else {
         const status = res.status;
-        setErrorMessage(mapHttpError(status));
+        setErrorMessage(mapHttpError(status, undefined, lang));
         setErrorVisible(true);
       }
     } catch (error: any) {
       console.log('Error saving profile:', error);
-      setErrorMessage(mapHttpError(500));
+      setErrorMessage(mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsSaving(false);
@@ -143,7 +145,7 @@ export default function ClientProfileEditScreen() {
       });
 
       if (!response.ok) {
-        throw new Error(mapHttpError(response.status));
+        throw new Error(mapHttpError(response.status, undefined, lang));
       }
 
       const data = await response.json();
@@ -151,7 +153,7 @@ export default function ClientProfileEditScreen() {
       setAvatarVersion(Date.now());
     } catch (error: any) {
       console.log('Avatar upload error', error);
-      setErrorMessage(error.message || mapHttpError(500));
+      setErrorMessage(error.message || mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsUploadingAvatar(false);

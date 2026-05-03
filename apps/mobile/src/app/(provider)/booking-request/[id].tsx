@@ -6,10 +6,13 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 export default function BookingRequestScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { lang, t } = useLanguage();
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function BookingRequestScreen() {
       });
 
       if (!res.ok) {
-        setError('Buchungsanfrage konnte nicht geladen werden.');
+        setError(t('errorUnknown'));
         return;
       }
 
@@ -39,7 +42,7 @@ export default function BookingRequestScreen() {
       setBooking(data.data ?? data);
     } catch (err) {
       console.log('Error loading booking:', err);
-      setError('Fehler beim Laden der Buchungsanfrage.');
+      setError(t('errorUnknown'));
     } finally {
       setIsLoading(false);
     }
@@ -57,12 +60,12 @@ export default function BookingRequestScreen() {
       if (res.ok) {
         router.replace(`/(provider)/appointments/${id}`);
       } else {
-        let msg = 'Buchung konnte nicht bestätigt werden.';
+        let msg = t('errorUnknown');
         try {
           const j: any = await res.json();
           msg = j?.message || msg;
         } catch {}
-        Alert.alert('Fehler', msg);
+        Alert.alert(t('error'), msg);
         await loadBooking();
       }
     } catch (err) {
@@ -74,12 +77,12 @@ export default function BookingRequestScreen() {
 
   const handleDecline = () => {
     Alert.alert(
-      'Buchung ablehnen',
-      'Möchtest du diese Buchung wirklich ablehnen?',
+      t('bookingRequestDeclineTitle'),
+      t('bookingRequestDeclineBody'),
       [
-        { text: 'Zurück', style: 'cancel' },
+        { text: t('back'), style: 'cancel' },
         { 
-          text: 'Ablehnen', 
+          text: t('bookingRequestDecline'), 
           style: 'destructive',
           onPress: async () => {
             try {
@@ -93,12 +96,12 @@ export default function BookingRequestScreen() {
               if (res.ok) {
                 router.replace('/(provider)/calendar');
               } else {
-                let msg = 'Buchung konnte nicht abgelehnt werden.';
+                let msg = t('errorUnknown');
                 try {
                   const j: any = await res.json();
                   msg = j?.message || msg;
                 } catch {}
-                Alert.alert('Fehler', msg);
+                Alert.alert(t('error'), msg);
                 await loadBooking();
               }
             } catch (err) {
@@ -134,7 +137,7 @@ export default function BookingRequestScreen() {
     if (booking?.client?.phone) {
       Linking.openURL(`tel:${booking.client.phone}`);
     } else {
-      Alert.alert('Keine Telefonnummer', 'Der Kunde hat keine Telefonnummer hinterlegt.');
+      Alert.alert(t('phoneMissingTitle'), t('phoneMissingBody'));
     }
   };
 
@@ -149,17 +152,24 @@ export default function BookingRequestScreen() {
   if (error || !booking) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error || 'Buchung nicht gefunden'}</Text>
+        <Text style={styles.errorText}>{error || t('appointmentsNotFound')}</Text>
         <TouchableOpacity style={styles.backButtonCenter} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Zurück</Text>
+          <Text style={styles.backButtonText}>{t('back')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   const d = new Date(booking.scheduledDate);
-  const dateStr = `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
-  const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const dateStr = d.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  const timeStr = d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   
   const getStatusBadge = () => {
     const s = bookingStatus(booking.status);
@@ -181,21 +191,21 @@ export default function BookingRequestScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Buchungsanfrage</Text>
+        <Text style={styles.headerTitle}>{t('bookingRequestTitle')}</Text>
         {getStatusBadge()}
       </View>
 
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
         {bookingStatus(booking.status) === 'pending' && (
           <View style={styles.alertBanner}>
-            <Text style={styles.alertBannerTitle}>⚡ Schnell antworten!</Text>
-            <Text style={styles.alertBannerSub}>Kunden warten auf deine Bestätigung</Text>
+            <Text style={styles.alertBannerTitle}>{t('bookingRequestAlert')}</Text>
+            <Text style={styles.alertBannerSub}>{t('bookingRequestAlertSub')}</Text>
           </View>
         )}
 
         {/* CLIENT CARD */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Kunde</Text>
+          <Text style={styles.cardTitle}>{t('bookingRequestClient')}</Text>
           
           <View style={styles.clientProfileRow}>
             <View style={styles.clientAvatar}>
@@ -209,68 +219,68 @@ export default function BookingRequestScreen() {
                   <Text style={styles.locationText}>{booking.address.city}</Text>
                 </View>
               )}
-              <Text style={styles.bookingsCount}>Bisherige Buchungen: {booking.client.totalBookings || 0}</Text>
+              <Text style={styles.bookingsCount}>{t('bookingRequestPrevious')}: {booking.client.totalBookings || 0}</Text>
             </View>
           </View>
 
           <View style={styles.actionButtonsRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
               <Feather name="message-circle" size={18} color={colors.primary} style={styles.actionBtnIcon} />
-              <Text style={styles.actionBtnText}>Nachricht</Text>
+              <Text style={styles.actionBtnText}>{t('profileMessage')}</Text>
             </TouchableOpacity>
             <View style={{ width: spacing.md }} />
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
               <Feather name="phone" size={18} color={colors.primary} style={styles.actionBtnIcon} />
-              <Text style={styles.actionBtnText}>Anrufen</Text>
+              <Text style={styles.actionBtnText}>{t('appointmentsCall')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* DETAILS CARD */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Termindetails</Text>
+          <Text style={styles.cardTitle}>{t('appointmentsDetail')}</Text>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Service</Text>
+            <Text style={styles.detailLabel}>{t('bookingServices')}</Text>
             <Text style={styles.detailValue}>{booking.services?.map((s: any) => s.name).join(', ')}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Datum & Zeit</Text>
+            <Text style={styles.detailLabel}>{t('appointmentsDate')}</Text>
             <View style={styles.detailValueRow}>
               <Feather name="calendar" size={14} color={colors.textPrimary} style={{ marginRight: 4 }} />
               <Text style={styles.detailValue}>{dateStr} · </Text>
               <Feather name="clock" size={14} color={colors.textPrimary} style={{ marginRight: 4 }} />
-              <Text style={styles.detailValue}>{timeStr} Uhr</Text>
+              <Text style={styles.detailValue}>{timeStr}{t('timeSuffix')}</Text>
             </View>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Dauer</Text>
-            <Text style={styles.detailValue}>{booking.totalMinutes ? booking.totalMinutes / 60 : 0} Stunden</Text>
+            <Text style={styles.detailLabel}>{t('appointmentsDuration')}</Text>
+            <Text style={styles.detailValue}>{booking.totalMinutes ? booking.totalMinutes / 60 : 0} {t('appointmentsHours')}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Ort</Text>
+            <Text style={styles.detailLabel}>{t('bookingRequestLocation')}</Text>
             <Text style={styles.detailValue}>
               {booking.isMobile && booking.address 
                 ? `${booking.address.street} ${booking.address.houseNumber}, ${booking.address.city}`
-                : 'In deinem Studio'}
+                : t('bookingRequestStudio')}
             </Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.detailRow}>
-            <Text style={styles.totalLabel}>Gesamtpreis</Text>
-            <Text style={styles.totalValue}>€{booking.totalPrice},00</Text>
+            <Text style={styles.totalLabel}>{t('appointmentsTotalPrice')}</Text>
+            <Text style={styles.totalValue}>€{formatAmount(booking.totalPrice, lang)}</Text>
           </View>
         </View>
 
         {/* CLIENT NOTES */}
         {booking.clientNotes && (
           <View style={styles.notesCard}>
-            <Text style={styles.notesLabel}>💬 Notiz des Kunden</Text>
+            <Text style={styles.notesLabel}>💬 {t('apptClientNote')}</Text>
             <Text style={styles.notesText}>{booking.clientNotes}</Text>
           </View>
         )}
@@ -281,16 +291,16 @@ export default function BookingRequestScreen() {
         {bookingStatus(booking.status) === 'pending' ? (
           <>
             <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={isAccepting || isDeclining}>
-              {isAccepting ? <ActivityIndicator color={colors.background} /> : <Text style={styles.acceptBtnText}>Annehmen</Text>}
+              {isAccepting ? <ActivityIndicator color={colors.background} /> : <Text style={styles.acceptBtnText}>{t('bookingRequestAccept')}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.declineBtn} onPress={handleDecline} disabled={isAccepting || isDeclining}>
-              {isDeclining ? <ActivityIndicator color={colors.error} /> : <Text style={styles.declineBtnText}>Ablehnen</Text>}
+              {isDeclining ? <ActivityIndicator color={colors.error} /> : <Text style={styles.declineBtnText}>{t('bookingRequestDecline')}</Text>}
             </TouchableOpacity>
           </>
         ) : (
           <View style={[styles.statusCard, bookingStatus(booking.status) === 'confirmed' ? styles.statusCardConfirmed : styles.statusCardCancelled]}>
             <Text style={[styles.statusCardText, bookingStatus(booking.status) === 'confirmed' ? styles.statusCardTextConfirmed : styles.statusCardTextCancelled]}>
-              {bookingStatus(booking.status) === 'confirmed' ? '✓ Du hast diesen Termin bestätigt' : '✗ Abgelehnt'}
+              {bookingStatus(booking.status) === 'confirmed' ? t('bookingRequestConfirmed') : t('bookingRequestDeclined')}
             </Text>
           </View>
         )}

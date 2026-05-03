@@ -6,9 +6,12 @@ import { colors, fonts, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 export default function ProviderServicesListScreen() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [categories, setCategories] = useState<{ [id: string]: string }>({});
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +50,7 @@ export default function ProviderServicesListScreen() {
   };
 
   const groupedServices = services.reduce((acc: any, service: any) => {
-    const catName = categories[service.categoryId] || 'Sonstige';
+    const catName = categories[service.categoryId] || t('servicesOtherCategory');
     if (!acc[catName]) acc[catName] = [];
     acc[catName].push(service);
     return acc;
@@ -70,9 +73,9 @@ export default function ProviderServicesListScreen() {
   };
 
   const confirmDelete = (id: string) => {
-    Alert.alert('Service löschen', 'Möchtest du diesen Service wirklich unwiderruflich löschen?', [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Löschen', style: 'destructive', onPress: () => deleteService(id) }
+    Alert.alert(t('servicesDeleteTitle'), t('servicesDeleteBody'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: () => deleteService(id) }
     ]);
   };
 
@@ -103,15 +106,15 @@ export default function ProviderServicesListScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Services & Preise</Text>
+        <Text style={styles.headerTitle}>{t('servicesTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {Object.keys(groupedServices).length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Noch keine Services hinzugefügt</Text>
-            <PrimaryButton label="Service hinzufügen" onPress={() => router.push('/(provider)/services/new')} />
+            <Text style={styles.emptyText}>{t('servicesEmpty')}</Text>
+            <PrimaryButton label={t('servicesAdd')} onPress={() => router.push('/(provider)/services/new')} />
           </View>
         ) : (
           Object.keys(groupedServices).map(catName => (
@@ -124,26 +127,30 @@ export default function ProviderServicesListScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Text style={styles.serviceName}>{service.name}</Text>
                       {!service.isActive && (
-                        <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>Inaktiv</Text></View>
+                        <View style={styles.inactiveBadge}><Text style={styles.inactiveBadgeText}>{t('servicesInactive')}</Text></View>
                       )}
                     </View>
-                    <Text style={styles.serviceDuration}>{Math.floor(service.durationMin / 60)} Std. {service.durationMin % 60 ? `${service.durationMin % 60} Min.` : ''}</Text>
-                    <Text style={styles.servicePrice}>{service.priceType === 'from' ? 'Ab ' : ''}€{Number(service.price).toFixed(2).replace('.', ',')}</Text>
+                    <Text style={styles.serviceDuration}>
+                      {Math.floor(service.durationMin / 60)} {t('appointmentsHours')}{service.durationMin % 60 ? ` ${service.durationMin % 60} ${t('appointmentsMinutes')}` : ''}
+                    </Text>
+                    <Text style={styles.servicePrice}>
+                      {service.priceType === 'from' ? t('servicesPricePrefix') : ''}€{formatAmount(service.price, lang)}
+                    </Text>
                   </View>
                   <View style={styles.cardActions}>
                     <Switch
                       value={service.isActive}
                       onValueChange={() => toggleActive(service.id, service.isActive)}
-                      trackColor={{ false: colors.borderStrong, true: '#2E7D32' }}
-                      thumbColor="#fff"
+                      trackColor={{ false: colors.borderStrong, true: colors.green }}
+                      thumbColor={colors.background}
                     />
                     <TouchableOpacity 
                       style={styles.menuDots}
                       onPress={() => {
-                        Alert.alert('Service bearbeiten', '', [
-                          { text: 'Abbrechen', style: 'cancel' },
-                          { text: 'Bearbeiten', onPress: () => router.push(`/(provider)/services/${service.id}`) },
-                          { text: 'Löschen', style: 'destructive', onPress: () => confirmDelete(service.id) }
+                        Alert.alert(t('servicesEdit'), '', [
+                          { text: t('cancel'), style: 'cancel' },
+                          { text: t('edit'), onPress: () => router.push(`/(provider)/services/${service.id}`) },
+                          { text: t('delete'), style: 'destructive', onPress: () => confirmDelete(service.id) }
                         ]);
                       }}
                     >
@@ -159,13 +166,13 @@ export default function ProviderServicesListScreen() {
         {Object.keys(groupedServices).length > 0 && (
           <TouchableOpacity style={styles.dashedAddBtn} onPress={() => router.push('/(provider)/services/new')}>
             <Feather name="plus" size={20} color={colors.coral} style={{ marginRight: 8 }} />
-            <Text style={styles.dashedAddText}>Service hinzufügen</Text>
+            <Text style={styles.dashedAddText}>{t('servicesAdd')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={() => router.push('/(provider)/services/new')}>
-        <Feather name="plus" size={24} color="#fff" />
+        <Feather name="plus" size={24} color={colors.background} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -183,7 +190,7 @@ const styles = StyleSheet.create({
   inactiveCard: { opacity: 0.6 },
   cardInfo: { flex: 1, paddingRight: spacing.sm },
   serviceName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: 4 },
-  serviceDuration: { fontFamily: fonts.body, fontSize: 14, color: '#555', marginBottom: 4 },
+  serviceDuration: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, marginBottom: 4 },
   servicePrice: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.coral },
   inactiveBadge: { backgroundColor: colors.borderStrong, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginLeft: spacing.sm },
   inactiveBadgeText: { fontSize: 10, fontFamily: fonts.bodyMedium, color: colors.textSecondary },

@@ -8,20 +8,22 @@ import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../../the
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type BackendReason = 'Andere Pläne' | 'Krank' | 'Notfall' | 'Anbieter abgesagt' | 'Sonstiges';
 
-const CANCEL_REASONS: { label: string; apiValue: BackendReason }[] = [
-  { label: 'Anderer Termin dazwischengekommen', apiValue: 'Andere Pläne' },
-  { label: 'Gesundheitliche Gründe', apiValue: 'Krank' },
-  { label: 'Notfall', apiValue: 'Notfall' },
-  { label: 'Möchte einen anderen Anbieter', apiValue: 'Anbieter abgesagt' },
-  { label: 'Sonstiges', apiValue: 'Sonstiges' },
+const CANCEL_REASONS: { labelKey: 'cancelReasonOther' | 'cancelReasonSick' | 'cancelReasonEmergency' | 'cancelReasonProvider' | 'cancelReasonMisc'; apiValue: BackendReason }[] = [
+  { labelKey: 'cancelReasonOther', apiValue: 'Andere Pläne' },
+  { labelKey: 'cancelReasonSick', apiValue: 'Krank' },
+  { labelKey: 'cancelReasonEmergency', apiValue: 'Notfall' },
+  { labelKey: 'cancelReasonProvider', apiValue: 'Anbieter abgesagt' },
+  { labelKey: 'cancelReasonMisc', apiValue: 'Sonstiges' },
 ];
 
 export default function CancelAppointment() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { lang, t } = useLanguage();
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function CancelAppointment() {
         });
         setBooking(res.data);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status));
+        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
         setErrorVisible(true);
       } finally {
         setIsLoading(false);
@@ -54,11 +56,11 @@ export default function CancelAppointment() {
   const handleCancelClick = () => {
     if (!selectedReason) return;
     Alert.alert(
-      "Termin wirklich stornieren?",
-      "Möchtest du diesen Termin wirklich stornieren? Diese Aktion kann nicht rückgängig gemacht werden.",
+      t('cancelConfirmTitle'),
+      t('cancelConfirmBody'),
       [
-        { text: "Abbrechen", style: "cancel" },
-        { text: "Stornieren", style: "destructive", onPress: submitCancel }
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('cancelConfirmBtn'), style: 'destructive', onPress: submitCancel }
       ]
     );
   };
@@ -80,9 +82,9 @@ export default function CancelAppointment() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 409) {
-        setErrorMessage('Dieser Termin kann nicht mehr storniert werden.');
+        setErrorMessage(t('cancelNotAllowed'));
       } else {
-        setErrorMessage(mapHttpError(status));
+        setErrorMessage(mapHttpError(status, undefined, lang));
       }
       setErrorVisible(true);
       setIsSubmitting(false);
@@ -96,7 +98,7 @@ export default function CancelAppointment() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Termin stornieren</Text>
+          <Text style={styles.headerTitle}>{t('cancelTitle')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
@@ -123,7 +125,7 @@ export default function CancelAppointment() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Termin stornieren</Text>
+        <Text style={styles.headerTitle}>{t('cancelTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -134,16 +136,16 @@ export default function CancelAppointment() {
         <View style={[styles.policyCard, isShortNotice && styles.policyCardUrgent]}>
           <View style={styles.policyHeader}>
             <Feather name="alert-triangle" size={20} color={isShortNotice ? "#D32F2F" : "#E65100"} />
-            <Text style={[styles.policyTitle, isShortNotice && { color: "#D32F2F" }]}>Stornierungsrichtlinie</Text>
+            <Text style={[styles.policyTitle, isShortNotice && { color: "#D32F2F" }]}>{t('cancelPolicy')}</Text>
           </View>
           <Text style={[styles.policyText, isShortNotice && { color: "#D32F2F" }]}>
             {isShortNotice 
-              ? "Kurzfristige Stornierung (weniger als 24h). Eine Gebühr von 50% des Servicepreises kann anfallen." 
-              : "Kostenlose Stornierung bis 24 Stunden vor Termin möglich. Bei kurzfristigerer Stornierung kann eine Gebühr von 50% anfallen."}
+              ? t('cancelPolicyUrgent')
+              : t('cancelPolicyText')}
           </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Grund für Stornierung</Text>
+        <Text style={styles.sectionTitle}>{t('cancelReason')}</Text>
 
         <View style={styles.reasonsList}>
           {CANCEL_REASONS.map((item, idx) => {
@@ -157,17 +159,17 @@ export default function CancelAppointment() {
                 <View style={[styles.radioCircle, isSelected && styles.radioCircleActive]}>
                   {isSelected && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.radioText}>{item.label}</Text>
+                <Text style={styles.radioText}>{t(item.labelKey)}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         <View style={styles.notesSection}>
-          <Text style={styles.notesLabel}>Zusätzliche Anmerkungen (optional)</Text>
+          <Text style={styles.notesLabel}>{t('cancelNotes')}</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Möchten Sie noch etwas hinzufügen?"
+            placeholder={t('cancelNotesPlaceholder')}
             placeholderTextColor="rgba(26,26,26,0.5)"
             value={notes}
             onChangeText={setNotes}
@@ -185,12 +187,12 @@ export default function CancelAppointment() {
           {isSubmitting ? (
              <ActivityIndicator color="#FFF" />
           ) : (
-             <Text style={styles.cancelButtonText}>Termin stornieren</Text>
+             <Text style={styles.cancelButtonText}>{t('cancelConfirmBtn')}</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.footerText}>
-          Der Anbieter wird über die Stornierung informiert
+          {t('cancelProviderNotified')}
         </Text>
 
       </ScrollView>

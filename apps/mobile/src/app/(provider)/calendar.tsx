@@ -6,6 +6,8 @@ import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { bookingStatusLabel } from '../../utils/booking-status';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 interface BookingItem {
   id: string;
@@ -27,11 +29,11 @@ interface BlockItem {
   reason: string;
 }
 
-const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 export default function ProviderCalendarScreen() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -156,7 +158,7 @@ export default function ProviderCalendarScreen() {
               </View>
               <View style={styles.dotsRow}>
                 {hasBooking && <View style={[styles.dot, { backgroundColor: colors.green }]} />}
-                {hasBlock && <View style={[styles.dot, { backgroundColor: '#BF6000' }]} />}
+                {hasBlock && <View style={[styles.dot, { backgroundColor: colors.orange }]} />}
               </View>
             </TouchableOpacity>
           );
@@ -187,7 +189,7 @@ export default function ProviderCalendarScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Terminkalender</Text>
+        <Text style={styles.headerTitle}>{t('calendarTitle')}</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(provider)/block-time')}>
           <Feather name="plus" size={24} color={colors.coral} />
         </TouchableOpacity>
@@ -197,10 +199,12 @@ export default function ProviderCalendarScreen() {
         <TouchableOpacity onPress={handlePrevMonth} style={styles.chevronBtn}>
           <Feather name="chevron-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.monthText}>{MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}</Text>
+        <Text style={styles.monthText}>
+          {currentMonth.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' })}
+        </Text>
         <View style={styles.monthRightRow}>
           <TouchableOpacity onPress={handleJumpToToday} style={styles.todayPill}>
-            <Text style={styles.todayPillText}>Heute</Text>
+            <Text style={styles.todayPillText}>{t('calendarToday')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleNextMonth} style={styles.chevronBtn}>
             <Feather name="chevron-right" size={24} color={colors.primary} />
@@ -222,20 +226,20 @@ export default function ProviderCalendarScreen() {
 
       <ScrollView style={styles.agendaContainer} contentContainerStyle={styles.agendaContent}>
         <Text style={styles.agendaDateHeading}>
-          {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+          {selectedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
         </Text>
 
-        <Text style={styles.earningsText}>Gewinnpotenzial heute: €{potentialEarnings.toFixed(0)}</Text>
+        <Text style={styles.earningsText}>{t('dashboardEarnings')}: €{formatAmount(potentialEarnings, lang)}</Text>
 
         {dayBookings.length === 0 && dayBlocks.length === 0 ? (
-          <Text style={styles.emptyText}>Keine Termine für diesen Tag</Text>
+          <Text style={styles.emptyText}>{t('calendarNoAppts')}</Text>
         ) : (
           <>
             {dayBlocks.map(block => (
               <View key={block.id} style={styles.blockCard}>
-                <Text style={styles.blockTitle}>🚫 Blockiert: {block.reason || 'Kein Grund angegeben'}</Text>
+                <Text style={styles.blockTitle}>🚫 {t('calendarBlocked')}: {block.reason || t('blockTimeNoReason')}</Text>
                 <Text style={styles.blockTime}>
-                  {block.isAllDay ? 'Ganztägig' : `${block.startTime || ''} – ${block.endTime || ''}`}
+                  {block.isAllDay ? t('calendarAllDay') : `${block.startTime || ''} – ${block.endTime || ''}`}
                 </Text>
               </View>
             ))}
@@ -274,7 +278,7 @@ export default function ProviderCalendarScreen() {
                     <View style={styles.serviceChip}>
                       <Text style={styles.serviceChipText}>{booking.services?.[0]?.name || 'Service'}</Text>
                     </View>
-                    <Text style={styles.bookingPrice}>€{Number(booking.totalPrice).toFixed(0)}</Text>
+                    <Text style={styles.bookingPrice}>€{formatAmount(booking.totalPrice, lang)}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -358,14 +362,14 @@ const styles = StyleSheet.create({
   blockCard: {
     backgroundColor: colors.orangeLight,
     borderWidth: 1,
-    borderColor: '#BF6000',
+    borderColor: colors.orange,
     borderStyle: 'dashed',
     borderRadius: 16,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  blockTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#BF6000', marginBottom: 4 },
-  blockTime: { fontFamily: fonts.body, fontSize: 14, color: '#BF6000' },
+  blockTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.orange, marginBottom: 4 },
+  blockTime: { fontFamily: fonts.body, fontSize: 14, color: colors.orange },
 
   bookingCard: {
     backgroundColor: colors.background,

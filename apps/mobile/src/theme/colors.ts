@@ -28,6 +28,8 @@ export const colors = {
   surfaceCard:   '#FAFAFA', // stat card backgrounds
   border:        '#EEEEEE', // dividers, card borders
   borderStrong:  '#CCCCCC', // focused inputs
+  overlay:       'rgba(0, 0, 0, 0.5)',
+  overlaySoft:   'rgba(0, 0, 0, 0.35)',
 
   // Text
   textPrimary:   '#1A1A1A', // all headings and body text

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../theme';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 export interface ProviderProps {
   id: string;
@@ -23,15 +25,16 @@ interface Props {
 }
 
 export function ProviderCard({ provider, onPress, onFavourite }: Props) {
+  const { t, lang } = useLanguage();
   const tags =
     provider.specialisationTags && provider.specialisationTags.length > 0
       ? provider.specialisationTags
-      : ['Allgemein'];
+      : [t('cardGeneralTag')];
 
   const priceText =
     typeof provider.startingPrice === 'number' && provider.startingPrice > 0
-      ? `ab €${provider.startingPrice}`
-      : 'Preis auf Anfrage';
+      ? `${t('cardFrom')} €${formatAmount(provider.startingPrice, lang)}`
+      : t('cardPriceOnRequest');
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -72,7 +75,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
         <Text style={styles.price}>{priceText}</Text>
         {provider.isAvailableToday && (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Heute verfügbar</Text>
+            <Text style={styles.badgeText}>{t('cardAvailableToday')}</Text>
           </View>
         )}
       </View>
@@ -81,7 +84,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.md, ...shadows.card },
+  card: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.md, ...shadows.card },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   avatarContainer: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: colors.gold, padding: 2 },
   avatar: { width: '100%', height: '100%', borderRadius: 24 },
@@ -98,6 +101,6 @@ const styles = StyleSheet.create({
   tagText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   price: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  badge: { backgroundColor: '#E8F5E9', paddingVertical: 4, paddingHorizontal: 8, borderRadius: borderRadius.sm },
-  badgeText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: '#2E7D32' },
+  badge: { backgroundColor: colors.greenLight, paddingVertical: 4, paddingHorizontal: 8, borderRadius: borderRadius.sm },
+  badgeText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.green },
 });

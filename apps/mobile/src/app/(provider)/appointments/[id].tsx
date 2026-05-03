@@ -13,7 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { language } = useLanguage();
+  const { lang } = useLanguage();
   
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<any>(null);
@@ -281,13 +281,13 @@ export default function ProviderAppointmentDetailScreen() {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Service-Preis</Text>
-            <Text style={styles.infoValue}>€{formatAmount(booking.totalPrice, language)}</Text>
+            <Text style={styles.infoValue}>€{formatAmount(booking.totalPrice, lang)}</Text>
           </View>
 
           {(booking.platformFeeAmount > 0) && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Plattform-Gebühr ({booking.platformFeePercent}%)</Text>
-              <Text style={styles.infoValue}>-€{formatAmount(booking.platformFeeAmount, language)}</Text>
+              <Text style={styles.infoValue}>-€{formatAmount(booking.platformFeeAmount, lang)}</Text>
             </View>
           )}
 
@@ -297,7 +297,7 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={[styles.infoLabel, styles.boldGreenText]}>
               <Feather name="briefcase" size={16} color={colors.green} /> Deine Auszahlung
             </Text>
-            <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(booking.providerPayout ?? booking.totalPrice, language)}</Text>
+            <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(booking.providerPayout ?? booking.totalPrice, lang)}</Text>
           </View>
 
           <View style={styles.paymentMethodRow}>

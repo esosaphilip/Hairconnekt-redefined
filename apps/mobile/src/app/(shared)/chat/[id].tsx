@@ -10,6 +10,7 @@ import { API } from '@/utils/api';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type ConversationDetailResponse = {
   id: string;
@@ -31,6 +32,7 @@ export default function SharedChatScreen() {
   const params = useLocalSearchParams();
   const id = normalizeParam(params.id as any);
   const insets = useSafeAreaInsets();
+  const { t, lang } = useLanguage();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
@@ -46,21 +48,21 @@ export default function SharedChatScreen() {
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
 
   const socketRef = useRef<Socket | null>(null);
-  const flatListRef = useRef<FlatList<DisplayItem>>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const flatListRef = useRef<FlatList<any>>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentAtRef = useRef<number>(0);
   const myUserIdRef = useRef<string>('');
 
   const showError = (status?: number) => {
     setErrorStatus(status);
-    setErrorMessage(mapHttpError(status));
+    setErrorMessage(mapHttpError(status, undefined, lang));
     setErrorVisible(true);
   };
 
   const formatTime = (iso: string): string => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'de-DE', { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDateLabel = (iso: string): string => {
@@ -69,9 +71,9 @@ export default function SharedChatScreen() {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === today.toDateString()) return 'Heute';
-    if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    if (d.toDateString() === today.toDateString()) return t('notificationsToday');
+    if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
+    return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
   const loadConversation = async () => {
@@ -271,7 +273,7 @@ export default function SharedChatScreen() {
     }
   };
 
-  const displayItems = useMemo<DisplayItem[]>(() => {
+  const displayItems = useMemo(() => {
     const sorted = [...messages].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const items: DisplayItem[] = [];
 
@@ -290,7 +292,7 @@ export default function SharedChatScreen() {
     }
 
     return items;
-  }, [messages, isTyping]);
+  }, [messages, isTyping]) as DisplayItem[];
 
   const handlePhonePress = async () => {
     const phone = otherUser?.phone;
@@ -302,7 +304,7 @@ export default function SharedChatScreen() {
     if (item.type === 'typing') {
       return (
         <View style={styles.typingRow}>
-          <Text style={styles.typingText}>schreibt ...</Text>
+          <Text style={styles.typingText}>{t('chatTyping')}</Text>
         </View>
       );
     }
@@ -390,7 +392,7 @@ export default function SharedChatScreen() {
       {connectionLost ? (
         <View style={styles.connectionBanner}>
           <Feather name="wifi-off" size={fontSizes.lg} color={colors.textSecondary} />
-          <Text style={styles.connectionText}>Verbindung unterbrochen. Versuche es erneut.</Text>
+          <Text style={styles.connectionText}>{t('chatConnectionLost')}</Text>
         </View>
       ) : null}
 
@@ -425,7 +427,7 @@ export default function SharedChatScreen() {
             style={styles.input}
             value={input}
             onChangeText={handleInputChange}
-            placeholder="Nachricht schreiben..."
+            placeholder={t('chatPlaceholder')}
             placeholderTextColor={colors.textTertiary}
             multiline
             maxLength={500}

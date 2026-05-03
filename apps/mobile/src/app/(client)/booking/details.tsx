@@ -8,11 +8,14 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 
 export default function BookingDetails() {
   const router = useRouter();
   const { providerId, selectedServiceIds, totalPrice, date, time } = useLocalSearchParams();
+  const { t, lang } = useLanguage();
 
   const providerIdValue = (Array.isArray(providerId) ? providerId[0] : providerId) as string;
   const selectedServiceIdsValue = (Array.isArray(selectedServiceIds) ? selectedServiceIds[0] : selectedServiceIds) as string;
@@ -24,8 +27,8 @@ export default function BookingDetails() {
   const [isMobile, setIsMobile] = useState(false);
   const [clientNotes, setClientNotes] = useState('');
   
-  const [providerName, setProviderName] = useState('Lade Anbieter...');
-  const [serviceNames, setServiceNames] = useState('Lade Services...');
+  const [providerName, setProviderName] = useState('');
+  const [serviceNames, setServiceNames] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
@@ -57,7 +60,7 @@ export default function BookingDetails() {
         } else if (provData && provData.user) {
           setProviderName(`${provData.user.firstName} ${provData.user.lastName}`);
         } else {
-          setProviderName('Anbieter');
+          setProviderName(t('providerGeneric'));
         }
         
         const activeIds = typeof selectedServiceIdsValue === 'string'
@@ -67,11 +70,11 @@ export default function BookingDetails() {
         if (matchedServices.length > 0) {
           setServiceNames(matchedServices.map((s: any) => s.name).join(', '));
         } else {
-          setServiceNames('Gewählte Services');
+          setServiceNames(t('selectedServicesGeneric'));
         }
       } catch (err) {
-        setProviderName('Anbieter');
-        setServiceNames('Gewählte Services');
+        setProviderName(t('providerGeneric'));
+        setServiceNames(t('selectedServicesGeneric'));
       }
     };
     
@@ -81,7 +84,7 @@ export default function BookingDetails() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const handleBookNow = async () => {
@@ -116,17 +119,17 @@ export default function BookingDetails() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 409) {
-        setErrorMessage('Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.');
+        setErrorMessage(t('bookingSlotTaken'));
       } else if (status === 400) {
         const backendMessage = err.response?.data?.message;
         setErrorMessage(
           Array.isArray(backendMessage)
             ? backendMessage[0]
             : backendMessage ??
-                'Dieser Termin ist leider nicht möglich. Bitte wähle ein anderes Datum oder Uhrzeit.'
+                t('bookingInvalidSlot')
         );
       } else {
-        setErrorMessage(mapHttpError(status));
+        setErrorMessage(mapHttpError(status, undefined, lang));
       }
       setErrorVisible(true);
     } finally {
@@ -141,8 +144,8 @@ export default function BookingDetails() {
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.headerTitle}>Buchungsdetails</Text>
-          <Text style={styles.headerSubtitle}>Schritt 3 von 4</Text>
+          <Text style={styles.headerTitle}>{t('bookingDetails')}</Text>
+          <Text style={styles.headerSubtitle}>{t('bookingStep')} 3 {t('bookingOf')} 4</Text>
         </View>
       </View>
       
@@ -160,8 +163,8 @@ export default function BookingDetails() {
         
         {/* Booking Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.cardProviderTitle}>{providerName}</Text>
-          <Text style={styles.cardServicesText}>{serviceNames}</Text>
+          <Text style={styles.cardProviderTitle}>{providerName || t('loading')}</Text>
+          <Text style={styles.cardServicesText}>{serviceNames || t('loading')}</Text>
           
           <View style={styles.divider} />
           
@@ -172,14 +175,14 @@ export default function BookingDetails() {
           
           <View style={styles.summaryRow}>
             <Feather name="clock" size={18} color={colors.textSecondary} />
-            <Text style={styles.summaryText}>{timeValue} Uhr</Text>
+            <Text style={styles.summaryText}>{timeValue}{t('timeSuffix')}</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
-            <Text style={styles.totalLabel}>Gesamt</Text>
-            <Text style={styles.totalValue}>€{totalPriceValue}</Text>
+            <Text style={styles.totalLabel}>{t('bookingTotal')}</Text>
+            <Text style={styles.totalValue}>€{formatAmount(totalPriceValue, lang)}</Text>
           </View>
         </View>
 
@@ -187,26 +190,26 @@ export default function BookingDetails() {
         <View style={styles.card}>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Mobiler Service gewünscht</Text>
-              <Text style={styles.toggleSubtitle}>Der Braider kommt zu dir nach Hause</Text>
+              <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
+              <Text style={styles.toggleSubtitle}>{t('bookingMobileSub')}</Text>
             </View>
             <Switch
               value={isMobile}
               onValueChange={setIsMobile}
-              trackColor={{ false: '#ccc', true: colors.primary }}
-              thumbColor="#fff"
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.surface}
             />
           </View>
         </View>
 
         {/* Notes Section */}
         <View style={styles.notesContainer}>
-          <Text style={styles.inputLabel}>Notizen für den Braider</Text>
+          <Text style={styles.inputLabel}>{t('bookingNotes')}</Text>
           <TextInput
             style={styles.textArea}
             multiline
             numberOfLines={4}
-            placeholder="Besondere Wünsche, Haartyp, Allergien..."
+            placeholder={t('bookingNotesPlaceholder')}
             placeholderTextColor={colors.textTertiary}
             value={clientNotes}
             onChangeText={setClientNotes}
@@ -220,10 +223,10 @@ export default function BookingDetails() {
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
             <Feather name="lock" size={18} color={colors.textPrimary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.cardProviderTitle}>Zahlung</Text>
+            <Text style={styles.cardProviderTitle}>{t('bookingPayment')}</Text>
           </View>
-          <Text style={styles.paymentText}>Vor Ort bar zahlen</Text>
-          <Text style={styles.toggleSubtitle}>Bezahle direkt beim Termin</Text>
+          <Text style={styles.paymentText}>{t('bookingPaymentMethod')}</Text>
+          <Text style={styles.toggleSubtitle}>{t('bookingPaymentSub')}</Text>
         </View>
         
         {/* Extra Bottom Padding */}
@@ -240,7 +243,7 @@ export default function BookingDetails() {
           {isLoading ? (
             <ActivityIndicator color={colors.surface} />
           ) : (
-            <Text style={styles.primaryButtonText}>Jetzt buchen</Text>
+            <Text style={styles.primaryButtonText}>{t('bookingBookNow')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -284,7 +287,7 @@ const styles = StyleSheet.create({
   notesContainer: { marginBottom: spacing.lg },
   inputLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.sm },
   textArea: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: borderRadius.lg,

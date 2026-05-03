@@ -11,12 +11,14 @@ import { mapHttpError } from '../../utils/error-messages';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
 import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
 
 export default function ClientSearch() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const params = useLocalSearchParams<{ query?: string; sort?: SortOption }>();
   const initialQuery = typeof params.query === 'string' ? params.query : '';
   const initialSort: SortOption =
@@ -49,9 +51,9 @@ export default function ClientSearch() {
   const [isLocating, setIsLocating] = useState(initialSort === 'entfernung');
 
   const sortMap: Record<SortOption, string> = {
-    empfohlen: 'Empfohlen',
-    entfernung: 'Entfernung',
-    bewertung: 'Bewertung'
+    empfohlen: t('searchSortRecommended'),
+    entfernung: t('searchSortDistance'),
+    bewertung: t('searchSortRating'),
   };
 
   const loadDiscoveryLocation = async () => {
@@ -155,7 +157,7 @@ export default function ClientSearch() {
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
     } catch (err: any) {
       const status = err.response?.status;
-      setErrorMessage(mapHttpError(status));
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -179,7 +181,7 @@ export default function ClientSearch() {
       const coords = await loadDiscoveryLocation();
       if (!coords) {
         setErrorMessage(
-          'Standortzugriff wird benötigt, um Braider nach Entfernung zu sortieren.'
+          t('locationPermissionNeeded')
         );
         setErrorVisible(true);
         return;
@@ -234,7 +236,7 @@ export default function ClientSearch() {
           styles.chipText,
           activeCategory === 'Alle' && styles.chipTextActive,
         ]}>
-          Alle
+          {t('all')}
         </Text>
       </TouchableOpacity>
 
@@ -269,7 +271,7 @@ export default function ClientSearch() {
           styles.chipText,
           availableToday && styles.chipTextActive,
         ]}>
-          Verfügbar heute
+          {t('searchAvailableToday')}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -285,7 +287,7 @@ export default function ClientSearch() {
           <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Suche..."
+            placeholder={`${t('search')}...`}
             placeholderTextColor={colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -312,7 +314,7 @@ export default function ClientSearch() {
 
       <View style={styles.toolsRow}>
         <Text style={styles.resultCount}>
-          {isLoading || isLocating ? 'Lade...' : `${totalResults} Braider gefunden`}
+          {isLoading || isLocating ? t('loading') : `${totalResults} ${t('searchResults')}`}
         </Text>
         
         <View style={{ position: 'relative', zIndex: 10 }}>
@@ -351,7 +353,7 @@ export default function ClientSearch() {
       ) : providers.length === 0 ? (
         <View style={styles.emptyState}>
           <Feather name="frown" size={48} color={colors.textTertiary} style={{marginBottom: spacing.md}} />
-          <Text style={styles.emptyStateText}>Keine Ergebnisse für deine Suche</Text>
+          <Text style={styles.emptyStateText}>{t('searchEmpty')}</Text>
         </View>
       ) : (
         <FlatList

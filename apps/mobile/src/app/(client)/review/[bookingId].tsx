@@ -8,6 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 const RATING_LABELS: Record<number, string> = {
@@ -21,6 +22,7 @@ const RATING_LABELS: Record<number, string> = {
 export default function WriteReviewScreen() {
   const router = useRouter();
   const { bookingId } = useLocalSearchParams();
+  const { lang } = useLanguage();
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +45,7 @@ export default function WriteReviewScreen() {
         });
         setBooking(res.data);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status));
+        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
         setErrorVisible(true);
       } finally {
         setIsLoading(false);
@@ -71,7 +73,7 @@ export default function WriteReviewScreen() {
       if (err.response?.status === 409) {
         setErrorMessage('Du hast diesen Termin bereits bewertet.');
       } else {
-        setErrorMessage(mapHttpError(err.response?.status));
+        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       }
       setErrorVisible(true);
       setIsSubmitting(false);

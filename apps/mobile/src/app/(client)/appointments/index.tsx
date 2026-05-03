@@ -16,7 +16,7 @@ type TabType = 'upcoming' | 'completed' | 'cancelled';
 
 export default function AppointmentsList() {
   const router = useRouter();
-  const { language } = useLanguage();
+  const { t, lang } = useLanguage();
   
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [bookings, setBookings] = useState<any[]>([]);
@@ -42,7 +42,7 @@ export default function AppointmentsList() {
       const payload = response.data?.data || response.data || [];
       setBookings(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       setErrorVisible(true);
       setBookings([]);
     } finally {
@@ -58,10 +58,10 @@ export default function AppointmentsList() {
   );
 
   const getBorderColor = (status: string) => {
-    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return '#2E7D32'; // Colors.success
-    if (bookingStatus(status) === 'pending') return '#BF6000'; // Amber
-    if (bookingStatus(status) === 'completed') return '#6B6B6B'; // Colors.textSecondary
-    if (bookingStatus(status) === 'cancelled') return '#C62828'; // Colors.error
+    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return colors.green;
+    if (bookingStatus(status) === 'pending') return colors.orange;
+    if (bookingStatus(status) === 'completed') return colors.textSecondary;
+    if (bookingStatus(status) === 'cancelled') return colors.error;
     return colors.border;
   };
 
@@ -69,15 +69,15 @@ export default function AppointmentsList() {
     const s = bookingStatus(status);
     switch (s) {
       case 'pending':
-        return { bg: '#BF6000', text: bookingStatusLabel(status) };
+        return { bg: colors.orange, text: bookingStatusLabel(status) };
       case 'confirmed':
-        return { bg: '#2E7D32', text: bookingStatusLabel(status) };
+        return { bg: colors.green, text: bookingStatusLabel(status) };
       case 'in_progress':
-        return { bg: '#2E7D32', text: bookingStatusLabel(status) };
+        return { bg: colors.green, text: bookingStatusLabel(status) };
       case 'completed':
-        return { bg: '#6B6B6B', text: bookingStatusLabel(status) };
+        return { bg: colors.textSecondary, text: bookingStatusLabel(status) };
       case 'cancelled':
-        return { bg: '#C62828', text: bookingStatusLabel(status) };
+        return { bg: colors.error, text: bookingStatusLabel(status) };
       default:
         return { bg: colors.border, text: bookingStatusLabel(status) };
     }
@@ -85,7 +85,7 @@ export default function AppointmentsList() {
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+      return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return d;
     }
@@ -113,21 +113,21 @@ export default function AppointmentsList() {
   };
 
   const emptyText = () => {
-    if (activeTab === 'upcoming') return 'Noch keine bevorstehenden Termine';
-    if (activeTab === 'completed') return 'Noch keine abgeschlossenen Termine';
-    return 'Keine abgesagten Termine';
+    if (activeTab === 'upcoming') return t('appointmentsEmpty');
+    if (activeTab === 'completed') return t('appointmentsEmptyCompleted');
+    return t('appointmentsEmptyCancelled');
   };
 
   const renderCard = ({ item }: { item: any }) => {
     const provider = item.provider || {};
     const user = provider.user || {};
-    const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : 'Anbieter');
+    const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
     const avatarUri = user.avatarUrl as string | undefined;
     const address = item.address ? `${item.address.street || ''} ${item.address.houseNumber || ''}, ${item.address.city || ''}`.trim() : (user.city as string | undefined);
     
     const serviceNames = item.services && item.services.length > 0
       ? item.services.map((s: any) => s.name).join(', ')
-      : 'Gewählte Services';
+      : t('selectedServicesGeneric');
       
     const badge = getBadgeProps(item.status);
 
@@ -157,12 +157,12 @@ export default function AppointmentsList() {
           <View style={styles.serviceChip}>
             <Text style={styles.serviceChipText} numberOfLines={1}>{serviceNames}</Text>
           </View>
-          <Text style={styles.priceText}>€{formatAmount(item.totalPrice, language)}</Text>
+          <Text style={styles.priceText}>€{formatAmount(item.totalPrice, lang)}</Text>
         </View>
 
         {/* ROW 3: Date & Time */}
         <Text style={styles.dateTimeText}>
-          {formatDate(item.scheduledDate)}, {item.scheduledTime} Uhr
+          {formatDate(item.scheduledDate)}, {item.scheduledTime}{t('timeSuffix')}
         </Text>
 
         {/* ROW 4: Action Buttons */}
@@ -170,12 +170,12 @@ export default function AppointmentsList() {
           {!!address && (
             <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(address)}>
               <Feather name="map-pin" size={16} color={colors.primary} style={styles.actionIcon} />
-              <Text style={styles.actionButtonText}>Route</Text>
+              <Text style={styles.actionButtonText}>{t('appointmentsRoute')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.actionButton} onPress={() => openChat(provider.id, provider.userId || provider.user?.id)}>
             <Feather name="message-circle" size={16} color={colors.primary} style={styles.actionIcon} />
-            <Text style={styles.actionButtonText}>Nachricht</Text>
+            <Text style={styles.actionButtonText}>{t('profileMessage')}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -186,7 +186,7 @@ export default function AppointmentsList() {
     <SafeAreaView style={styles.safeArea}>
       {/* Screen Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Meine Termine</Text>
+        <Text style={styles.headerTitle}>{t('appointmentsTitle')}</Text>
       </View>
 
       {/* Tab Filter Pills */}
@@ -197,7 +197,7 @@ export default function AppointmentsList() {
             onPress={() => setActiveTab('upcoming')}
           >
             <Text style={[styles.tabPillText, activeTab === 'upcoming' ? styles.tabPillTextActive : styles.tabPillTextInactive]}>
-              Anstehend {activeTab === 'upcoming' ? `(${bookings.length})` : ''}
+              {t('appointmentsUpcoming')} {activeTab === 'upcoming' ? `(${bookings.length})` : ''}
             </Text>
           </TouchableOpacity>
           
@@ -206,7 +206,7 @@ export default function AppointmentsList() {
             onPress={() => setActiveTab('completed')}
           >
             <Text style={[styles.tabPillText, activeTab === 'completed' ? styles.tabPillTextActive : styles.tabPillTextInactive]}>
-              Abgeschlossen {activeTab === 'completed' ? `(${bookings.length})` : ''}
+              {t('appointmentsCompleted')} {activeTab === 'completed' ? `(${bookings.length})` : ''}
             </Text>
           </TouchableOpacity>
           
@@ -215,7 +215,7 @@ export default function AppointmentsList() {
             onPress={() => setActiveTab('cancelled')}
           >
             <Text style={[styles.tabPillText, activeTab === 'cancelled' ? styles.tabPillTextActive : styles.tabPillTextInactive]}>
-              Abgesagt {activeTab === 'cancelled' ? `(${bookings.length})` : ''}
+              {t('appointmentsCancelled')} {activeTab === 'cancelled' ? `(${bookings.length})` : ''}
             </Text>
           </TouchableOpacity>
         </ScrollView>

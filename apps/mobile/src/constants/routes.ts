@@ -39,7 +39,7 @@ export const APP_ROUTES = {
     PORTFOLIO: '/(provider)/portfolio',
     REVIEWS: '/(provider)/reviews',
     PROFILE: '/(provider)/profile',
-    SETTINGS: '/(provider)/settings',
+    SETTINGS: '/(shared)/settings',
     CHAT: '/(provider)/chat',
     CHAT_DETAIL: '/(provider)/chat/[id]',
     BOOKING_REQUEST: '/(provider)/booking-request/[id]',

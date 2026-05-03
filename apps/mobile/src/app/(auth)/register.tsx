@@ -9,9 +9,11 @@ import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -34,7 +36,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
-      showError(mapHttpError(422));
+      showError(mapHttpError(422, undefined, lang));
       return;
     }
     if (password !== confirmPassword) {
@@ -63,7 +65,7 @@ export default function RegisterScreen() {
       router.replace(`/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}` as any);
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status), status);
+      showError(mapHttpError(status, undefined, lang), status);
     } finally {
       setIsLoading(false);
     }

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 // Temporarily comment out Notifications to avoid Expo Go SDK 53 errors
 // import * as Notifications from 'expo-notifications';
 // import * as Device from 'expo-device';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout, shadows } from '@/theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
@@ -15,8 +15,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function SharedSettingsScreen() {
   const router = useRouter();
-  const { language, setLanguage } = useLanguage();
-  const isEn = language === 'en';
+  const { lang, setLang, t } = useLanguage();
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
@@ -35,18 +34,18 @@ export default function SharedSettingsScreen() {
 
   const handleLink = (url: string) => {
     Linking.openURL(url).catch(() => {
-      Alert.alert(isEn ? 'Error' : 'Fehler', isEn ? 'Could not open the link.' : 'Konnte den Link nicht öffnen.');
+      Alert.alert(t('error'), t('errorOpenLink'));
     });
   };
 
   const handleLogout = () => {
     Alert.alert(
-      isEn ? 'Log out?' : 'Wirklich abmelden?',
-      isEn ? 'Do you really want to log out?' : 'Möchtest du dich wirklich ausloggen?',
+      t('settingsLogoutConfirm'),
+      t('settingsLogoutBody'),
       [
-        { text: isEn ? 'Cancel' : 'Abbrechen', style: "cancel" },
+        { text: t('cancel'), style: "cancel" },
         { 
-          text: isEn ? 'Log out' : 'Abmelden',
+          text: t('settingsLogout'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -86,7 +85,7 @@ export default function SharedSettingsScreen() {
 
   const handleConfirmDelete = async () => {
     if (!password) {
-      setDeleteError(isEn ? 'Please enter your password.' : 'Bitte Passwort eingeben');
+      setDeleteError(t('enterPassword'));
       return;
     }
 
@@ -113,7 +112,7 @@ export default function SharedSettingsScreen() {
       router.replace('/(auth)/login' as any);
 
     } catch (error: any) {
-      setDeleteError(mapHttpError(error?.response?.status));
+      setDeleteError(mapHttpError(error?.response?.status, undefined, lang));
     } finally {
       setIsDeleting(false);
     }
@@ -135,51 +134,48 @@ export default function SharedSettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEn ? 'Settings' : 'Einstellungen'}</Text>
+        <Text style={styles.headerTitle}>{t('settingsTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        <Text style={styles.sectionTitle}>{isEn ? 'Language' : 'Sprache'}</Text>
+        <Text style={styles.sectionTitle}>{t('settingsLanguage')}</Text>
         <View style={styles.cardGroup}>
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => setLanguage('de')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <Feather name="globe" size={20} color={colors.textPrimary} style={{ marginRight: spacing.md }} />
-              <Text style={styles.rowText}>Deutsch</Text>
-            </View>
-            {language === 'de' ? <Feather name="check" size={20} color={colors.primary} /> : <View style={{ width: 20 }} />}
-          </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => setLanguage('en')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <Feather name="globe" size={20} color={colors.textPrimary} style={{ marginRight: spacing.md }} />
-              <Text style={styles.rowText}>English</Text>
-            </View>
-            {language === 'en' ? <Feather name="check" size={20} color={colors.primary} /> : <View style={{ width: 20 }} />}
-          </TouchableOpacity>
+          <View style={styles.langRow}>
+            <TouchableOpacity
+              style={[styles.langPill, lang === 'de' && styles.langPillActive]}
+              onPress={() => setLang('de')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.langPillText, lang === 'de' && styles.langPillTextActive]}>
+                {t('settingsLanguageDe')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langPill, lang === 'en' && styles.langPillActive]}
+              onPress={() => setLang('en')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.langPillText, lang === 'en' && styles.langPillTextActive]}>
+                {t('settingsLanguageEn')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>{isEn ? 'Account' : 'Account'}</Text>
+        <Text style={styles.sectionTitle}>{t('settingsAccount')}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("bell", isEn ? 'Notifications' : 'Benachrichtigungen', () => router.push('/(shared)/notifications' as any))}
+          {renderRow("bell", t('settingsNotifications'), () => router.push('/(shared)/notifications' as any))}
         </View>
 
-        <Text style={styles.sectionTitle}>{isEn ? 'Legal' : 'Sicherheit & Rechtliches'}</Text>
+        <Text style={styles.sectionTitle}>{t('settingsLegal')}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("shield", isEn ? 'Privacy Policy' : 'Datenschutzerklärung', () => handleLink('https://hairconnekt.de/privacy'))}
+          {renderRow("shield", t('settingsPrivacy'), () => handleLink('https://hairconnekt.de/privacy'))}
           <View style={styles.divider} />
-          {renderRow("file-text", isEn ? 'Terms of Use' : 'Nutzungsbedingungen', () => handleLink('https://hairconnekt.de/terms'))}
+          {renderRow("file-text", t('settingsTerms'), () => handleLink('https://hairconnekt.de/terms'))}
           <View style={styles.divider} />
-          {renderRow("info", isEn ? 'Imprint' : 'Impressum', () => handleLink('https://hairconnekt.de/impressum'))}
+          {renderRow("info", t('settingsImprint'), () => handleLink('https://hairconnekt.de/impressum'))}
         </View>
 
         <View style={styles.mainDivider} />
@@ -187,13 +183,13 @@ export default function SharedSettingsScreen() {
         {/* LOGOUT */}
         <TouchableOpacity style={styles.actionRow} onPress={handleLogout} activeOpacity={0.7}>
           <Feather name="log-out" size={20} color={colors.coral} style={{ marginRight: spacing.md }} />
-          <Text style={styles.actionTextCoral}>{isEn ? 'Log out' : 'Abmelden'}</Text>
+          <Text style={styles.actionTextCoral}>{t('settingsLogout')}</Text>
         </TouchableOpacity>
 
         {/* DELETE ACCOUNT */}
         <TouchableOpacity style={styles.actionRow} onPress={openDeleteModal} activeOpacity={0.7}>
           <Feather name="trash-2" size={18} color={colors.error} style={{ marginRight: spacing.md }} />
-          <Text style={styles.actionTextSmallRed}>{isEn ? 'Delete account' : 'Account löschen'}</Text>
+          <Text style={styles.actionTextSmallRed}>{t('settingsDeleteAccount')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionText}>HairConnekt v1.0.0</Text>
@@ -210,25 +206,21 @@ export default function SharedSettingsScreen() {
                 <View style={styles.modalIconCircle}>
                   <Feather name="alert-triangle" size={32} color={colors.error} />
                 </View>
-                <Text style={styles.modalTitle}>Möchtest du deinen Account wirklich löschen?</Text>
-                <Text style={styles.modalBody}>
-                  Alle deine Daten, Bewertungen und der Verlauf werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
-                </Text>
+                <Text style={styles.modalTitle}>{t('settingsDeleteTitle')}</Text>
+                <Text style={styles.modalBody}>{t('settingsDeleteBody')}</Text>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity style={styles.modalBtnOutline} onPress={() => setDeleteModalVisible(false)}>
-                    <Text style={styles.modalBtnOutlineText}>Abbrechen</Text>
+                    <Text style={styles.modalBtnOutlineText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.modalBtnSolid} onPress={() => setDeleteStep(2)}>
-                    <Text style={styles.modalBtnSolidText}>Weiter</Text>
+                    <Text style={styles.modalBtnSolidText}>{t('next')}</Text>
                   </TouchableOpacity>
                 </View>
               </>
             ) : (
               <>
-                <Text style={styles.modalTitle}>Gib dein Passwort ein</Text>
-                <Text style={styles.modalBody}>
-                  Bitte bestätige die Löschung mit deinem aktuellen Passwort.
-                </Text>
+                <Text style={styles.modalTitle}>{t('settingsDeleteEnterPassword')}</Text>
+                <Text style={styles.modalBody}>{t('settingsDeletePasswordBody')}</Text>
                 
                 {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
                 
@@ -236,18 +228,18 @@ export default function SharedSettingsScreen() {
                   style={styles.passwordInput}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Passwort"
+                  placeholder={t('password')}
                   secureTextEntry
                   autoCapitalize="none"
                 />
 
                 <View style={styles.modalButtons}>
                   <TouchableOpacity style={styles.modalBtnOutline} onPress={() => setDeleteModalVisible(false)}>
-                    <Text style={styles.modalBtnOutlineText}>Abbrechen</Text>
+                    <Text style={styles.modalBtnOutlineText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <PrimaryButton 
-                      label="Endgültig löschen" 
+                      label={t('settingsDeleteFinal')} 
                       onPress={handleConfirmDelete}
                       loading={isDeleting}
                     />
@@ -287,6 +279,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     ...shadows.card,
     marginBottom: spacing.xl,
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.lg,
+  },
+  langPill: {
+    flex: 1,
+    minHeight: layout.inputHeight,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  langPillActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
+  langPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+  },
+  langPillTextActive: {
+    color: colors.primary,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },

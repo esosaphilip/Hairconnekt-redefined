@@ -8,10 +8,12 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RescheduleAppointment() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { lang } = useLanguage();
 
   // Booking Data
   const [booking, setBooking] = useState<any>(null);
@@ -62,7 +64,7 @@ export default function RescheduleAppointment() {
         });
         setBooking(res.data);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status));
+        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
         setErrorVisible(true);
       } finally {
         setIsBookingLoading(false);
@@ -89,7 +91,7 @@ export default function RescheduleAppointment() {
         setSlots(slotArray.filter((s: any) => s.available || s.isAvailable));
         setIsSlotsLoading(false);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status));
+        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
         setErrorVisible(true);
         setSlots([]);
         setIsSlotsLoading(false);
@@ -144,14 +146,14 @@ export default function RescheduleAppointment() {
               'Dieser Termin ist leider nicht möglich. Bitte wähle ein anderes Datum oder Uhrzeit.'
           );
         }
-        throw new Error(backendMessage ?? mapHttpError(res.status));
+        throw new Error(backendMessage ?? mapHttpError(res.status, undefined, lang));
       }
 
       // Success → navigate back to appointment detail
       router.replace(`/(client)/appointments/${id}`);
 
     } catch (err: any) {
-      setErrorMessage(err.message ?? mapHttpError(500));
+      setErrorMessage(err.message ?? mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsSubmitting(false);

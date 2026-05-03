@@ -8,9 +8,11 @@ import { FormInput } from '../../components/FormInput';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PasswordResetScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
   
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
@@ -48,7 +50,7 @@ export default function PasswordResetScreen() {
 
   const handleSendCode = async () => {
     if (!email) {
-      showError(mapHttpError(400, 'Bitte gib deine E-Mail-Adresse ein.'));
+      showError(mapHttpError(400, 'Bitte gib deine E-Mail-Adresse ein.', lang));
       return;
     }
     resetOtpAndFocusFirst();
@@ -60,7 +62,7 @@ export default function PasswordResetScreen() {
       setTimeout(() => otpRefs.current[0]?.focus(), 50);
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status), status);
+      showError(mapHttpError(status, undefined, lang), status);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +88,7 @@ export default function PasswordResetScreen() {
       } else if (status === 410) {
         showError('Code abgelaufen. Bitte fordere einen neuen an.');
       } else {
-        showError(mapHttpError(status), status);
+        showError(mapHttpError(status, undefined, lang), status);
       }
     } finally {
       setIsLoading(false);
@@ -110,7 +112,7 @@ export default function PasswordResetScreen() {
       router.replace('/(auth)/login' as any);
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status), status);
+      showError(mapHttpError(status, undefined, lang), status);
     } finally {
       setIsLoading(false);
     }

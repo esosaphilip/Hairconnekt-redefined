@@ -8,11 +8,14 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 
 export default function ClientBookingServices() {
   const router = useRouter();
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
+  const { t, lang } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -52,7 +55,7 @@ export default function ClientBookingServices() {
       
       setSections(newSections);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -91,18 +94,20 @@ export default function ClientBookingServices() {
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceName}>{item.name}</Text>
           <Text style={styles.serviceDetail}>
-            {item.durationMinutes ? `${item.durationMinutes / 60 >= 1 ? `${Math.floor(item.durationMinutes / 60)} Std. ` : ''}${item.durationMinutes % 60 > 0 ? `${item.durationMinutes % 60} Min.` : ''}`.trim() : 'N/A'}
+            {item.durationMinutes
+              ? `${item.durationMinutes / 60 >= 1 ? `${Math.floor(item.durationMinutes / 60)} ${t('appointmentsHours')} ` : ''}${item.durationMinutes % 60 > 0 ? `${item.durationMinutes % 60} ${t('appointmentsMinutes')}` : ''}`.trim()
+              : t('notAvailable')}
           </Text>
         </View>
         <View style={styles.serviceAction}>
-          <Text style={styles.servicePrice}>€{item.price}</Text>
+          <Text style={styles.servicePrice}>€{formatAmount(item.price, lang)}</Text>
           <TouchableOpacity 
             style={[styles.selectBtn, isSelected && styles.selectBtnSelected]}
             onPress={() => toggleService(item)}
             activeOpacity={0.7}
           >
             <Text style={[styles.selectBtnText, isSelected && styles.selectBtnTextSelected]}>
-              {isSelected ? 'Ausgewählt' : 'Auswählen'}
+              {isSelected ? t('bookingSelected') : t('profileSelectService')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -120,12 +125,12 @@ export default function ClientBookingServices() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Services auswählen</Text>
+        <Text style={styles.headerTitle}>{t('bookingSelectService')}</Text>
         <View style={{ width: 40 }} />
       </View>
       
       <View style={styles.stepIndicatorContainer}>
-        <Text style={styles.stepText}>Schritt 1 von 4</Text>
+        <Text style={styles.stepText}>{t('bookingStep')} 1 {t('bookingOf')} 4</Text>
         <View style={styles.stepBarRow}>
           <View style={[styles.stepSegment, styles.stepSegmentActive]} />
           <View style={styles.stepSegment} />
@@ -140,7 +145,7 @@ export default function ClientBookingServices() {
         <ActivityIndicator size="large" color={colors.coral} style={{ marginTop: spacing.xxl }} />
       ) : sections.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Gegenwärtig werden keine Services angeboten.</Text>
+          <Text style={styles.emptyText}>{t('bookingNoServices')}</Text>
         </View>
       ) : (
         <SectionList
@@ -157,15 +162,17 @@ export default function ClientBookingServices() {
       <View style={styles.footer}>
         <View style={styles.footerRow}>
           <View>
-            <Text style={styles.footerSummaryText}>{selectedDocs.size} Services ausgewählt</Text>
-            <Text style={styles.footerTotalText}>Gesamt: €{totalSum.toFixed(2)}</Text>
+            <Text style={styles.footerSummaryText}>{selectedDocs.size} {t('bookingServices')} {t('bookingSelected')}</Text>
+            <Text style={styles.footerTotalText}>
+              {t('bookingTotal')}: €{formatAmount(totalSum, lang)}
+            </Text>
           </View>
           <TouchableOpacity 
             style={[styles.nextButton, selectedDocs.size === 0 && styles.nextButtonDisabled]} 
             onPress={handleNext}
             disabled={selectedDocs.size === 0}
           >
-            <Text style={styles.nextButtonText}>Weiter</Text>
+            <Text style={styles.nextButtonText}>{t('next')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -7,6 +7,8 @@ import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
 import { removeFavourite } from '../../utils/favourites';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatAmount } from '@/utils/format';
 
 type ProviderSummaryDto = {
   id: string;
@@ -24,6 +26,7 @@ type ProviderSummaryDto = {
 
 export default function FavouritesScreen() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [favourites, setFavourites] = useState<ProviderSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,12 +56,12 @@ export default function FavouritesScreen() {
 
   const handleRemoveFavourite = async (providerId: string, businessName: string) => {
     Alert.alert(
-      'Aus Favoriten entfernen?',
-      `Möchtest du ${businessName} wirklich aus deinen Favoriten entfernen?`,
+      t('favouritesRemoveTitle'),
+      t('favouritesRemoveBody').replace('{name}', businessName),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         { 
-          text: 'Entfernen', 
+          text: t('remove'), 
           style: 'destructive', 
           onPress: async () => {
             // Optimistic Update
@@ -107,12 +110,12 @@ export default function FavouritesScreen() {
           <Text style={styles.providerName} numberOfLines={1}>{item.businessName || `${item.firstName} ${item.lastName}`}</Text>
           
           <View style={styles.ratingRow}>
-            <FontAwesome name="star" size={12} color="#C8860A" />
+            <FontAwesome name="star" size={12} color={colors.gold} />
             <Text style={styles.ratingText}>{item.avgRating.toFixed(1)}</Text>
             <Text style={styles.reviewCount}>({item.totalReviews})</Text>
           </View>
           
-          <Text style={styles.priceText}>ab €{item.startingPrice}</Text>
+          <Text style={styles.priceText}>{t('cardFrom')} €{formatAmount(item.startingPrice, lang)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -125,7 +128,7 @@ export default function FavouritesScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Meine Favoriten</Text>
+          <Text style={styles.headerTitle}>{t('favouritesTitle')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
@@ -140,20 +143,20 @@ export default function FavouritesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meine Favoriten</Text>
+        <Text style={styles.headerTitle}>{t('favouritesTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {favourites.length === 0 ? (
         <View style={styles.emptyStateContainer}>
-          <Feather name="heart" size={64} color="#CCCCCC" style={{ marginBottom: spacing.lg }} />
-          <Text style={styles.emptyStateTitle}>Noch keine Favoriten</Text>
-          <Text style={styles.emptyStateSubtitle}>Entdecke Braider in deiner Nähe</Text>
+          <Feather name="heart" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.lg }} />
+          <Text style={styles.emptyStateTitle}>{t('favouritesEmpty')}</Text>
+          <Text style={styles.emptyStateSubtitle}>{t('favouritesEmptySub')}</Text>
           <TouchableOpacity 
             style={styles.primaryButton}
             onPress={() => router.push('/(client)/search')}
           >
-            <Text style={styles.primaryButtonText}>Braider entdecken</Text>
+            <Text style={styles.primaryButtonText}>{t('favouritesDiscover')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -183,15 +186,15 @@ const styles = StyleSheet.create({
   card: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, ...shadows.card, overflow: 'hidden' },
   imageContainer: { width: '100%', height: 120, position: 'relative' },
   cardImage: { width: '100%', height: '100%' },
-  imagePlaceholder: { backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },
-  imagePlaceholderText: { fontFamily: fonts.bodyBold, fontSize: 32, color: '#666' },
+  imagePlaceholder: { backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  imagePlaceholderText: { fontFamily: fonts.bodyBold, fontSize: 32, color: colors.textSecondary },
   
   heartButton: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255, 255, 255, 0.8)', justifyContent: 'center', alignItems: 'center' },
   
   cardContent: { padding: 12 },
   providerName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary, marginBottom: 4 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  ratingText: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#C8860A' },
+  ratingText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.gold },
   reviewCount: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textTertiary },
   priceText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary },
 

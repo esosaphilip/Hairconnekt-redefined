@@ -1,31 +1,33 @@
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../../theme';
+import { colors, fonts, fontSizes, layout, spacing } from '@/theme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Figma confirmed: PROVIDER has exactly 4 tabs
 // Startseite | Termine | Nachrichten | Profil
 
 export default function ProviderLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#AAA',
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#EEE',
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 10),
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-          paddingTop: 8,
+          height: (layout.tabBarHeight - spacing.sm) + (insets.bottom > 0 ? insets.bottom : spacing.xs),
+          paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.xs,
+          paddingTop: spacing.xs,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: 'DMSans_400Regular',
+          fontSize: fontSizes.xs,
+          fontFamily: fonts.body,
         },
       }}
     >
@@ -35,7 +37,7 @@ export default function ProviderLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Startseite',
+          title: t('tabHome'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -44,7 +46,7 @@ export default function ProviderLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Termine',
+          title: t('tabCalendar'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="calendar" size={size} color={color} />
           ),
@@ -53,7 +55,7 @@ export default function ProviderLayout() {
       <Tabs.Screen
         name="chat/index"
         options={{
-          title: 'Nachrichten',
+          title: t('tabMessages'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="message-circle" size={size} color={color} />
           ),
@@ -62,7 +64,7 @@ export default function ProviderLayout() {
       <Tabs.Screen
         name="profile/index"
         options={{
-          title: 'Profil',
+          title: t('tabProfile'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

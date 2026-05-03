@@ -9,6 +9,7 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 const DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 // We'll reorder them starting from Monday for UI purposes: Mo, Di, Mi, Do, Fr, Sa, So
 const UI_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -23,6 +24,7 @@ interface DaySchedule {
 
 export default function AvailabilityScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [bufferMinutes, setBufferMinutes] = useState<number>(0);
@@ -134,7 +136,7 @@ export default function AvailabilityScreen() {
       }, 1500);
 
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status));
+      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setSaving(false);

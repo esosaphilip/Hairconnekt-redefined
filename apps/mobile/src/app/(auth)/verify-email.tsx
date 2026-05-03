@@ -8,10 +8,12 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
 import { tokenStorage } from '../../utils/token-storage';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email?: string }>();
+  const { lang } = useLanguage();
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -134,7 +136,7 @@ export default function VerifyEmailScreen() {
       } else if (status === 429) {
         showError('Du hast zu oft einen Code angefordert. Bitte versuche es später erneut.', status);
       } else {
-        showError(mapHttpError(status), status);
+        showError(mapHttpError(status, undefined, lang), status);
       }
     } finally {
       setIsLoading(false);
@@ -160,7 +162,7 @@ export default function VerifyEmailScreen() {
       if (status === 429) {
         showError('Du hast zu oft einen Code angefordert. Bitte versuche es später erneut.', status);
       } else {
-        showError(mapHttpError(status), status);
+        showError(mapHttpError(status, undefined, lang), status);
       }
     } finally {
       setIsLoading(false);

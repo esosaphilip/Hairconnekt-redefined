@@ -8,9 +8,11 @@ import { tokenStorage } from '@/utils/token-storage';
 import { API } from '@/utils/api';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { mapHttpError } from '@/utils/error-messages';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ChatListScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function ChatListScreen() {
       if (!res.ok) {
         const status = res.status;
         setErrorStatus(status);
-        setErrorMessage(mapHttpError(status));
+        setErrorMessage(mapHttpError(status, undefined, lang));
         setErrorVisible(true);
         return;
       }
@@ -43,7 +45,7 @@ export default function ChatListScreen() {
       setConversations(Array.isArray(payload) ? payload : []);
     } catch {
       setErrorStatus(500);
-      setErrorMessage(mapHttpError(500));
+      setErrorMessage(mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

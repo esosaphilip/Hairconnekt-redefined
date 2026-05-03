@@ -15,7 +15,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function AppointmentDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { language } = useLanguage();
+  const { t, lang } = useLanguage();
   
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function AppointmentDetails() {
       });
       setBooking(response.data);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -46,7 +46,7 @@ export default function AppointmentDetails() {
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+      return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return d;
     }
@@ -80,9 +80,9 @@ export default function AppointmentDetails() {
 
     return (
       <View style={styles.timelineContainer}>
-        {renderNode(isConfirmed, isPending ? 'Ausstehend' : 'Bestätigt', false)}
-        {renderNode(isInProgress, 'In Bearbeitung', false)}
-        {renderNode(isCompleted, 'Abgeschlossen', true)}
+        {renderNode(isConfirmed, isPending ? t('statusPending') : t('statusConfirmed'), false)}
+        {renderNode(isInProgress, t('statusInProgress'), false)}
+        {renderNode(isCompleted, t('statusCompleted'), true)}
       </View>
     );
   };
@@ -94,7 +94,7 @@ export default function AppointmentDetails() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.topBarTitle}>Termindetails</Text>
+          <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
@@ -109,12 +109,12 @@ export default function AppointmentDetails() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.topBarTitle}>Termindetails</Text>
+          <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
           <View style={{ width: 40 }} />
         </View>
-        <GermanErrorBanner visible={true} message={errorMessage || 'Termin konnte nicht geladen werden.'} />
+        <GermanErrorBanner visible={true} message={errorMessage || t('appointmentsNotFound')} />
         <TouchableOpacity style={styles.retryButton} onPress={fetchBookingDetails}>
-          <Text style={styles.retryButtonText}>Erneut versuchen</Text>
+          <Text style={styles.retryButtonText}>{t('appointmentsRetry')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -122,7 +122,7 @@ export default function AppointmentDetails() {
 
   const provider = booking.provider || {};
   const user = provider.user || {};
-  const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : 'Anbieter');
+  const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
   const avatarUri = user.avatarUrl as string | undefined;
   const city = user.city as string | undefined;
 
@@ -149,7 +149,7 @@ export default function AppointmentDetails() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Termindetails</Text>
+        <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -186,7 +186,7 @@ export default function AppointmentDetails() {
               onPress={() => openChat(provider.userId || provider.user?.id)}
             >
               <Feather name="message-circle" size={18} color={colors.primary} />
-              <Text style={styles.providerBtnText}>Nachricht</Text>
+              <Text style={styles.providerBtnText}>{t('profileMessage')}</Text>
             </TouchableOpacity>
             <View style={styles.btnDivider} />
             <TouchableOpacity 
@@ -198,22 +198,22 @@ export default function AppointmentDetails() {
               }}
             >
               <Feather name="phone" size={18} color={colors.primary} />
-              <Text style={styles.providerBtnText}>Anrufen</Text>
+              <Text style={styles.providerBtnText}>{t('appointmentsCall')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Termininfo Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Termininfo</Text>
+          <Text style={styles.cardTitle}>{t('appointmentsInfo')}</Text>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Service</Text>
+            <Text style={styles.infoLabel}>{t('bookingServices')}</Text>
             <Text style={styles.infoValue}>{booking.services?.map((s: any) => s.name).join(', ')}</Text>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Datum & Zeit</Text>
+            <Text style={styles.infoLabel}>{t('appointmentsDate')}</Text>
             <View style={styles.dateValueRow}>
               <Feather name="calendar" size={14} color={colors.textPrimary} style={styles.mr} />
               <Text style={styles.infoValue}>{formatDate(booking.scheduledDate)}</Text>
@@ -224,21 +224,28 @@ export default function AppointmentDetails() {
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Dauer</Text>
-            <Text style={styles.infoValue}>{(() => { const mins = calculateDuration(); const h = Math.floor(mins / 60); const m = mins % 60; return h > 0 ? `${h} Std.${m > 0 ? ` ${m} Min.` : ''}` : `${m} Min.`; })()}</Text>
+            <Text style={styles.infoLabel}>{t('appointmentsDuration')}</Text>
+            <Text style={styles.infoValue}>
+              {(() => {
+                const mins = calculateDuration();
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                return h > 0 ? `${h} ${t('appointmentsHours')}${m > 0 ? ` ${m} ${t('appointmentsMinutes')}` : ''}` : `${m} ${t('appointmentsMinutes')}`;
+              })()}
+            </Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={styles.infoRow}>
-            <Text style={styles.totalLabel}>Gesamtpreis</Text>
-            <Text style={styles.totalValue}>€{formatAmount(booking.totalPrice, language)}</Text>
+            <Text style={styles.totalLabel}>{t('appointmentsTotalPrice')}</Text>
+            <Text style={styles.totalValue}>€{formatAmount(booking.totalPrice, lang)}</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Buchungsnummer</Text>
+            <Text style={styles.infoLabel}>{t('bookingNumber')}</Text>
             <Text style={styles.bookingNumber}>{booking.bookingNumber || 'HC-N/A'}</Text>
           </View>
         </View>
@@ -255,13 +262,13 @@ export default function AppointmentDetails() {
               `/(client)/appointments/reschedule/${booking.id}` 
             )}
           >
-            <Text style={styles.outlineBtnText}>Termin verschieben</Text>
+            <Text style={styles.outlineBtnText}>{t('appointmentsReschedule')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.textBtn}
             onPress={() => router.push(`/(client)/appointments/cancel/${booking.id}` as any)}
           >
-            <Text style={styles.textBtnText}>Termin stornieren</Text>
+            <Text style={styles.textBtnText}>{t('appointmentsCancel')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -272,7 +279,7 @@ export default function AppointmentDetails() {
             style={styles.primaryBtn}
             onPress={() => router.push(`/(client)/review/${booking.id}` as any)}
           >
-            <Text style={styles.primaryBtnText}>Bewertung schreiben</Text>
+            <Text style={styles.primaryBtnText}>{t('appointmentsWriteReview')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -284,7 +291,7 @@ export default function AppointmentDetails() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  retryButton: { alignSelf: 'center', marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.coral, borderRadius: 8 },
+  retryButton: { alignSelf: 'center', marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.coral, borderRadius: borderRadius.sm },
   retryButtonText: { color: colors.surface, fontFamily: fonts.bodyBold },
   mr: { marginRight: 4 },
   
@@ -301,7 +308,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 100 },
 
   timelineContainer: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surfaceCard,
     paddingHorizontal: 32,
     paddingVertical: 24,
     borderBottomWidth: 1,
@@ -311,18 +318,18 @@ const styles = StyleSheet.create({
   timelineRow: { flexDirection: 'row' },
   timelineGraphic: { alignItems: 'center', width: 24, marginRight: spacing.md },
   timelineCircle: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
-  timelineCircleReached: { backgroundColor: '#2E7D32' },
-  timelineCirclePending: { backgroundColor: '#EEEEEE' },
+  timelineCircleReached: { backgroundColor: colors.green },
+  timelineCirclePending: { backgroundColor: colors.border },
   timelineLine: { width: 2, height: 40, position: 'absolute', top: 24 },
-  timelineLineReached: { backgroundColor: '#2E7D32' },
-  timelineLinePending: { backgroundColor: '#EEEEEE' },
+  timelineLineReached: { backgroundColor: colors.green },
+  timelineLinePending: { backgroundColor: colors.border },
   timelineLabel: { fontFamily: fonts.bodyBold, fontSize: 16, marginTop: 2, height: 64 },
   timelineLabelReached: { color: colors.textPrimary },
   timelineLabelPending: { color: colors.textSecondary },
 
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.xl,
     padding: spacing.md,
@@ -331,13 +338,13 @@ const styles = StyleSheet.create({
   },
   providerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   providerAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.md },
-  providerAvatarFallback: { backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' },
+  providerAvatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   providerInfo: { flex: 1 },
   providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: 4 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   locationText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
   
-  providerActions: { flexDirection: 'row', backgroundColor: '#F9F9F9', borderRadius: 8, height: 48 },
+  providerActions: { flexDirection: 'row', backgroundColor: colors.surfaceCard, borderRadius: borderRadius.sm, height: 48 },
   providerBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   btnDivider: { width: 1, backgroundColor: colors.border, height: '60%', alignSelf: 'center' },
   providerBtnText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary, marginLeft: 8 },

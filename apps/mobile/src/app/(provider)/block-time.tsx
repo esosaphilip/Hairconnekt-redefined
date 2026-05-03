@@ -9,6 +9,7 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const REASONS = [
   { id: 'urlaub', label: 'Urlaub', icon: '🏖️' },
@@ -20,6 +21,7 @@ const REASONS = [
 
 export default function BlockTimeScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
   
   // State
   const [reason, setReason] = useState<string | null>(null);
@@ -113,7 +115,7 @@ export default function BlockTimeScreen() {
 
       router.back();
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status));
+      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

@@ -9,10 +9,12 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole } = useLocalSearchParams<{ role: 'client' | 'provider' }>();
+  const { lang } = useLanguage();
   const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
   
   const [identifier, setIdentifier] = useState('');
@@ -30,7 +32,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!identifier || !password) {
-      showError(mapHttpError(400));
+      showError(mapHttpError(400, undefined, lang));
       return;
     }
 
@@ -79,7 +81,7 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status), status);
+      showError(mapHttpError(status, undefined, lang), status);
     } finally {
       setIsLoading(false);
     }

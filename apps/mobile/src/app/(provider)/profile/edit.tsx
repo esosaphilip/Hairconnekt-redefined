@@ -11,6 +11,7 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { tokenStorage } from '../../../utils/token-storage';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const AVAILABLE_LANGUAGES = ['Deutsch', 'Englisch', 'Französisch', 'Arabisch', 'Türkisch', 'Hausa', 'Yoruba', 'Igbo'];
 
@@ -18,6 +19,7 @@ type CancellationPolicy = '24h' | '48h' | '72h';
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { lang } = useLanguage();
 
   const [form, setForm] = useState({
     businessName: '',
@@ -98,7 +100,7 @@ export default function EditProfileScreen() {
 
       router.back();
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status));
+      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsSaving(false);
@@ -159,7 +161,7 @@ export default function EditProfileScreen() {
       setAvatarVersion(Date.now());
     } catch (error: any) {
       console.log('Avatar upload error', error);
-      setErrorMessage(mapHttpError(error?.response?.status));
+      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsUploadingAvatar(false);

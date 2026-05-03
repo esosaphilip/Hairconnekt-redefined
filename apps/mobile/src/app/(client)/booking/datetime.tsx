@@ -8,11 +8,13 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 export default function ClientBookingDateTime() {
   const router = useRouter();
   const { providerId, selectedServiceIds, totalPrice } = useLocalSearchParams<{ providerId: string, selectedServiceIds: string, totalPrice: string }>();
+  const { t, lang } = useLanguage();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -34,8 +36,7 @@ export default function ClientBookingDateTime() {
   const daysCount = daysInMonth(year, month);
   const firstDay = firstDayOfMonth(year, month);
   
-  const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const dayNames = lang === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
   const handlePrevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
@@ -70,7 +71,7 @@ export default function ClientBookingDateTime() {
       fetchedSlots.sort((a: any, b: any) => (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''));
       setSlots(fetchedSlots);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status));
+      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       setErrorVisible(true);
       setSlots([]);
     } finally {
@@ -149,12 +150,12 @@ export default function ClientBookingDateTime() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Datum & Zeit</Text>
+        <Text style={styles.headerTitle}>{t('bookingSelectDate')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.stepIndicatorContainer}>
-        <Text style={styles.stepText}>Schritt 2 von 4</Text>
+        <Text style={styles.stepText}>{t('bookingStep')} 2 {t('bookingOf')} 4</Text>
         <View style={styles.stepBarRow}>
           <View style={[styles.stepSegment, styles.stepSegmentActive]} />
           <View style={[styles.stepSegment, styles.stepSegmentActive]} />
@@ -170,7 +171,9 @@ export default function ClientBookingDateTime() {
             <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
               <Feather name="chevron-left" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.monthTitle}>{monthNames[month]} {year}</Text>
+            <Text style={styles.monthTitle}>
+              {currentMonth.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' })}
+            </Text>
             <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
               <Feather name="chevron-right" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -188,12 +191,12 @@ export default function ClientBookingDateTime() {
         {/* Dynamic Time Slots Block */}
         {selectedDate && (
           <View style={styles.slotsSection}>
-            <Text style={styles.slotsHeader}>Verfügbare Zeiten</Text>
+            <Text style={styles.slotsHeader}>{t('bookingAvailableTimes')}</Text>
             
             {isLoading ? (
               <ActivityIndicator size="large" color={colors.coral} style={{ marginVertical: spacing.xl }} />
             ) : slots.length === 0 ? (
-              <Text style={styles.emptySlotsText}>Keine freien Termine an diesem Tag.</Text>
+              <Text style={styles.emptySlotsText}>{t('bookingNoSlots')}</Text>
             ) : (
               <View style={styles.slotsGrid}>
                 {slots
@@ -223,10 +226,10 @@ export default function ClientBookingDateTime() {
       <View style={styles.footer}>
         <View style={styles.footerRow}>
           <Text style={styles.footerDateText}>
-            {selectedDate ? `Datum: ${formatOutputDate(selectedDate)}` : 'Wähle ein Datum'}
+            {selectedDate ? `${t('bookingSelectDate')}: ${formatOutputDate(selectedDate)}` : t('bookingChooseDate')}
           </Text>
           <Text style={styles.footerTimeText}>
-            {selectedTime ? `${selectedTime} UHR` : ''}
+            {selectedTime ? `${selectedTime}${t('timeSuffix')}` : ''}
           </Text>
         </View>
         <TouchableOpacity 
@@ -234,7 +237,7 @@ export default function ClientBookingDateTime() {
           onPress={handleNext}
           disabled={!selectedDate || !selectedTime}
         >
-          <Text style={styles.nextButtonText}>Weiter</Text>
+          <Text style={styles.nextButtonText}>{t('next')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

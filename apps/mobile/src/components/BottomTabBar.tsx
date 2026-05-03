@@ -14,15 +14,14 @@ interface Props {
 export function BottomTabBar({ activeTab, unreadMessages = 0 }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { language } = useLanguage();
-  const isEn = language === 'en';
+  const { t } = useLanguage();
 
   const tabs = [
-    { key: 'index', title: isEn ? 'Home' : 'Startseite', icon: 'home', route: '/(client)/' },
-    { key: 'search', title: isEn ? 'Search' : 'Suchen', icon: 'search', route: '/(client)/search' },
-    { key: 'appointments', title: isEn ? 'Appointments' : 'Termine', icon: 'calendar', route: '/(client)/appointments' },
-    { key: 'chat', title: isEn ? 'Messages' : 'Nachrichten', icon: 'message-circle', route: '/(client)/chat' },
-    { key: 'profile', title: isEn ? 'Profile' : 'Profil', icon: 'user', route: '/(client)/profile' },
+    { key: 'index', title: t('tabHome'), icon: 'home', route: '/(client)/' },
+    { key: 'search', title: t('tabSearch'), icon: 'search', route: '/(client)/search' },
+    { key: 'appointments', title: t('tabAppointments'), icon: 'calendar', route: '/(client)/appointments' },
+    { key: 'chat', title: t('tabMessages'), icon: 'message-circle', route: '/(client)/chat' },
+    { key: 'profile', title: t('tabProfile'), icon: 'user', route: '/(client)/profile' },
   ];
 
   return (

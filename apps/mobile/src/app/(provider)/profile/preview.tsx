@@ -8,11 +8,8 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 const { width } = Dimensions.get('window');
-
-// Safe numeric helpers — API can return null/undefined for any field
-const safeRating = (val: any): string =>
-  typeof val === 'number' && !isNaN(val) ? val.toFixed(1) : 'NEU';
 
 const safeDistance = (val: any): string =>
   typeof val === 'number' && !isNaN(val) ? `${val.toFixed(1)} km` : '';
@@ -22,6 +19,7 @@ const safeNumber = (val: any): number =>
 
 export default function ProfilePreviewScreen() {
   const router = useRouter();
+  const { lang, t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -33,8 +31,13 @@ export default function ProfilePreviewScreen() {
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState('Überblick');
-  const tabs = ['Überblick', 'Services', 'Galerie', 'Bewertungen'];
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'gallery' | 'reviews'>('overview');
+  const tabs = [
+    { key: 'overview' as const, label: t('profileTabOverview') },
+    { key: 'services' as const, label: t('profileTabServices') },
+    { key: 'gallery' as const, label: t('profileTabGallery') },
+    { key: 'reviews' as const, label: t('profileTabReviews') },
+  ];
 
   useEffect(() => {
     loadData();
@@ -47,7 +50,7 @@ export default function ProfilePreviewScreen() {
 
       const token = await tokenStorage.getAccessToken();
       if (!token) {
-        setErrorMessage(mapHttpError(401));
+        setErrorMessage(mapHttpError(401, undefined, lang));
         setErrorVisible(true);
         return;
       }
@@ -56,14 +59,14 @@ export default function ProfilePreviewScreen() {
       const meRes = await fetch(`${API}/providers/me`, { headers });
       
       if (!meRes.ok) {
-        setErrorMessage(mapHttpError(meRes.status));
+        setErrorMessage(mapHttpError(meRes.status, undefined, lang));
         setErrorVisible(true);
         return;
       }
       const meData = await meRes.json();
       
       if (!meData) {
-        setErrorMessage(mapHttpError(404));
+        setErrorMessage(mapHttpError(404, undefined, lang));
         setErrorVisible(true);
         return;
       }
@@ -103,7 +106,7 @@ export default function ProfilePreviewScreen() {
       const revArr = revJson?.data ?? revJson ?? [];
       setReviews(Array.isArray(revArr) ? revArr : []);
     } catch {
-      setErrorMessage(mapHttpError(500));
+      setErrorMessage(mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -146,13 +149,16 @@ export default function ProfilePreviewScreen() {
   if (!provider) {
     return (
       <View style={styles.loadingContainer}>
-        <GermanErrorBanner visible={errorVisible} message={errorMessage || 'Fehler beim Laden.'} />
+        <GermanErrorBanner visible={errorVisible} message={errorMessage || t('errorUnknown')} />
       </View>
     );
   }
 
   // Derived properties safely extracted
-  const avgRating = safeRating(provider.avgRating);
+  const avgRating =
+    typeof provider.avgRating === 'number' && !Number.isNaN(provider.avgRating)
+      ? provider.avgRating.toFixed(1)
+      : t('newLabel');
   const distance = safeDistance(provider.distanceKm);
   const totalReviews = safeNumber(provider.totalReviews);
   const specialisationTags = Array.isArray(provider.specialisationTags)
@@ -169,7 +175,7 @@ export default function ProfilePreviewScreen() {
           <Feather name="arrow-left" size={20} color={colors.background} />
         </TouchableOpacity>
         <Text style={styles.bannerText}>
-        👁 Vorschau-Modus {(provider.businessName?.charAt(0) ?? 'P')}
+          {t('previewBanner')} {(provider.businessName?.charAt(0) ?? 'P')}
         </Text>
         <TouchableOpacity onPress={toggleFavourite} style={styles.bannerAction}>
           <FontAwesome5 
@@ -183,7 +189,7 @@ export default function ProfilePreviewScreen() {
           />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/(provider)/profile/edit')}>
-          <Text style={styles.bannerAction}>Bearbeiten</Text>
+          <Text style={styles.bannerAction}>{t('previewEdit')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -213,14 +219,14 @@ export default function ProfilePreviewScreen() {
 
         {/* PROVIDER INFO */}
         <View style={styles.infoSection}>
-          <Text style={styles.businessName}>{provider.businessName || 'Business Name'}</Text>
+          <Text style={styles.businessName}>{provider.businessName || t('providerGeneric')}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={14} color={colors.gold} />
-            <Text style={styles.statsText}>{avgRating} ({provider.totalReviews || 0} Bewertungen)</Text>
+            <Text style={styles.statsText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
           </View>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={14} color={colors.textSecondary} />
-            <Text style={styles.locationText}>{provider.city || 'Stadt'} {distance ? `• ${distance}` : ''}</Text>
+            <Text style={styles.locationText}>{provider.city || t('notAvailable')} {distance ? `• ${distance}` : ''}</Text>
           </View>
         </View>
 
@@ -229,19 +235,19 @@ export default function ProfilePreviewScreen() {
         {/* TABS HEADER */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsContainer}>
           {tabs.map((tab) => (
-            <TouchableOpacity key={tab} style={[styles.tabButton, activeTab === tab && styles.tabActive]} onPress={() => setActiveTab(tab)}>
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+            <TouchableOpacity key={tab.key} style={[styles.tabButton, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}>
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* TABS CONTENT */}
         <View style={styles.tabContentContainer}>
-          {activeTab === 'Überblick' && (
+          {activeTab === 'overview' && (
             <View>
               {provider.bio && <Text style={styles.bioText}>{provider.bio}</Text>}
               
-              <Text style={styles.sectionHeader}>Spezialisierungen</Text>
+              <Text style={styles.sectionHeader}>{t('profileSpecialisations')}</Text>
               <View style={styles.tagsRow}>
                 {specialisationTags.length > 0 ? specialisationTags.map((tag: string, idx: number) => (
                   <View key={idx} style={styles.tagChip}>
@@ -253,72 +259,72 @@ export default function ProfilePreviewScreen() {
                   </View>
                 ))}
                 {specialisationTags.length === 0 && services.length === 0 && (
-                  <Text style={styles.emptyText}>Keine Spezialisierungen angegeben.</Text>
+                  <Text style={styles.emptyText}>{t('profileNoSpecialisations')}</Text>
                 )}
               </View>
 
-              <Text style={styles.sectionHeader}>Informationen</Text>
+              <Text style={styles.sectionHeader}>{t('profileInfo')}</Text>
               <View style={styles.infoRow}>
                 <Feather name="map-pin" size={16} color={colors.textSecondary} />
-                <Text style={styles.infoText}>{provider.city || 'Deutschland'}</Text>
+                <Text style={styles.infoText}>{provider.city || t('countryDefault')}</Text>
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="star" solid size={14} color={colors.gold} />
-                <Text style={styles.infoText}>{avgRating} ({provider.totalReviews || 0} Bewertungen)</Text>
+                <Text style={styles.infoText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
               </View>
               <View style={styles.infoRow}>
                 <Feather name="clock" size={16} color={colors.textSecondary} />
-                <Text style={styles.infoText}>Antwortet in {provider.responseTime || '< 1 Stunde'}</Text>
+                <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
               {provider.isVerified && (
                 <View style={styles.infoRow}>
                   <Feather name="check-circle" size={16} color={colors.teal} />
-                  <Text style={[styles.infoText, { color: colors.teal }]}>Verifiziert</Text>
+                  <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
                 </View>
               )}
 
-              <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>Stornierungsbedingungen</Text>
-              <Text style={styles.policyText}>Kostenlose Stornierung bis {provider.cancellationPolicy || '24 Stunden vor dem Termin'}</Text>
+              <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
+              <Text style={styles.policyText}>{t('freeCancellationUntil')} {provider.cancellationPolicy || t('cancellationDefault')}</Text>
             </View>
           )}
 
-          {activeTab === 'Services' && (
+          {activeTab === 'services' && (
             <View>
               {(Array.isArray(services) ? services : []).map((service, idx) => (
                 <View key={idx} style={styles.serviceCard}>
                   <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>{service.name}</Text>
-                    <Text style={styles.serviceDetail}>{service.durationMin || service.duration} Min.</Text>
+                    <Text style={styles.serviceDetail}>{service.durationMin || service.duration} {t('appointmentsMinutes')}</Text>
                     <Text style={styles.servicePrice}>€ {service.price}</Text>
                   </View>
                   <TouchableOpacity style={styles.selectButton} onPress={() => {}}>
-                    <Text style={styles.selectButtonText}>Auswählen</Text>
+                    <Text style={styles.selectButtonText}>{t('profileSelectService')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
-              {services.length === 0 && <Text style={styles.emptyText}>Keine Services gelistet.</Text>}
+              {services.length === 0 && <Text style={styles.emptyText}>{t('profileNoServices')}</Text>}
             </View>
           )}
 
-          {activeTab === 'Galerie' && (
+          {activeTab === 'gallery' && (
             <View style={styles.galleryGrid}>
               {(Array.isArray(portfolio) ? portfolio : []).map((img: any, idx: number) => (
                 <View key={idx} style={styles.galleryImageContainer}>
                   <Image source={{ uri: img.imageUrl || img.url }} style={styles.galleryImage} />
                 </View>
               ))}
-              {portfolio.length === 0 && <Text style={styles.emptyText}>Noch keine Fotos</Text>}
+              {portfolio.length === 0 && <Text style={styles.emptyText}>{t('profileNoPhotos')}</Text>}
             </View>
           )}
 
-          {activeTab === 'Bewertungen' && (
+          {activeTab === 'reviews' && (
             <View>
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
                   {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
                 </View>
-                <Text style={styles.totalReviewsText}>Basierend auf {totalReviews} Bewertungen</Text>
+                <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('cardReviews')}</Text>
               </View>
 
               {(Array.isArray(reviews) ? reviews : []).map((rev, idx) => (
@@ -328,15 +334,15 @@ export default function ProfilePreviewScreen() {
                       <Text style={styles.reviewerAvatarText}>{rev.clientName?.charAt(0) || 'K'}</Text>
                     </View>
                     <View style={styles.reviewerInfo}>
-                      <Text style={styles.reviewerName}>{rev.clientName || 'Kunde'}</Text>
+                      <Text style={styles.reviewerName}>{rev.clientName || t('clientNameDefault')}</Text>
                       <View style={{flexDirection: 'row'}}>{[...Array(rev.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
                     </View>
-                    <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('de-DE') : ''}</Text>
+                    <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE') : ''}</Text>
                   </View>
                   <Text style={styles.reviewComment}>{rev.comment}</Text>
                 </View>
               ))}
-              {reviews.length === 0 && <Text style={styles.emptyText}>Keine Bewertungen vorhanden.</Text>}
+              {reviews.length === 0 && <Text style={styles.emptyText}>{t('profileNoReviews')}</Text>}
             </View>
           )}
         </View>
@@ -345,8 +351,8 @@ export default function ProfilePreviewScreen() {
       {/* BOTTOM BAR (Greyed out) */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.disabledButton} activeOpacity={1}>
-          <Text style={styles.disabledButtonText}>Termin buchen</Text>
-          <Text style={styles.disabledButtonSub}>(Vorschau — Kunden buchen hier)</Text>
+          <Text style={styles.disabledButtonText}>{t('previewBookDisabled')}</Text>
+          <Text style={styles.disabledButtonSub}>{t('previewNote')}</Text>
         </TouchableOpacity>
       </View>
 
