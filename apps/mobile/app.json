@@ -6,10 +6,11 @@
     "version": "1.0.0",
     "scheme": "hairconnekt",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
+    "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -21,6 +22,7 @@
       }
     },
     "android": {
+      "backgroundColor": "#FFFFFF",
       "package": "de.hairconnekt.app",
       "versionCode": 1,
       "permissions": [
@@ -33,9 +35,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "intentFilters": [
@@ -63,6 +63,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/splash.png",
+          "imageWidth": 280,
+          "resizeMode": "contain"
+        }
+      ],
       "expo-font",
       [
         "expo-image-picker",

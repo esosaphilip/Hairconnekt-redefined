@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing } from '../../theme';
+import { colors, fonts, fontSizes, layout, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -72,9 +72,11 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>HC</Text>
-        </View>
+        <Image
+          source={require('../../../assets/logo-full.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.heading}>Kundenkonto erstellen</Text>
         
         <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
@@ -104,8 +106,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl },
-  logoContainer: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.lg },
-  logoText: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
+  logo: { width: spacing.xxl * 4 + spacing.xs, height: layout.avatarMd, alignSelf: 'center', marginBottom: spacing.xl },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xl, textAlign: 'center' },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.sm },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },

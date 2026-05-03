@@ -1,13 +1,8 @@
-// app/(auth)/splash.tsx — S-01 Splash Screen
-// DOC 10 spec: Show logo + tagline for 2s → check AsyncStorage → navigate to correct route
-// No API calls. No components (first screen, no shared components exist yet).
-// CLAUDE.md Rule 3: No hardcoded values — use @/theme
-// CLAUDE.md Rule 2: All strings in German
-
 import { useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   Animated,
   Easing,
@@ -17,15 +12,11 @@ import {
 import { useRouter } from 'expo-router';
 import { tokenStorage } from '@/utils/token-storage';
 import { API } from '@/utils/api';
-import { colors } from '@/theme/colors';
-import { fonts, fontSizes } from '@/theme/typography';
-import { spacing } from '@/theme/spacing';
-
+import { colors, fonts, fontSizes, lineHeights, spacing } from '@/theme';
 
 export default function SplashScreen() {
   const router = useRouter();
 
-  // ── Animations ───────────────────────────────────────────────────────────
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
@@ -33,7 +24,6 @@ export default function SplashScreen() {
   const dotsOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Step 1: Fade + scale in the logo
     Animated.parallel([
       Animated.timing(logoOpacity, {
         toValue: 1,
@@ -48,7 +38,6 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Step 2: Slide-up tagline after logo settled
       Animated.parallel([
         Animated.timing(taglineOpacity, {
           toValue: 1,
@@ -63,7 +52,6 @@ export default function SplashScreen() {
         }),
       ]).start();
 
-      // Step 3: Fade in loading dots
       Animated.timing(dotsOpacity, {
         toValue: 1,
         duration: 400,
@@ -72,7 +60,6 @@ export default function SplashScreen() {
       }).start();
     });
 
-    // Step 4: After 2s total, check auth and navigate
     const timer = setTimeout(async () => {
       try {
         const accessToken = await tokenStorage.getAccessToken();
@@ -137,26 +124,12 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
 
-      {/* Logo mark + wordmark */}
       <Animated.View
-        style={[
-          styles.logoContainer,
-          { opacity: logoOpacity, transform: [{ scale: logoScale }] },
-        ]}
+        style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}
       >
-        {/* Logo mark — stylised HC monogram */}
-        <View style={styles.logoMark}>
-          <View style={styles.logoMarkInner} />
-          <View style={styles.logoMarkAccent} />
-        </View>
-
-        {/* Wordmark */}
-        <Text style={styles.wordmark} accessibilityRole="header">
-          Hair<Text style={styles.wordmarkAccent}>Connekt</Text>
-        </Text>
+        <Image source={require('../../../assets/logo-full.png')} style={styles.logo} resizeMode="contain" />
       </Animated.View>
 
-      {/* Tagline */}
       <Animated.Text
         style={[
           styles.tagline,
@@ -169,7 +142,6 @@ export default function SplashScreen() {
         Verbinde dich mit deinem{'\n'}perfekten Style
       </Animated.Text>
 
-      {/* Loading dots */}
       <Animated.View style={[styles.dotsContainer, { opacity: dotsOpacity }]}>
         <LoadingDots />
       </Animated.View>
@@ -177,7 +149,6 @@ export default function SplashScreen() {
   );
 }
 
-/** Animated loading dots */
 function LoadingDots() {
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
@@ -214,70 +185,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
 
-  // ── Logo ─────────────────────────────────────────────────────────────────
   logoContainer: {
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-
-  logoMark: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+  logo: {
+    width: spacing.xxl * 5,
+    height: (spacing.xxl * 5) / 3,
   },
-
-  logoMarkInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 4,
-    borderColor: colors.background,
-    position: 'absolute',
-    top: 14,
-    left: 10,
-  },
-
-  logoMarkAccent: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.coral,
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-  },
-
-  wordmark: {
-    fontSize: fontSizes.xxxl,
-    fontFamily: fonts.heading,
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-
-  wordmarkAccent: {
-    color: colors.primary,
-  },
-
-  // ── Tagline ───────────────────────────────────────────────────────────────
   tagline: {
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: lineHeights.md,
     marginBottom: spacing.xxl,
   },
-
-  // ── Loading dots ──────────────────────────────────────────────────────────
   dotsContainer: {
     position: 'absolute',
     bottom: Platform.OS === 'android' ? spacing.xl : spacing.xxl,
@@ -288,11 +211,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     alignItems: 'center',
   },
-
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing.xs,
+    height: spacing.xs,
+    borderRadius: spacing.xs / 2,
     backgroundColor: colors.primary,
   },
 });

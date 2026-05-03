@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
-import { colors, fonts, fontSizes, spacing } from '../../theme';
+import { colors, fonts, fontSizes, layout, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -88,9 +88,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>HC</Text>
-        </View>
+        <Image
+          source={require('../../../assets/logo-full.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         
         <View style={styles.roleToggleContainer}>
           <TouchableOpacity 
@@ -141,8 +143,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: spacing.lg, justifyContent: 'center', flexGrow: 1, paddingBottom: spacing.xxl },
-  logoContainer: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.xl },
-  logoText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
+  logo: { width: spacing.xxl * 4 + spacing.xs, height: layout.avatarMd, alignSelf: 'center', marginBottom: spacing.xl },
   roleToggleContainer: { flexDirection: 'row', backgroundColor: '#F5F5F5', borderRadius: 999, padding: 4, marginBottom: spacing.xl },
   roleTogglePill: { flex: 1, height: 44, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
   roleTogglePillActive: { backgroundColor: colors.primary },
