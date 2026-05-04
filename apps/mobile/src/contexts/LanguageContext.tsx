@@ -273,6 +273,9 @@ export const TRANSLATIONS = {
   settingsDeleteFinal: { de: 'Endgültig löschen', en: 'Delete permanently' },
   settingsLogoutConfirm: { de: 'Wirklich abmelden?', en: 'Really sign out?' },
   settingsLogoutBody: { de: 'Möchtest du dich wirklich ausloggen?', en: 'Do you really want to sign out?' },
+  settingsDiagnostics: { de: 'Diagnose', en: 'Diagnostics' },
+  settingsDiagnosticsSendSentry: { de: 'Sentry-Test senden', en: 'Send Sentry test' },
+  settingsDiagnosticsSent: { de: 'Test-Event wurde gesendet.', en: 'Test event sent.' },
 
   clientProfileTitle: { de: 'Profil', en: 'Profile' },
   clientProfileAddresses: { de: 'Meine Adressen', en: 'My addresses' },

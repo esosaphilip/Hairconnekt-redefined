@@ -1,11 +1,12 @@
 async function run() {
-  const apiUrl = 'http://localhost:3000/api/v1';
+  const apiUrl = process.env.API_URL ?? 'http://localhost:3000/api/v1';
   let token = '';
   let providerId = '';
   let serviceId = '';
 
   try {
     const email = `test.client.${Date.now()}@example.com`;
+    const password = process.env.TEST_PASSWORD ?? `Aa1!Test${Date.now()}`;
     console.log('Registering user:', email);
     
     // Register User
@@ -14,7 +15,7 @@ async function run() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        password: 'Password123!',
+        password,
         firstName: 'Test',
         lastName: 'Client',
         role: 'client',
@@ -23,17 +24,20 @@ async function run() {
       })
     });
     let data = await res.json();
-    if (!data.accessToken) {
-      console.log('Login mapping fallback:', data);
+    const registerToken = data?.accessToken ?? data?.data?.accessToken;
+    if (registerToken) {
+      token = registerToken;
+    } else {
       res = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'client@example.com', password: 'Password123!' })
+        body: JSON.stringify({ email, password })
       });
       data = await res.json();
-      if (!data.accessToken) throw new Error('Auth failed');
+      const loginToken = data?.accessToken ?? data?.data?.accessToken;
+      if (!loginToken) throw new Error('Auth failed');
+      token = loginToken;
     }
-    token = data.accessToken;
     console.log('✅ Got token');
 
     // Get providers

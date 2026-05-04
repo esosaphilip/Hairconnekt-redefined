@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 // Temporarily comment out Notifications to avoid Expo Go SDK 53 errors
 // import * as Notifications from 'expo-notifications';
 // import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import * as Sentry from '@sentry/react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout, shadows } from '@/theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -22,6 +24,8 @@ export default function SharedSettingsScreen() {
   const [password, setPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [versionTapCount, setVersionTapCount] = useState(0);
+  const [diagnosticsEnabled, setDiagnosticsEnabled] = useState(false);
 
   useEffect(() => {
     registerForPushNotificationsAsync();
@@ -128,6 +132,21 @@ export default function SharedSettingsScreen() {
     </TouchableOpacity>
   );
 
+  const appVersion = Constants.expoConfig?.version ?? '0.0.0';
+  const buildId =
+    Platform.OS === 'ios'
+      ? Constants.expoConfig?.ios?.buildNumber
+      : Constants.expoConfig?.android?.versionCode?.toString();
+  const versionLabel = buildId ? `HairConnekt v${appVersion} (${buildId})` : `HairConnekt v${appVersion}`;
+
+  const handleVersionTap = () => {
+    setVersionTapCount(prev => {
+      const next = prev + 1;
+      if (next >= 7) setDiagnosticsEnabled(true);
+      return next;
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
@@ -192,7 +211,21 @@ export default function SharedSettingsScreen() {
           <Text style={styles.actionTextSmallRed}>{t('settingsDeleteAccount')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>HairConnekt v1.0.0</Text>
+        {diagnosticsEnabled ? (
+          <>
+            <Text style={styles.sectionTitle}>{t('settingsDiagnostics')}</Text>
+            <View style={styles.cardGroup}>
+              {renderRow('activity', t('settingsDiagnosticsSendSentry'), () => {
+                Sentry.captureException(new Error('Sentry test event'));
+                Alert.alert(t('done'), t('settingsDiagnosticsSent'));
+              })}
+            </View>
+          </>
+        ) : null}
+
+        <TouchableOpacity onPress={handleVersionTap} activeOpacity={0.7}>
+          <Text style={styles.versionText}>{versionLabel}</Text>
+        </TouchableOpacity>
 
       </ScrollView>
 

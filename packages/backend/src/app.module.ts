@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
@@ -15,17 +17,22 @@ import { AvailabilityModule } from './availability/availability.module';
 import { StorageModule } from './common/storage/storage.module';
 import { AdminModule } from './admin/admin.module';
 import { PopularStylesModule } from './popular-styles/popular-styles.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 120 }]),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
       autoLoadEntities: true,
       synchronize: false, // Disable auto-sync in production
-      logging: 'all',
+      logging:
+        (process.env.NODE_ENV ?? 'development') === 'development'
+          ? 'all'
+          : ['error', 'warn'],
       retryAttempts: 5,
       retryDelay: 3000,
     }),
@@ -43,6 +50,8 @@ import { PopularStylesModule } from './popular-styles/popular-styles.module';
     StorageModule,
     AdminModule,
     PopularStylesModule,
+    HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
