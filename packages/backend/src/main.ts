@@ -7,6 +7,23 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
+  const setEnvAlias = (target: string, sources: string[]) => {
+    const existing = process.env[target];
+    if (existing !== undefined && existing.trim() !== '') return;
+    for (const src of sources) {
+      const value = process.env[src];
+      if (value !== undefined && value.trim() !== '') {
+        process.env[target] = value;
+        return;
+      }
+    }
+  };
+
+  setEnvAlias('JWT_ACCESS_SECRET', ['JWT_SECRET']);
+  setEnvAlias('JWT_ACCESS_EXPIRES', ['JWT_EXPIRES_IN']);
+  setEnvAlias('JWT_REFRESH_SECRET', ['REFRESH_JWT_SECRET']);
+  setEnvAlias('JWT_REFRESH_EXPIRES', ['REFRESH_JWT_EXPIRES_IN']);
+
   const requireEnv = (name: string) => {
     const value = process.env[name];
     if (value === undefined || value.trim() === '') {
@@ -17,8 +34,8 @@ async function bootstrap() {
 
   if ((process.env.NODE_ENV ?? 'development') === 'production') {
     requireEnv('DATABASE_URL');
-    requireEnv('JWT_SECRET');
-    requireEnv('REFRESH_JWT_SECRET');
+    requireEnv('JWT_ACCESS_SECRET');
+    requireEnv('JWT_REFRESH_SECRET');
     requireEnv('CORS_ORIGIN');
     requireEnv('R2_PUBLIC_BASE_URL');
     requireEnv('R2_ACCOUNT_ID');
