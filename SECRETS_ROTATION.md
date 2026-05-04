@@ -33,13 +33,13 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
 
 ### Goal
 - Rotate access + refresh JWT secrets without breaking deployments.
-- Rotate `JWT_SECRET` and `REFRESH_JWT_SECRET` without breaking deployments.
+- Rotate `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` without breaking deployments.
 
 ### Steps
   - `JWT_ACCESS_SECRET`
+  - `JWT_ACCESS_EXPIRES`
   - `JWT_REFRESH_SECRET`
-  - `JWT_SECRET`
-  - `REFRESH_JWT_SECRET`
+  - `JWT_REFRESH_EXPIRES`
 
 ### Impact
 
@@ -58,8 +58,9 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
   - `R2_ACCOUNT_ID`
   - `R2_ACCESS_KEY_ID`
   - `R2_SECRET_ACCESS_KEY`
-  - `R2_BUCKET`
-  - `R2_PUBLIC_BASE_URL`
+  - `R2_BUCKET_NAME`
+  - `R2_PUBLIC_URL`
+  - `R2_ENDPOINT`
 - Redeploy.
 - Verify:
   - avatar upload works
