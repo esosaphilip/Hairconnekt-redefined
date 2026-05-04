@@ -32,16 +32,14 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
 ## 2) Backend JWT Secrets
 
 ### Goal
-
+- Rotate access + refresh JWT secrets without breaking deployments.
 - Rotate `JWT_SECRET` and `REFRESH_JWT_SECRET` without breaking deployments.
 
 ### Steps
-
-- Generate new strong random secrets for:
+  - `JWT_ACCESS_SECRET`
+  - `JWT_REFRESH_SECRET`
   - `JWT_SECRET`
   - `REFRESH_JWT_SECRET`
-- Update Render env vars for production and staging.
-- Redeploy.
 
 ### Impact
 
@@ -92,4 +90,3 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
 
 - Keep `EXPO_PUBLIC_SENTRY_DSN` set so the app can send crash events.
 - If you want symbolicated stack traces in Sentry for native builds/updates, add `SENTRY_AUTH_TOKEN` as an EAS secret.
-
