@@ -84,6 +84,7 @@ export default function ClientHome() {
   const [userCity, setUserCity] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
+  const [popularStyles, setPopularStyles] = useState<PopularStyle[]>(BELIEBTE_STYLES);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
@@ -112,6 +113,7 @@ export default function ClientHome() {
     loadUser();
     getFavouriteIds().then(setFavouriteIds);
     bootstrapDiscovery();
+    fetchPopularStyles();
   }, []);
 
   const bootstrapDiscovery = async () => {
@@ -136,6 +138,19 @@ export default function ClientHome() {
       const override = await getDiscoveryOverride().catch(() => null);
       setUserCity(override?.city ?? city);
       setUserAvatar(user.avatarUrl ?? null);
+    } catch {
+      /* keep defaults */
+    }
+  };
+
+  const fetchPopularStyles = async () => {
+    try {
+      const res = await fetch(`${API}/popular-styles`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setPopularStyles(data);
+      }
     } catch {
       /* keep defaults */
     }
@@ -280,7 +295,7 @@ export default function ClientHome() {
           style={styles.stylesGallery}
           contentContainerStyle={{ paddingRight: spacing.lg }}
         >
-          {BELIEBTE_STYLES.map(style => (
+          {popularStyles.map(style => (
             <TouchableOpacity
               key={style.id}
               style={styles.styleCard}
