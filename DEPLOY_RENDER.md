@@ -6,15 +6,16 @@ This is the minimal checklist to deploy the NestJS backend on Render and validat
 
 The backend will refuse to start in `NODE_ENV=production` if any are missing:
 - `DATABASE_URL`
-- `JWT_SECRET`
-- `REFRESH_JWT_SECRET`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
 - `CORS_ORIGIN` (comma-separated allowlist)
-- `R2_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET`
-- `R2_PUBLIC_BASE_URL`
+- `R2_BUCKET_NAME`
+- `R2_PUBLIC_URL`
+- `R2_ENDPOINT`
 - `SENDGRID_API_KEY`
+- `SENDGRID_FROM_EMAIL`
 
 ## Render service config (backend)
 
@@ -31,4 +32,3 @@ Production:
 Staging:
 - `GET https://hairconnekt-api-staging.onrender.com/api/v1/health` → 200
 - `GET https://hairconnekt-api-staging.onrender.com/api/v1/health/db` → 200
-

@@ -24,6 +24,16 @@ async function bootstrap() {
   setEnvAlias('JWT_REFRESH_SECRET', ['REFRESH_JWT_SECRET']);
   setEnvAlias('JWT_REFRESH_EXPIRES', ['REFRESH_JWT_EXPIRES_IN']);
 
+  setEnvAlias('R2_BUCKET_NAME', ['R2_BUCKET']);
+  setEnvAlias('R2_PUBLIC_URL', ['R2_PUBLIC_BASE_URL']);
+  if (
+    (process.env.R2_ENDPOINT === undefined || process.env.R2_ENDPOINT.trim() === '') &&
+    process.env.R2_ACCOUNT_ID !== undefined &&
+    process.env.R2_ACCOUNT_ID.trim() !== ''
+  ) {
+    process.env.R2_ENDPOINT = `https://${process.env.R2_ACCOUNT_ID.trim()}.r2.cloudflarestorage.com`;
+  }
+
   const requireEnv = (name: string) => {
     const value = process.env[name];
     if (value === undefined || value.trim() === '') {
@@ -37,12 +47,13 @@ async function bootstrap() {
     requireEnv('JWT_ACCESS_SECRET');
     requireEnv('JWT_REFRESH_SECRET');
     requireEnv('CORS_ORIGIN');
-    requireEnv('R2_PUBLIC_BASE_URL');
-    requireEnv('R2_ACCOUNT_ID');
+    requireEnv('R2_PUBLIC_URL');
     requireEnv('R2_ACCESS_KEY_ID');
     requireEnv('R2_SECRET_ACCESS_KEY');
-    requireEnv('R2_BUCKET');
+    requireEnv('R2_BUCKET_NAME');
+    requireEnv('R2_ENDPOINT');
     requireEnv('SENDGRID_API_KEY');
+    requireEnv('SENDGRID_FROM_EMAIL');
   }
 
   if (
