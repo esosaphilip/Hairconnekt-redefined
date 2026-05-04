@@ -1,12 +1,22 @@
 #!/bin/bash
-RENDER_URL="https://hairconnekt-redefined.onrender.com"
+BASE_URL="${BASE_URL:-http://localhost:3000}"
 TIMESTAMP=$(date +%s)
 EMAIL="test$TIMESTAMP@example.com"
-PASSWORD="Test1234!"
-PHOTO_PATH="/Users/eseosaedosomwan/Downloads/Hairconnekt redefined/apps/mobile/assets/icon.png"
+PASSWORD="${TEST_PASSWORD:-}"
+PHOTO_PATH="${PHOTO_PATH:-}"
+
+if [ -z "$PASSWORD" ]; then
+  echo "Missing TEST_PASSWORD"
+  exit 1
+fi
+
+if [ -z "$PHOTO_PATH" ]; then
+  echo "Missing PHOTO_PATH"
+  exit 1
+fi
 
 echo "1. Registering test user $EMAIL..."
-REG_RES=$(curl -s -X POST $RENDER_URL/api/v1/auth/register \
+REG_RES=$(curl -s -X POST $BASE_URL/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d "{\"firstName\":\"Test\",\"lastName\":\"User\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"role\":\"client\",\"acceptedTerms\":true}")
 
@@ -21,7 +31,7 @@ fi
 echo "Registration successful. Token acquired."
 echo ""
 echo "2. Running avatar upload POST..."
-curl -X POST $RENDER_URL/api/v1/users/me/avatar \
+curl -X POST $BASE_URL/api/v1/users/me/avatar \
   -H "Authorization: Bearer $TOKEN" \
   -F "avatar=@$PHOTO_PATH" \
   -v

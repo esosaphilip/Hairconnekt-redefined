@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Sentry from '@sentry/react-native';
 import {
   useFonts,
   PlayfairDisplay_400Regular,
@@ -22,7 +23,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Keep splash visible while fonts load
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    tracesSampleRate: 0.1,
+  });
+}
+
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium,
@@ -54,3 +63,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;

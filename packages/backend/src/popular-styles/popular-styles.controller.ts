@@ -54,7 +54,12 @@ export class AdminPopularStylesController {
   }
 
   @Post(':id/image')
-  @UseInterceptors(FileInterceptor('styleImage', { storage: memoryStorage() }))
+  @UseInterceptors(
+    FileInterceptor('styleImage', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   async uploadImage(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile(

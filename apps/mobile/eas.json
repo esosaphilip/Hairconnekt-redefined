@@ -49,8 +49,8 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://hairconnekt-redefined.onrender.com/api/v1",
-        "EXPO_PUBLIC_WS_URL": "wss://hairconnekt-redefined.onrender.com",
+        "EXPO_PUBLIC_API_URL": "https://api.hairconnekt.de/api/v1",
+        "EXPO_PUBLIC_WS_URL": "wss://api.hairconnekt.de",
         "EXPO_PUBLIC_R2_BASE_URL": "https://media.hairconnekt.de"
       },
       "android": {

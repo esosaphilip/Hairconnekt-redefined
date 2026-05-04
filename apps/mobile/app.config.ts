@@ -15,6 +15,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ? 'de.hairconnekt.app.staging'
     : base.android?.package ?? 'de.hairconnekt.app';
 
+  const iosBundleIdentifier = isPreview
+    ? 'de.hairconnekt.app.staging'
+    : base.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
+
   return {
     ...base,
     name,
@@ -24,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     ios: {
       ...base.ios,
+      bundleIdentifier: iosBundleIdentifier,
     },
     extra: {
       ...base.extra,
@@ -35,4 +40,3 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
   };
 };
-

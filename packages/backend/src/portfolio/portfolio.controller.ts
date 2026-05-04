@@ -54,7 +54,12 @@ export class PortfolioController {
   @Post('me/portfolio')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
-  @UseInterceptors(FileInterceptor('portfolio', { storage: memoryStorage() }))
+  @UseInterceptors(
+    FileInterceptor('portfolio', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
   async uploadPortfolioImage(
     @CurrentUser() user: User,
     @UploadedFile(
