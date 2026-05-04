@@ -26,7 +26,11 @@ export class PopularStylesSeedService implements OnModuleInit {
       { name: 'Passion Twists', emoji: '💜', colorHex: '#5C2D00', sortOrder: 10, imageUrl: null, imageKey: null },
     ];
 
-    await this.popularStyleRepo.upsert(styles, { conflictPaths: ['name'] });
-    this.logger.log(`Seeded popular styles: ${styles.length}`);
+    try {
+      await this.popularStyleRepo.upsert(styles, { conflictPaths: ['name'] });
+      this.logger.log(`Seeded popular styles: ${styles.length}`);
+    } catch (err: any) {
+      this.logger.warn(`Could not seed popular styles: ${err?.message ?? String(err)}`);
+    }
   }
 }
