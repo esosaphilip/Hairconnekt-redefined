@@ -151,7 +151,7 @@ Runbook reference:
 - [ ] Auth endpoints still enforce throttling.
 - [ ] Non-auth endpoints have baseline throttling.
 - [ ] Health check / simple endpoint responds under load test (light).
-- [ ] `GET /api/v1/health/db` returns 200 (DB reachable).
+- [x] `GET /api/v1/health/db` returns 200 (DB reachable).
 
 ---
 
