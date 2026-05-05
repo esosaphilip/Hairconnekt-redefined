@@ -72,12 +72,35 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean)
-      : true,
-    credentials: true,
-  });
+  const rawCorsOrigin = process.env.CORS_ORIGIN?.trim();
+  const defaultCorsOrigins = [
+    'https://hairconnekt.de',
+    'https://www.hairconnekt.de',
+    'https://admin.hairconnekt.de',
+  ];
+
+  if (!rawCorsOrigin) {
+    app.enableCors({ origin: true, credentials: true });
+  } else {
+    const configured = rawCorsOrigin
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const allowAll = configured.includes('*');
+
+    if (allowAll) {
+      app.enableCors({ origin: true, credentials: true });
+    } else {
+      const allowed = new Set([...configured, ...defaultCorsOrigins]);
+      app.enableCors({
+        origin: (origin, callback) => {
+          if (!origin) return callback(null, true);
+          return callback(null, allowed.has(origin));
+        },
+        credentials: true,
+      });
+    }
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({

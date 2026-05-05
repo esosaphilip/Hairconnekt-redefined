@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const normalizeBaseUrl = (value: string): string => {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (trimmed === '') return 'https://api.hairconnekt.de/api/v1';
+  if (/\/api\/v1$/.test(trimmed)) return trimmed;
+  return `${trimmed}/api/v1`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: normalizeBaseUrl(String(import.meta.env.VITE_API_URL ?? '')),
 });
 
 api.interceptors.request.use((config) => {

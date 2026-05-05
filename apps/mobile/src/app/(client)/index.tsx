@@ -85,6 +85,7 @@ export default function ClientHome() {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
   const [popularStyles, setPopularStyles] = useState<PopularStyle[]>(BELIEBTE_STYLES);
+  const [failedPopularStyleImages, setFailedPopularStyleImages] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
@@ -308,12 +309,18 @@ export default function ClientHome() {
                 },
               } as any)}
             >
-              {style.imageUrl ? (
+              {style.imageUrl && !failedPopularStyleImages[style.id] ? (
                 <View style={[styles.styleImageContainer, { backgroundColor: style.colorHex }]}>
                   <Image
                     source={{ uri: style.imageUrl }}
                     style={styles.styleBackgroundImage}
                     resizeMode="cover"
+                    onError={() =>
+                      setFailedPopularStyleImages((prev) => ({
+                        ...prev,
+                        [style.id]: true,
+                      }))
+                    }
                   />
                   <View style={styles.styleEmojiOverlay}>
                     <Text style={{ fontSize: 28 }}>{style.emoji}</Text>

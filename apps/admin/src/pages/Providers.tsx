@@ -114,7 +114,7 @@ export default function Providers() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-color)', overflow: 'hidden' }}>
                       {p.avatarUrl || p.user?.avatarUrl ? 
-                        <img src={p.avatarUrl || p.user?.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
+                        <img src={p.avatarUrl ?? p.user?.avatarUrl ?? undefined} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>{p.user?.firstName?.[0]}</div>
                       }
                     </div>
