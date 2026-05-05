@@ -43,9 +43,10 @@ export default function PopularStyles() {
     try {
       const data = await getPopularStyles();
       setStyles(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      const status = err?.response?.status;
-      if (status) {
+    } catch (err: unknown) {
+      const maybe = err as { response?: { status?: unknown } };
+      const status = maybe?.response?.status;
+      if (typeof status === 'number') {
         setPageError(`Fehler beim Laden der Styles (Status: ${status}).`);
       } else {
         setPageError('Fehler beim Laden der Styles.');
@@ -122,8 +123,13 @@ export default function PopularStyles() {
       setIsModalOpen(false);
       setEditingStyle(null);
       setForm(defaultForm);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Fehler beim Speichern');
+    } catch (err: unknown) {
+      const maybe = err as { response?: { data?: { message?: unknown } } };
+      const message =
+        typeof maybe?.response?.data?.message === 'string'
+          ? maybe.response.data.message
+          : 'Fehler beim Speichern';
+      alert(message);
     }
   };
 
@@ -134,7 +140,7 @@ export default function PopularStyles() {
     try {
       const updated = await updatePopularStyle(style.id, { isActive: nextValue });
       setStyles((prev) => prev.map((s) => (s.id === style.id ? updated : s)));
-    } catch (err) {
+    } catch {
       setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, isActive: style.isActive } : s)));
       setRowError(style.id, 'Aktualisierung fehlgeschlagen');
     }
@@ -162,7 +168,7 @@ export default function PopularStyles() {
     try {
       const res = await uploadStyleImage(id, file);
       setStyles((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: res.imageUrl } : s)));
-    } catch (err) {
+    } catch {
       setRowError(id, 'Bild-Upload fehlgeschlagen');
     } finally {
       setUploadingImageIds((prev) => ({ ...prev, [id]: false }));
@@ -176,7 +182,7 @@ export default function PopularStyles() {
     try {
       await deleteStyleImage(style.id);
       setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, imageUrl: null } : s)));
-    } catch (err) {
+    } catch {
       setRowError(style.id, 'Bild konnte nicht entfernt werden');
     }
   };
@@ -187,7 +193,7 @@ export default function PopularStyles() {
     try {
       await deletePopularStyle(style.id);
       setStyles((prev) => prev.filter((s) => s.id !== style.id));
-    } catch (err) {
+    } catch {
       setRowError(style.id, 'Löschen fehlgeschlagen');
     }
   };

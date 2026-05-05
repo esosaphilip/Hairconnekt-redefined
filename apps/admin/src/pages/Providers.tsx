@@ -1,34 +1,45 @@
 import { useEffect, useState } from 'react';
 import { UserCheck, UserX, UserMinus, ShieldAlert } from 'lucide-react';
-import api from '../api';
+import {
+  approveProvider,
+  getProviders,
+  rejectProvider,
+  suspendProvider,
+  type AdminProvider,
+  type ProviderStatus,
+} from '../api';
 
 export default function Providers() {
-  const [providers, setProviders] = useState<any[]>([]);
-  const [filter, setFilter] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState<any>(null);
+  const [providers, setProviders] = useState<AdminProvider[]>([]);
+  const [filter, setFilter] = useState<ProviderStatus | ''>('');
+  const [selectedProvider, setSelectedProvider] = useState<AdminProvider | null>(null);
 
-  const loadProviders = async (status?: string) => {
+  const loadProviders = async (status?: ProviderStatus) => {
     try {
-      const url = status ? `/admin/providers?status=${status}` : '/admin/providers';
-      const res = await api.get(url);
-      setProviders(res.data);
+      const data = await getProviders(status);
+      setProviders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     }
   };
 
   useEffect(() => {
-    loadProviders(filter);
+    loadProviders(filter || undefined);
   }, [filter]);
 
   const approve = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
-      await api.patch(`/admin/providers/${id}/approve`);
-      loadProviders(filter);
+      await approveProvider(id);
+      loadProviders(filter || undefined);
       if (selectedProvider?.id === id) setSelectedProvider(null);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Fehler beim Genehmigen');
+    } catch (err: unknown) {
+      const maybe = err as { response?: { data?: { message?: unknown } } };
+      const message =
+        typeof maybe?.response?.data?.message === 'string'
+          ? maybe.response.data.message
+          : 'Fehler beim Genehmigen';
+      alert(message);
     }
   };
 
@@ -37,11 +48,16 @@ export default function Providers() {
     const reason = prompt('Grund für Ablehnung (optional)?');
     if (reason === null) return;
     try {
-      await api.patch(`/admin/providers/${id}/reject`, { reason });
-      loadProviders(filter);
+      await rejectProvider(id, reason || undefined);
+      loadProviders(filter || undefined);
       if (selectedProvider?.id === id) setSelectedProvider(null);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Fehler beim Ablehnen');
+    } catch (err: unknown) {
+      const maybe = err as { response?: { data?: { message?: unknown } } };
+      const message =
+        typeof maybe?.response?.data?.message === 'string'
+          ? maybe.response.data.message
+          : 'Fehler beim Ablehnen';
+      alert(message);
     }
   };
 
@@ -49,15 +65,15 @@ export default function Providers() {
     e?.stopPropagation();
     if (!confirm('Anbieter wirklich sperren?')) return;
     try {
-      await api.patch(`/admin/providers/${id}/suspend`);
-      loadProviders(filter);
+      await suspendProvider(id);
+      loadProviders(filter || undefined);
       if (selectedProvider?.id === id) setSelectedProvider(null);
-    } catch (err: any) {
+    } catch {
       alert('Fehler beim Sperren');
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: ProviderStatus) => {
     switch(status) {
       case 'pending': return <span className="badge badge-pending">Ausstehend</span>;
       case 'approved': return <span className="badge badge-approved">Genehmigt</span>;
