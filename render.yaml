@@ -1,12 +1,13 @@
 services:
   - type: web
     name: hairconnekt-api-staging
-    env: node
+    runtime: node
     branch: develop
     region: frankfurt
-    rootDir: .
-    buildCommand: cd packages/backend && npm ci && npm run build
-    startCommand: cd packages/backend && node dist/src/main
+    rootDir: packages/backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/v1/health
     autoDeploy: true
     plan: starter
     envVars:
