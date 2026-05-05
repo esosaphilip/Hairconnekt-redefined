@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, ShieldAlert } from 'lucide-react';
-import api from '../api';
+import {
+  createCategory,
+  deleteCategory as removeCategory,
+  getCategories,
+  updateCategory,
+  type Category,
+} from '../api';
 
 export default function Categories() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -11,8 +17,8 @@ export default function Categories() {
 
   const loadCategories = async () => {
     try {
-      const res = await api.get('/admin/categories');
-      setCategories(res.data);
+      const data = await getCategories();
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     }
@@ -28,7 +34,7 @@ export default function Categories() {
     setIsModalOpen(true);
   };
 
-  const openEdit = (cat: any) => {
+  const openEdit = (cat: Category) => {
     setEditingId(cat.id);
     setForm({ name: cat.name, description: cat.description || '', sortOrder: cat.sortOrder, isActive: cat.isActive });
     setIsModalOpen(true);
@@ -37,21 +43,26 @@ export default function Categories() {
   const saveCategory = async () => {
     try {
       if (editingId) {
-        await api.patch(`/admin/categories/${editingId}`, form);
+        await updateCategory(editingId, form);
       } else {
-        await api.post('/admin/categories', form);
+        await createCategory(form);
       }
       setIsModalOpen(false);
       loadCategories();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Fehler beim Speichern');
+    } catch (err: unknown) {
+      const maybe = err as { response?: { data?: { message?: unknown } } };
+      const message =
+        typeof maybe?.response?.data?.message === 'string'
+          ? maybe.response.data.message
+          : 'Fehler beim Speichern';
+      alert(message);
     }
   };
 
   const deleteCategory = async (id: string) => {
     if (!confirm('Kategorie wirklich löschen?')) return;
     try {
-      await api.delete(`/admin/categories/${id}`);
+      await removeCategory(id);
       loadCategories();
     } catch (err) {
       console.error(err);
@@ -59,9 +70,9 @@ export default function Categories() {
     }
   };
 
-  const toggleActive = async (cat: any) => {
+  const toggleActive = async (cat: Category) => {
     try {
-      await api.patch(`/admin/categories/${cat.id}`, { isActive: !cat.isActive });
+      await updateCategory(cat.id, { isActive: !cat.isActive });
       loadCategories();
     } catch (err) {
       console.error(err);

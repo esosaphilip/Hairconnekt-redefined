@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import { adminLogin } from '../api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,18 +11,23 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/admin-login', { identifier: email, password });
-      if (res.data && res.data.accessToken) {
-        localStorage.setItem('admin_token', res.data.accessToken);
+      const res = await adminLogin(email, password);
+      if (res?.accessToken) {
+        localStorage.setItem('admin_token', res.accessToken);
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      if (err.message === 'Network Error') {
+    } catch (err: unknown) {
+      const maybe = err as {
+        message?: unknown;
+        response?: { status?: unknown };
+      };
+      if (maybe?.message === 'Network Error') {
         setError('Connection failed. Backend might be unreachable or blocking CORS.');
-      } else if (err.response && err.response.status === 401) {
+      } else if (maybe?.response && maybe.response.status === 401) {
         setError('Falsches Passwort oder falsche Email!');
       } else {
-        setError(`Error: ${err.message || 'Ungültige Anmeldedaten'}`);
+        const message = typeof maybe?.message === 'string' ? maybe.message : 'Ungültige Anmeldedaten';
+        setError(`Error: ${message}`);
       }
     }
   };

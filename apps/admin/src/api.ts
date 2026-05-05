@@ -25,6 +25,34 @@ export default api;
 
 export type ProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
+export type AdminUserSummary = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+};
+
+export type AdminProvider = {
+  id: string;
+  status: ProviderStatus;
+  createdAt: string;
+  city?: string | null;
+  providerType?: string | null;
+  businessName?: string | null;
+  avatarUrl?: string | null;
+  idDocumentUrl?: string | null;
+  user?: AdminUserSummary | null;
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+};
+
 export type PopularStyle = {
   id: string;
   name: string;
@@ -84,15 +112,17 @@ export async function deleteStyleImage(id: string): Promise<void> {
   await api.delete(`/admin/popular-styles/${id}/image`);
 }
 
-export async function getProviders(status?: ProviderStatus) {
+export async function getProviders(
+  status?: ProviderStatus,
+): Promise<AdminProvider[]> {
   const url = status ? `/admin/providers?status=${status}` : '/admin/providers';
   const res = await api.get(url);
-  return res.data;
+  return res.data as AdminProvider[];
 }
 
-export async function getProviderById(id: string) {
+export async function getProviderById(id: string): Promise<AdminProvider> {
   const res = await api.get(`/admin/providers/${id}`);
-  return res.data;
+  return res.data as AdminProvider;
 }
 
 export async function approveProvider(id: string) {
@@ -108,6 +138,38 @@ export async function rejectProvider(id: string, reason?: string) {
 export async function suspendProvider(id: string, reason?: string) {
   const res = await api.patch(`/admin/providers/${id}/suspend`, { reason });
   return res.data;
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const res = await api.get('/admin/categories');
+  return res.data as Category[];
+}
+
+export async function createCategory(
+  data: Omit<Category, 'id'>,
+): Promise<Category> {
+  const res = await api.post('/admin/categories', data);
+  return res.data as Category;
+}
+
+export async function updateCategory(
+  id: string,
+  data: Partial<Omit<Category, 'id'>>,
+): Promise<Category> {
+  const res = await api.patch(`/admin/categories/${id}`, data);
+  return res.data as Category;
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await api.delete(`/admin/categories/${id}`);
+}
+
+export async function adminLogin(
+  identifier: string,
+  password: string,
+): Promise<{ accessToken: string }> {
+  const res = await api.post('/auth/admin-login', { identifier, password });
+  return res.data as { accessToken: string };
 }
 
 export async function getAdminStats(): Promise<{
