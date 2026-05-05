@@ -19,9 +19,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ? 'de.hairconnekt.app.staging'
     : base.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
 
+  const plugins = Array.isArray(base.plugins) ? [...base.plugins] : [];
+  const hasAdiPlugin = plugins.some((p) => {
+    if (typeof p === 'string') return p.includes('withAdiRegistration');
+    if (Array.isArray(p)) return String(p[0]).includes('withAdiRegistration');
+    return false;
+  });
+  if (!hasAdiPlugin) {
+    plugins.push(['./plugins/withAdiRegistration', { envVar: 'PLAY_ADI_REGISTRATION_SNIPPET' }]);
+  }
+
   return {
     ...base,
     name,
+    plugins,
     android: {
       ...base.android,
       package: androidPackage,
