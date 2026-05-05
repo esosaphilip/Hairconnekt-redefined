@@ -147,10 +147,10 @@ Runbook reference:
 - [ ] Sentry verification path: Settings → tap version 7x → Diagnostics → “Send Sentry test”.
 
 ### Backend
-- [ ] Server boots with production env and does not log SQL queries/parameters.
-- [ ] Auth endpoints still enforce throttling.
-- [ ] Non-auth endpoints have baseline throttling.
-- [ ] Health check / simple endpoint responds under load test (light).
+- [x] Server boots with production env and does not log SQL queries/parameters.
+- [x] Auth endpoints still enforce throttling.
+- [x] Non-auth endpoints have baseline throttling.
+- [x] Health check / simple endpoint responds under load test (light).
 - [x] `GET /api/v1/health/db` returns 200 (DB reachable).
 
 ---
