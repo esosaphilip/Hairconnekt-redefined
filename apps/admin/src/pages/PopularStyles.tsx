@@ -493,9 +493,11 @@ export default function PopularStyles() {
                     />
                   )}
 
-                  <div style={{ position: 'relative', height: '70%', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                    <div style={{ fontSize: 42, lineHeight: 1 }}>{style.emoji || '✨'}</div>
-                  </div>
+                  {!style.imageUrl && (
+                    <div style={{ position: 'relative', height: '70%', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                      <div style={{ fontSize: 42, lineHeight: 1 }}>{style.emoji || '✨'}</div>
+                    </div>
+                  )}
 
                   <div
                     style={{
