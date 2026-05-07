@@ -5,10 +5,10 @@ import { Feather } from '@expo/vector-icons';
 import { Conversation } from '@/types/chat';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { tokenStorage } from '@/utils/token-storage';
-import { API } from '@/utils/api';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { mapHttpError } from '@/utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ChatService } from '@/services/chatService';
 
 export default function ChatListScreen() {
   const router = useRouter();
@@ -29,23 +29,16 @@ export default function ChatListScreen() {
         return;
       }
       setErrorVisible(false);
-      const res = await fetch(`${API}/chat/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data: any = await res.json().catch(() => undefined);
-      if (!res.ok) {
-        const status = res.status;
-        setErrorStatus(status);
-        setErrorMessage(mapHttpError(status, undefined, lang));
-        setErrorVisible(true);
+      const data = await ChatService.getConversations();
+      setConversations(data);
+    } catch (err: any) {
+      const status = err?.status ?? 500;
+      if (status === 401) {
+        setConversations([]);
         return;
       }
-      const payload = data?.data ?? data ?? [];
-      setConversations(Array.isArray(payload) ? payload : []);
-    } catch {
-      setErrorStatus(500);
-      setErrorMessage(mapHttpError(500, undefined, lang));
+      setErrorStatus(status);
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

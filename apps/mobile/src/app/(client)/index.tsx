@@ -14,6 +14,7 @@ import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, se
 import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 import * as Location from 'expo-location';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson } from '../../services/apiClient';
 
 interface PopularStyle {
   id: string;
@@ -125,13 +126,7 @@ export default function ClientHome() {
 
   const loadUser = async () => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) return;
-      const res = await fetch(`${API}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const u = await res.json();
+      const u = await apiJson<any>('/users/me', { auth: true });
       const user = u.data ?? u;
       setFirstName(user.firstName ?? '');
       const city = user.city ?? t('countryDefault');
@@ -146,9 +141,7 @@ export default function ClientHome() {
 
   const fetchPopularStyles = async () => {
     try {
-      const res = await fetch(`${API}/popular-styles`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiJson<any>('/popular-styles');
       if (Array.isArray(data)) {
         setPopularStyles(data);
       }
@@ -161,28 +154,14 @@ export default function ClientHome() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-
-      const token = await tokenStorage.getAccessToken();
-      if (!token) return;
       
       const locationParams = coords
         ? `&lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}&sort=entfernung`
         : '';
-
-      const res = await fetch(`${API}/providers?limit=20${locationParams}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        setErrorMessage(mapHttpError(res.status, undefined, lang));
-        setErrorVisible(true);
-        return;
-      }
-
-      const data = await res.json();
+      const data = await apiJson<any>(`/providers?limit=20${locationParams}`, { auth: true });
       setProviders(data.data || data);
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.status ?? err?.response?.status;
       setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {

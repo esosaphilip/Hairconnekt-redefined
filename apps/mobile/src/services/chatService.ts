@@ -1,73 +1,19 @@
-import { tokenStorage } from '../utils/token-storage';
-import { API } from '../utils/api';
-
-export interface Conversation {
-  id: string;
-  otherUser: {
-    id?: string;
-    firstName?: string;
-    lastName?: string;
-    name?: string;
-    avatarUrl?: string;
-    isProvider?: boolean;
-    isOnline?: boolean;
-  };
-  lastMessage?: {
-    content: string;
-    createdAt: string;
-  };
-  unreadCount: number;
-  bookingReference?: string;
-}
-
-export interface Message {
-  id: string;
-  content: string;
-  createdAt: string;
-  senderId: string;
-  senderType: 'client' | 'provider';
-  isRead: boolean;
-}
+import type { Conversation, Message, OtherUser } from '@/types/chat';
+import { apiJson } from './apiClient';
 
 export class ChatService {
   static async getConversations(): Promise<Conversation[]> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${API}/chat/conversations`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to load conversations');
-    }
-
-    const data = await response.json();
+    const data = await apiJson<any>('/chat/conversations', { auth: true });
     const conversationList = data.data || data || [];
     return Array.isArray(conversationList) ? conversationList : [];
   }
 
   static async getMessages(conversationId: string): Promise<{
     messages: Message[];
-    otherUser: any;
+    otherUser: OtherUser | null;
     myUserId: string;
   }> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${API}/chat/conversations/${conversationId}/messages`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to load messages');
-    }
-
-    const data = await response.json();
+    const data = await apiJson<any>(`/chat/conversations/${conversationId}/messages`, { auth: true });
     return {
       messages: data.messages || data || [],
       otherUser: data.otherUser || null,
@@ -76,57 +22,28 @@ export class ChatService {
   }
 
   static async sendMessage(conversationId: string, content: string): Promise<Message> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${API}/chat/conversations/${conversationId}/messages`, {
+    return apiJson(`/chat/conversations/${conversationId}/messages`, {
+      auth: true,
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ content: content.trim() }),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to send message');
-    }
-
-    return response.json();
   }
 
   static async markMessageAsRead(conversationId: string, messageId: string): Promise<void> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${API}/chat/conversations/${conversationId}/messages/${messageId}/read`, {
+    await apiJson(`/chat/conversations/${conversationId}/messages/${messageId}/read`, {
+      auth: true,
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` }
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to mark message as read');
-    }
   }
 
   static async markAllMessagesAsRead(conversationId: string): Promise<void> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${API}/chat/conversations/${conversationId}/read`, {
+    await apiJson(`/chat/conversations/${conversationId}/read`, {
+      auth: true,
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` }
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to mark all messages as read');
-    }
   }
 
   static getRelativeTime(isoString: string): string {
@@ -157,9 +74,6 @@ export class ChatService {
   static getDisplayName(otherUser: Conversation['otherUser']): string {
     if (otherUser?.firstName && otherUser?.lastName) {
       return `${otherUser.firstName} ${otherUser.lastName}`;
-    }
-    if (otherUser?.name) {
-      return otherUser.name;
     }
     return 'Unbekannt';
   }
