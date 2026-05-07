@@ -1,5 +1,6 @@
 import { tokenStorage } from '../utils/token-storage';
 import { API } from '../utils/api';
+import { apiJson } from './apiClient';
 
 export interface LoginCredentials {
   identifier: string;
@@ -87,37 +88,20 @@ export class AuthService {
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch(`${API}/auth/refresh`, {
+    const data = await apiJson<AuthResponse>('/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
 
-    if (!response.ok) {
-      throw new Error('Token refresh failed');
-    }
-
-    const data = await response.json();
+    await tokenStorage.save(data.accessToken, data.refreshToken, data.user.role);
     return data.accessToken;
   }
 
   static async getCurrentUser(): Promise<any> {
-    const token = await tokenStorage.getAccessToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
     const role = await tokenStorage.getUserRole();
     const endpoint = role === 'provider' ? '/providers/me' : '/users/me';
 
-    const response = await fetch(`${API}${endpoint}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch user data');
-    }
-
-    return response.json();
+    return apiJson(endpoint, { auth: true });
   }
 }
