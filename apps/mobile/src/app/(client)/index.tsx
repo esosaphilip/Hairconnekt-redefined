@@ -322,9 +322,6 @@ export default function ClientHome() {
                       }))
                     }
                   />
-                  <View style={styles.styleEmojiOverlay}>
-                    <Text style={{ fontSize: 28 }}>{style.emoji}</Text>
-                  </View>
                 </View>
               ) : (
                 <View style={[styles.styleImagePlaceholder, { backgroundColor: style.colorHex }]}>

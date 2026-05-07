@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { PopularStyle } from '../../entities/popular-style.entity';
 
 @Injectable()
@@ -13,7 +13,13 @@ export class PopularStylesSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const styles: Array<Pick<PopularStyle, 'name' | 'emoji' | 'colorHex' | 'sortOrder'>> = [
+    const existingCount = await this.popularStyleRepo.count();
+    if (existingCount > 0) {
+      this.logger.log(`Skipping popular styles seed (existing: ${existingCount})`);
+      return;
+    }
+
+    const styles: Array<Partial<PopularStyle>> = [
       { name: 'Knotless Braids', emoji: '✨', colorHex: '#C8860A', sortOrder: 1 },
       { name: 'Box Braids', emoji: '💫', colorHex: '#8B4513', sortOrder: 2 },
       { name: 'Cornrows', emoji: '🌿', colorHex: '#1A8C85', sortOrder: 3 },
@@ -27,29 +33,15 @@ export class PopularStylesSeedService implements OnModuleInit {
     ];
 
     try {
-      const names = styles.map((s) => s.name);
-      const existing = await this.popularStyleRepo.find({
-        select: { name: true },
-        where: { name: In(names) },
-      });
-      const existingNames = new Set(existing.map((s) => s.name));
-
-      const toInsert: Array<Partial<PopularStyle>> = styles
-        .filter((s) => !existingNames.has(s.name))
-        .map((s) => ({
+      await this.popularStyleRepo.insert(
+        styles.map((s) => ({
           ...s,
           isActive: true,
           imageUrl: null,
           imageKey: null,
-        }));
-
-      if (toInsert.length > 0) {
-        await this.popularStyleRepo.insert(toInsert);
-      }
-
-      this.logger.log(
-        `Seeded popular styles: inserted ${toInsert.length}, existing ${existingNames.size}`,
+        })),
       );
+      this.logger.log(`Seeded popular styles: inserted ${styles.length}`);
     } catch (err: any) {
       this.logger.warn(`Could not seed popular styles: ${err?.message ?? String(err)}`);
     }
