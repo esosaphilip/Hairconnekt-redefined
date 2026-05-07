@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
-import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiFetch, apiJson } from '@/services/apiClient';
 const { width } = Dimensions.get('window');
 
 const safeDistance = (val: any): string =>
@@ -24,6 +21,7 @@ export default function ProfilePreviewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   const [isFavourite, setIsFavourite] = useState(false);
 
   const [provider, setProvider] = useState<any>(null);
@@ -47,37 +45,17 @@ export default function ProfilePreviewScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
+      setErrorStatus(undefined);
 
-      const token = await tokenStorage.getAccessToken();
-      if (!token) {
-        setErrorMessage(mapHttpError(401, undefined, lang));
-        setErrorVisible(true);
-        return;
-      }
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const meRes = await fetch(`${API}/providers/me`, { headers });
-      
-      if (!meRes.ok) {
-        setErrorMessage(mapHttpError(meRes.status, undefined, lang));
-        setErrorVisible(true);
-        return;
-      }
-      const meData = await meRes.json();
-      
-      if (!meData) {
-        setErrorMessage(mapHttpError(404, undefined, lang));
-        setErrorVisible(true);
-        return;
-      }
+      const meData = await apiJson<any>('/providers/me', { auth: true, timeoutMs: 20000, retryCount: 1 });
       
       // Use provider data directly from /providers/me response
       setProvider(meData);
       
       // Check if this provider is in user's favorites
       try {
-        const favRes = await axios.get(`${API}/favourites`, { headers });
-        const favs = favRes.data.data || favRes.data;
+        const favRes = await apiJson<any>('/favourites', { auth: true, timeoutMs: 20000, retryCount: 1 });
+        const favs = favRes.data || favRes;
         if (Array.isArray(favs) && favs.some((f: any) => f.providerId === meData.id || f.provider?.id === meData.id)) {
           setIsFavourite(true);
         }
@@ -87,26 +65,24 @@ export default function ProfilePreviewScreen() {
       
       // Fetch additional data
       const [servRes, portRes, revRes] = await Promise.all([
-        fetch(`${API}/providers/me/services`, { headers }),
-        fetch(`${API}/providers/me/portfolio`, { headers }),
-        fetch(`${API}/providers/me/reviews`, { headers }),
+        apiJson<any>('/providers/me/services', { auth: true, timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>('/providers/me/portfolio', { auth: true, timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>('/providers/me/reviews', { auth: true, timeoutMs: 20000, retryCount: 1 }),
       ]);
 
-      const servJson = await servRes.json().catch(() => ({}));
-      const servArr = servJson?.data ?? servJson ?? [];
+      const servArr = servRes?.data ?? servRes ?? [];
       setServices(Array.isArray(servArr) ? servArr : []);
 
-      const portJson = await portRes.json().catch(() => ({}));
-      const portArr = portJson?.data ?? portJson ?? [];
+      const portArr = portRes?.data ?? portRes ?? [];
       setPortfolio(
         (Array.isArray(portArr) ? portArr : []).filter((i: any) => i.imageUrl || i.url),
       );
 
-      const revJson = await revRes.json().catch(() => ({}));
-      const revArr = revJson?.data ?? revJson ?? [];
+      const revArr = revRes?.data ?? revRes ?? [];
       setReviews(Array.isArray(revArr) ? revArr : []);
-    } catch {
-      setErrorMessage(mapHttpError(500, undefined, lang));
+    } catch (e: any) {
+      setErrorStatus(e?.status ?? e?.response?.status);
+      setErrorMessage(e?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -118,23 +94,22 @@ export default function ProfilePreviewScreen() {
   const toggleFavourite = async () => {
     try {
       const prev = isFavourite;
-      const newFavState = !prev;
-      
-      // Update UI immediately for better feedback
-      setIsFavourite(newFavState);
-      
-      const token = await tokenStorage.getAccessToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      
+      setIsFavourite(!prev);
+
       if (prev) {
-        await axios.delete(`${API}/favourites/${provider.id}`, { headers });
+        await apiFetch(`/favourites/${provider.id}`, { auth: true, method: 'DELETE', timeoutMs: 20000 });
       } else {
-        await axios.post(`${API}/favourites`, { providerId: provider.id }, { headers });
+        await apiFetch(`/favourites`, {
+          auth: true,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ providerId: provider.id }),
+          timeoutMs: 20000,
+        });
       }
     } catch (err) {
       // Revert on error
-      setIsFavourite(isFavourite);
-      console.log('Error toggling favourite', err);
+      setIsFavourite((v) => !v);
     }
   };
 
@@ -149,7 +124,7 @@ export default function ProfilePreviewScreen() {
   if (!provider) {
     return (
       <View style={styles.loadingContainer}>
-        <GermanErrorBanner visible={errorVisible} message={errorMessage || t('errorUnknown')} />
+        <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage || t('errorUnknown')} actionLabel={t('appointmentsRetry')} onAction={loadData} />
       </View>
     );
   }
@@ -230,7 +205,7 @@ export default function ProfilePreviewScreen() {
           </View>
         </View>
 
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+        <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage} actionLabel={t('appointmentsRetry')} onAction={loadData} />
 
         {/* TABS HEADER */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsContainer}>

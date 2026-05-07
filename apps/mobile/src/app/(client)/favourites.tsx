@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
 import { removeFavourite } from '../../utils/favourites';
-import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { apiJson } from '@/services/apiClient';
 
 type ProviderSummaryDto = {
   id: string;
@@ -37,17 +35,14 @@ export default function FavouritesScreen() {
   const fetchFavourites = async () => {
     try {
       setIsLoading(true);
-      const token = await tokenStorage.getAccessToken();
-      if (!token) {
+      const res = await apiJson<any>('/favourites', { auth: true });
+      const payload = res?.data ?? res ?? [];
+      setFavourites(Array.isArray(payload) ? payload : []);
+    } catch (err: any) {
+      if (err?.status === 401) {
         router.replace('/(auth)/login');
         return;
       }
-      const res = await axios.get(`${API}/favourites`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const payload = res.data?.data ?? res.data ?? [];
-      setFavourites(Array.isArray(payload) ? payload : []);
-    } catch (err) {
       console.log('Failed to fetch favourites', err);
     } finally {
       setIsLoading(false);

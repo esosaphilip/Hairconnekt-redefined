@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { tokenStorage } from '../utils/token-storage';
-import { API } from '../utils/api';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 export interface Notification {
   id: string;
@@ -22,17 +21,8 @@ export const useNotifications = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const token = await tokenStorage.getAccessToken();
-      if (!token) throw new Error('No authentication token');
 
-      const response = await fetch(`${API}/notifications?page=${page}&limit=${limit}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      
-      const data = await response.json();
+      const data = await apiJson<any>(`/notifications?page=${page}&limit=${limit}`, { auth: true });
       const notificationList = data.data || data || [];
       const notificationsArray = Array.isArray(notificationList) ? notificationList : [];
       
@@ -56,13 +46,7 @@ export const useNotifications = () => {
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) throw new Error('No authentication token');
-
-      await fetch(`${API}/notifications/${notificationId}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiFetch(`/notifications/${notificationId}/read`, { auth: true, method: 'PATCH' });
 
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? { ...n, isRead: true } : n
@@ -76,13 +60,7 @@ export const useNotifications = () => {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) throw new Error('No authentication token');
-
-      await fetch(`${API}/notifications/read-all`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
 
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);

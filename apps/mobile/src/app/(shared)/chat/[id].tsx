@@ -6,11 +6,11 @@ import { Feather } from '@expo/vector-icons';
 import { io, Socket } from 'socket.io-client';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { tokenStorage } from '@/utils/token-storage';
-import { API } from '@/utils/api';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 type ConversationDetailResponse = {
   id: string;
@@ -86,14 +86,11 @@ export default function SharedChatScreen() {
         showError(401);
         return;
       }
-
-      const res = await fetch(`${API}/chat/conversations/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data: any = await res.json().catch(() => undefined);
-      if (!res.ok) {
-        showError(res.status);
+      let data: any;
+      try {
+        data = await apiJson<any>(`/chat/conversations/${id}`, { auth: true });
+      } catch (err: any) {
+        showError(err?.status ?? 500);
         return;
       }
 
@@ -104,10 +101,7 @@ export default function SharedChatScreen() {
       setMyUserId(payload?.myUserId ?? '');
       myUserIdRef.current = payload?.myUserId ?? '';
 
-      await fetch(`${API}/chat/conversations/${id}/read`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+      await apiFetch(`/chat/conversations/${id}/read`, { auth: true, method: 'POST' }).catch(() => {});
 
       setMessages((prev) => prev.map((m) => (m.senderId !== myUserIdRef.current ? { ...m, isRead: true } : m)));
     } catch {

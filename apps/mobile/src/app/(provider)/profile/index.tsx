@@ -5,8 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
-import { API } from '../../../utils/api';
 import { AuthService } from '../../../services/authService';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 
 export default function ProviderProfileHubScreen() {
@@ -23,20 +23,13 @@ export default function ProviderProfileHubScreen() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const token = await tokenStorage.getAccessToken();
-      const [provRes, userRes] = await Promise.all([
-        fetch(`${API}/providers/me`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API}/users/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+      const [pData, uData] = await Promise.all([
+        apiJson<any>('/providers/me', { auth: true }).catch(() => null),
+        apiJson<any>('/users/me', { auth: true }).catch(() => null),
       ]);
 
-      if (provRes.ok) {
-        const pData = await provRes.json();
-        setProvider(pData.data || pData);
-      }
-      if (userRes.ok) {
-        const uData = await userRes.json();
-        setUser(uData.data || uData);
-      }
+      if (pData) setProvider(pData.data || pData);
+      if (uData) setUser(uData.data || uData);
     } catch (error) {
       console.log('Error loading provider profile:', error);
     } finally {
@@ -66,7 +59,6 @@ export default function ProviderProfileHubScreen() {
   const uploadAvatar = async (uri: string) => {
     try {
       setIsUploading(true);
-      const token = await tokenStorage.getAccessToken();
       
       const formData = new FormData();
       formData.append('avatar', {
@@ -75,12 +67,9 @@ export default function ProviderProfileHubScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const res = await fetch(`${API}/providers/me/avatar`, {
+      const res = await apiFetch('/providers/me/avatar', {
+        auth: true,
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
         body: formData,
       });
 

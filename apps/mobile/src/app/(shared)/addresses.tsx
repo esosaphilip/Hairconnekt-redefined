@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, Activ
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
-import { tokenStorage } from '../../utils/token-storage';
-import { API } from '../../utils/api';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 
 interface Address {
@@ -45,18 +44,7 @@ export default function AddressesScreen() {
     try {
       setIsLoading(true);
       setListErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/users/me/addresses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        setListErrorVisible(true);
-        setAddresses([]);
-        return;
-      }
-
-      const data: any = await res.json();
+      const data: any = await apiJson('/users/me/addresses', { auth: true });
       const list = data.data ?? data ?? [];
       setAddresses(Array.isArray(list) ? list : []);
     } catch (error) {
@@ -101,11 +89,7 @@ export default function AddressesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const token = await tokenStorage.getAccessToken();
-              const res = await fetch(`${API}/users/me/addresses/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              const res = await apiFetch(`/users/me/addresses/${id}`, { auth: true, method: 'DELETE' });
 
               if (res.ok) {
                 setAddresses(prev => prev.filter(a => a.id !== id));
@@ -127,11 +111,10 @@ export default function AddressesScreen() {
     })));
 
     try {
-      const token = await tokenStorage.getAccessToken();
-      await fetch(`${API}/users/me/addresses/${id}`, {
+      await apiFetch(`/users/me/addresses/${id}`, {
+        auth: true,
         method: 'PATCH',
         headers: { 
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isDefault: true })
@@ -150,25 +133,17 @@ export default function AddressesScreen() {
 
     try {
       setIsSaving(true);
-      const token = await tokenStorage.getAccessToken();
       const payload = { label, street, houseNumber, postalCode, city, isDefault };
       
       const method = editingId ? 'PATCH' : 'POST';
-      const url = editingId ? `${API}/users/me/addresses/${editingId}` : `${API}/users/me/addresses`;
+      const url = editingId ? `/users/me/addresses/${editingId}` : `/users/me/addresses`;
 
-      const res = await fetch(url, {
+      await apiJson(url, {
+        auth: true,
         method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        Alert.alert('Fehler', 'Die Adresse konnte nicht gespeichert werden.');
-        return;
-      }
 
       setShowModal(false);
       await loadAddresses();

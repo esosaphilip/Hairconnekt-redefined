@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, Activ
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
-import { tokenStorage } from '../../utils/token-storage';
-import { API } from '../../utils/api';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 interface Notification {
   id: string;
@@ -34,15 +33,7 @@ export default function NotificationsScreen() {
       if (refresh) setIsLoading(true);
       else setIsLoadingMore(true);
 
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/notifications?page=${pageNum}&limit=20`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to load notifications');
-      }
-      const data: any = await res.json();
+      const data: any = await apiJson(`/notifications?page=${pageNum}&limit=20`, { auth: true });
 
       const newItems = data.data || [];
       setNotifications(prev => (refresh ? newItems : [...prev, ...newItems]));
@@ -59,11 +50,7 @@ export default function NotificationsScreen() {
   const markAsRead = async (id: string) => {
     try {
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
-      const token = await tokenStorage.getAccessToken();
-      await fetch(`${API}/notifications/${id}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
     } catch (e) {
       console.log('Error marking as read', e);
     }
@@ -72,11 +59,7 @@ export default function NotificationsScreen() {
   const markAllAsRead = async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      const token = await tokenStorage.getAccessToken();
-      await fetch(`${API}/notifications/read-all`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
     } catch (e) {
       console.log('Error marking all as read', e);
     }

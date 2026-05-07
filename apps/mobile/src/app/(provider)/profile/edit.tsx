@@ -8,10 +8,8 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { FormInput } from '../../../components/FormInput';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
-import { tokenStorage } from '../../../utils/token-storage';
-import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 const AVAILABLE_LANGUAGES = ['Deutsch', 'Englisch', 'Französisch', 'Arabisch', 'Türkisch', 'Hausa', 'Yoruba', 'Igbo'];
 
@@ -19,7 +17,7 @@ type CancellationPolicy = '24h' | '48h' | '72h';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [form, setForm] = useState({
     businessName: '',
@@ -42,6 +40,9 @@ export default function EditProfileScreen() {
   const [avatarVersion, setAvatarVersion] = useState(Date.now());
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
+  const [errorAction, setErrorAction] = useState<'load' | 'save' | 'avatar'>('load');
+  const [lastAvatarUploadUri, setLastAvatarUploadUri] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -50,30 +51,28 @@ export default function EditProfileScreen() {
   const loadProfile = async () => {
     try {
       setIsLoading(true);
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/providers/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      setErrorVisible(false);
+      setErrorStatus(undefined);
+      const data = await apiJson<any>('/providers/me', { auth: true, timeoutMs: 20000, retryCount: 1 });
+      setForm({
+        businessName: data.businessName || '',
+        bio: data.bio || '',
+        street: data.street || '',
+        houseNumber: data.houseNumber || '',
+        postalCode: data.postalCode || '',
+        city: data.city || '',
+        cancellationPolicy: (data.cancellationPolicy as CancellationPolicy) || '24h',
+        languages: data.languages || [],
+        serviceRadius: data.serviceRadius || 15,
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setForm({
-          businessName: data.businessName || '',
-          bio: data.bio || '',
-          street: data.street || '',
-          houseNumber: data.houseNumber || '',
-          postalCode: data.postalCode || '',
-          city: data.city || '',
-          cancellationPolicy: (data.cancellationPolicy as CancellationPolicy) || '24h',
-          languages: data.languages || [],
-          serviceRadius: data.serviceRadius || 15,
-        });
-        if (data.avatarUrl) {
-          setAvatarUri(data.avatarUrl);
-        }
+      if (data.avatarUrl) {
+        setAvatarUri(data.avatarUrl);
       }
-    } catch (error) {
-      console.log('Error loading profile:', error);
+    } catch (error: any) {
+      setErrorAction('load');
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
+      setErrorVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -83,24 +82,19 @@ export default function EditProfileScreen() {
     try {
       setIsSaving(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-
-      const response = await fetch(`${API}/providers/me`, {
+      await apiJson<any>('/providers/me', {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(form)
+        auth: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+        timeoutMs: 20000,
       });
-
-      if (!response.ok) {
-        throw { response: { status: response.status } };
-      }
 
       router.back();
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
+      setErrorAction('save');
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
       setIsSaving(false);
@@ -131,11 +125,11 @@ export default function EditProfileScreen() {
     try {
       setIsUploadingAvatar(true);
       setErrorVisible(false);
+      setLastAvatarUploadUri(uri);
       
       // Optimistically show it
       setAvatarUri(uri);
 
-      const token = await tokenStorage.getAccessToken();
       const formData = new FormData();
       
       formData.append('avatar', {
@@ -144,24 +138,22 @@ export default function EditProfileScreen() {
         name: 'avatar.jpg',
       } as any);
 
-      const response = await fetch(`${API}/providers/me/avatar`, {
+      const response = await apiFetch('/providers/me/avatar', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          // BUG 8: do NOT set Content-Type; RN sets it with the boundary
-        },
+        auth: true,
         body: formData,
+        timeoutMs: 60000,
       });
 
       if (!response.ok) {
-        throw { response: { status: response.status } };
+        throw { status: response.status };
       }
       // BUG 4: bust cache so Image re-renders with new photo
       setAvatarVersion(Date.now());
     } catch (error: any) {
-      console.log('Avatar upload error', error);
-      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
+      setErrorAction('avatar');
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
       setIsUploadingAvatar(false);
@@ -176,6 +168,20 @@ export default function EditProfileScreen() {
         return { ...prev, languages: [...prev.languages, lang] };
       }
     });
+  };
+
+  const handleRetry = async () => {
+    if (errorAction === 'save') {
+      await handleSave();
+      return;
+    }
+    if (errorAction === 'avatar') {
+      if (lastAvatarUploadUri) {
+        await uploadAvatar(lastAvatarUploadUri);
+      }
+      return;
+    }
+    await loadProfile();
   };
 
   if (isLoading) {
@@ -199,7 +205,13 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+      <GermanErrorBanner
+        visible={errorVisible}
+        statusCode={errorStatus}
+        message={errorMessage}
+        actionLabel={t('appointmentsRetry')}
+        onAction={handleRetry}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         

@@ -40,6 +40,8 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('login')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 15 * 60 } })
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(dto);
@@ -50,6 +52,8 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('admin-login')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 15 * 60 } })
   @HttpCode(HttpStatus.OK)
   adminLogin(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.adminLogin(dto);
@@ -75,6 +79,8 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('refresh')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 120, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refresh(dto);
@@ -100,6 +106,8 @@ export class AuthController {
    * Sends OTP code to user's email. Returns generic message (no enumeration).
    */
   @Post('forgot-password')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
   forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ message: string }> {
     return this.authService.forgotPassword(dto);
@@ -110,6 +118,8 @@ export class AuthController {
    * Validates the 6-digit OTP. Must be called before reset-password.
    */
   @Post('verify-otp')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
   verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ resetToken: string }> {
     return this.authService.verifyOtp(dto);
@@ -121,6 +131,8 @@ export class AuthController {
    * Returns: AuthResponseDto (auto-login after reset)
    */
   @Post('reset-password')
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
     return this.authService.resetPassword(dto);

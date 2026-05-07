@@ -9,6 +9,7 @@ import {
   updatePopularStyle,
   uploadStyleImage,
 } from '../api';
+import { formatApiError } from '../utils/apiError';
 
 type FormState = {
   name: string;
@@ -44,13 +45,7 @@ export default function PopularStyles() {
       const data = await getPopularStyles();
       setStyles(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      const maybe = err as { response?: { status?: unknown } };
-      const status = maybe?.response?.status;
-      if (typeof status === 'number') {
-        setPageError(`Fehler beim Laden der Styles (Status: ${status}).`);
-      } else {
-        setPageError('Fehler beim Laden der Styles.');
-      }
+      setPageError(`Fehler beim Laden der Styles. ${formatApiError(err)}`);
     } finally {
       setIsLoading(false);
     }
@@ -124,12 +119,7 @@ export default function PopularStyles() {
       setEditingStyle(null);
       setForm(defaultForm);
     } catch (err: unknown) {
-      const maybe = err as { response?: { data?: { message?: unknown } } };
-      const message =
-        typeof maybe?.response?.data?.message === 'string'
-          ? maybe.response.data.message
-          : 'Fehler beim Speichern';
-      alert(message);
+      alert(`Fehler beim Speichern. ${formatApiError(err)}`);
     }
   };
 
@@ -140,9 +130,9 @@ export default function PopularStyles() {
     try {
       const updated = await updatePopularStyle(style.id, { isActive: nextValue });
       setStyles((prev) => prev.map((s) => (s.id === style.id ? updated : s)));
-    } catch {
+    } catch (err: unknown) {
       setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, isActive: style.isActive } : s)));
-      setRowError(style.id, 'Aktualisierung fehlgeschlagen');
+      setRowError(style.id, `Aktualisierung fehlgeschlagen. ${formatApiError(err)}`);
     }
   };
 
@@ -168,8 +158,8 @@ export default function PopularStyles() {
     try {
       const res = await uploadStyleImage(id, file);
       setStyles((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: res.imageUrl } : s)));
-    } catch {
-      setRowError(id, 'Bild-Upload fehlgeschlagen');
+    } catch (err: unknown) {
+      setRowError(id, `Bild-Upload fehlgeschlagen. ${formatApiError(err)}`);
     } finally {
       setUploadingImageIds((prev) => ({ ...prev, [id]: false }));
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -182,8 +172,8 @@ export default function PopularStyles() {
     try {
       await deleteStyleImage(style.id);
       setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, imageUrl: null } : s)));
-    } catch {
-      setRowError(style.id, 'Bild konnte nicht entfernt werden');
+    } catch (err: unknown) {
+      setRowError(style.id, `Bild konnte nicht entfernt werden. ${formatApiError(err)}`);
     }
   };
 
@@ -193,8 +183,8 @@ export default function PopularStyles() {
     try {
       await deletePopularStyle(style.id);
       setStyles((prev) => prev.filter((s) => s.id !== style.id));
-    } catch {
-      setRowError(style.id, 'Löschen fehlgeschlagen');
+    } catch (err: unknown) {
+      setRowError(style.id, `Löschen fehlgeschlagen. ${formatApiError(err)}`);
     }
   };
 

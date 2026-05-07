@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
-import { API } from '../../utils/api';
 import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson } from '@/services/apiClient';
 
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
@@ -67,16 +65,13 @@ export default function ClientSearch() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const base = process.env.EXPO_PUBLIC_API_URL;
-        if (!base) return;
-        const res = await fetch(`${base}/services/categories`);
-        if (res.ok) {
-          const data = await res.json();
-          const cats = data.data || data || [];
-          setCategoryMap(cats);
-        }
+        const data = await apiJson<any>('/services/categories');
+        const cats = data.data || data || [];
+        setCategoryMap(Array.isArray(cats) ? cats : []);
       } catch (e) {
-        console.log('Failed to load categories', e);
+        const status = (e as any)?.status ?? (e as any)?.response?.status;
+        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorVisible(true);
       }
     };
 
@@ -118,8 +113,6 @@ export default function ClientSearch() {
       if (isInitial) setIsLoading(true);
       else setIsFetchingMore(true);
       setErrorVisible(false);
-
-      const token = await tokenStorage.getAccessToken();
       
       const trimmedQuery = (queryOverride ?? searchQuery).trim();
       const searchParam = trimmedQuery ? `&search=${encodeURIComponent(trimmedQuery)}` : '';
@@ -131,14 +124,12 @@ export default function ClientSearch() {
         ? `&lat=${encodeURIComponent(String(discoveryLocation.lat))}&lng=${encodeURIComponent(String(discoveryLocation.lng))}`
         : '';
       
-      const url = `${API}/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}${locationParam}`;
-      
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const url = `/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}${locationParam}`;
 
-      const newData = response.data.data || response.data;
-      const meta = response.data.meta ?? {};
+      const response = await apiJson<any>(url, { auth: true });
+
+      const newData = response.data || response;
+      const meta = response.meta ?? {};
       const nextHasMore =
         typeof meta.hasNext === 'boolean'
           ? meta.hasNext
@@ -156,7 +147,7 @@ export default function ClientSearch() {
 
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.status ?? err?.response?.status;
       setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {

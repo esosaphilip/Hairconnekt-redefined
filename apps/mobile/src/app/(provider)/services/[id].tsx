@@ -3,14 +3,17 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Tex
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, spacing, borderRadius } from '../../../theme';
-import { tokenStorage } from '../../../utils/token-storage';
 import { PrimaryButton } from '../../../components/PrimaryButton';
-import { API } from '../../../utils/api';
+import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
+import { apiJson } from '@/services/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderServiceEditScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams();
   const isNew = id === 'new';
+  const serviceId = Array.isArray(id) ? id[0] : id;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,10 @@ export default function ProviderServiceEditScreen() {
   });
   
   const [errors, setErrors] = useState<any>({});
-  const [httpError, setHttpError] = useState('');
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [errorAction, setErrorAction] = useState<'load' | 'save'>('load');
 
   useEffect(() => {
     loadData();
@@ -36,39 +42,34 @@ export default function ProviderServiceEditScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const catRes = await fetch(`${API}/services/categories`);
-      let fetchedCategories = [];
-      if (catRes.ok) {
-        const catData = await catRes.json();
-        fetchedCategories = catData.data || catData;
-        setCategories(fetchedCategories);
-      }
+      setErrorVisible(false);
+      const catRes = await apiJson<any>('/services/categories', { timeoutMs: 20000, retryCount: 1 });
+      const fetchedCategories = Array.isArray(catRes?.data ?? catRes) ? (catRes?.data ?? catRes) : [];
+      setCategories(fetchedCategories);
 
-      if (!isNew) {
-        const token = await tokenStorage.getAccessToken();
-        const svcRes = await fetch(`${API}/providers/me/services`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (svcRes.ok) {
-          const allServices = await svcRes.json();
-          const target = allServices.find((s: any) => s.id === id);
-          if (target) {
-            setForm({
-              name: target.name,
-              categoryId: target.categoryId,
-              description: target.description || '',
-              durationMin: target.durationMin,
-              priceType: target.priceType,
-              price: target.price.toString(),
-              isActive: target.isActive
-            });
-          }
+      if (!isNew && serviceId) {
+        const allServices = await apiJson<any>('/providers/me/services', { auth: true, timeoutMs: 20000, retryCount: 1 });
+        const svcList = Array.isArray(allServices?.data ?? allServices) ? (allServices?.data ?? allServices) : [];
+        const target = svcList.find((s: any) => s.id === serviceId);
+        if (target) {
+          setForm({
+            name: target.name,
+            categoryId: target.categoryId,
+            description: target.description || '',
+            durationMin: target.durationMin,
+            priceType: target.priceType,
+            price: target.price.toString(),
+            isActive: target.isActive
+          });
         }
       } else if (fetchedCategories.length > 0) {
         setForm(f => ({ ...f, categoryId: fetchedCategories[0].id }));
       }
     } catch (e) {
-      console.log('Error loading form data', e);
+      setErrorAction('load');
+      setErrorStatus((e as any)?.status ?? (e as any)?.response?.status);
+      setErrorMessage((e as any)?.message ?? t('errorUnknown'));
+      setErrorVisible(true);
     } finally {
       setLoading(false);
     }
@@ -88,11 +89,9 @@ export default function ProviderServiceEditScreen() {
   const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
-    setHttpError('');
+    setErrorVisible(false);
     
     try {
-      const token = await tokenStorage.getAccessToken();
-      
       const payload = {
         name: form.name.trim(),
         categoryId: form.categoryId,
@@ -103,22 +102,23 @@ export default function ProviderServiceEditScreen() {
         isActive: form.isActive
       };
 
-      const url = isNew ? `${API}/providers/me/services` : `${API}/providers/me/services/${id}`;
+      const url = isNew ? `/providers/me/services` : `/providers/me/services/${serviceId}`;
       const method = isNew ? 'POST' : 'PATCH';
 
-      const res = await fetch(url, {
+      await apiJson<any>(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(payload)
+        auth: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        timeoutMs: 20000,
       });
-
-      if (!res.ok) {
-        throw new Error('Speichern fehlgeschlagen. Bitte überprüfen.');
-      }
       
       router.back();
     } catch (error: any) {
-      setHttpError(error.message || 'Netzwerkfehler');
+      setErrorAction('save');
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
+      setErrorVisible(true);
     } finally {
       setSaving(false);
     }
@@ -143,9 +143,13 @@ export default function ProviderServiceEditScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {httpError ? (
-          <View style={styles.errorBanner}><Text style={styles.errorBannerText}>{httpError}</Text></View>
-        ) : null}
+        <GermanErrorBanner
+          visible={errorVisible}
+          statusCode={errorStatus}
+          message={errorMessage}
+          actionLabel={t('appointmentsRetry')}
+          onAction={errorAction === 'save' ? handleSave : loadData}
+        />
 
         <Text style={styles.label}>Kategorie <Text style={styles.required}>*</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.sm }}>
@@ -247,8 +251,6 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8 },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: 18, color: colors.textPrimary },
   scrollContent: { padding: spacing.lg, paddingBottom: 100 },
-  errorBanner: { backgroundColor: '#FFEBEE', padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md },
-  errorBannerText: { color: colors.error, fontFamily: fonts.bodyMedium },
   label: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textPrimary, marginBottom: 8, marginTop: spacing.md },
   required: { color: colors.error },
   inputContainer: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, backgroundColor: '#FAFAFA' },

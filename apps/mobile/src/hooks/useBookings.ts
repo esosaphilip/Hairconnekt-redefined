@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { tokenStorage } from '../utils/token-storage';
-import { API } from '../utils/api';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 export interface Booking {
   id: string;
@@ -42,22 +41,13 @@ export const useBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const token = await tokenStorage.getAccessToken();
-      if (!token) throw new Error('No authentication token');
 
       const queryParams = new URLSearchParams();
       if (filters.status) queryParams.append('status', filters.status);
       if (filters.limit) queryParams.append('limit', filters.limit.toString());
       if (filters.page) queryParams.append('page', filters.page.toString());
 
-      const response = await fetch(`${API}/bookings?${queryParams}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch bookings');
-      
-      const data = await response.json();
+      const data = await apiJson<any>(`/bookings?${queryParams}`, { auth: true });
       const bookingList = data.data || data || [];
       setBookings(Array.isArray(bookingList) ? bookingList : []);
     } catch (err) {
@@ -71,14 +61,7 @@ export const useBookings = () => {
 
   const updateBookingStatus = useCallback(async (bookingId: string, action: string) => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) throw new Error('No authentication token');
-
-      const response = await fetch(`${API}/bookings/${bookingId}/${action}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      const response = await apiFetch(`/bookings/${bookingId}/${action}`, { auth: true, method: 'PATCH' });
       if (!response.ok) throw new Error('Failed to update booking');
       
       // Refresh bookings after update

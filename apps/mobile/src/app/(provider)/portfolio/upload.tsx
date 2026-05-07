@@ -6,13 +6,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
-import { tokenStorage } from '../../../utils/token-storage';
-import { API } from '../../../utils/api';
+import { apiFetch } from '@/services/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const PRESET_TAGS = ['Knotless', 'Box Braids', 'Cornrows', 'Twists', 'Locs', 'Fades'];
 
 export default function PortfolioUploadScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -22,6 +23,7 @@ export default function PortfolioUploadScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
 
   const pickImage = async () => {
     try {
@@ -71,7 +73,6 @@ export default function PortfolioUploadScreen() {
     try {
       setIsUploading(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
 
       const formData = new FormData();
 
@@ -93,27 +94,24 @@ export default function PortfolioUploadScreen() {
         formData.append('styleTags', JSON.stringify(styleTags));
       }
 
-      const res = await fetch(`${API}/providers/me/portfolio`, {
+      const res = await apiFetch('/providers/me/portfolio', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // BUG 8: no Content-Type — RN sets multipart boundary automatically
-        },
+        auth: true,
         body: formData,
+        timeoutMs: 60000,
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error('Portfolio upload error:', body);
-        setErrorMessage('Das Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.');
+        setErrorStatus(res.status);
+        setErrorMessage(t('errorUnknown'));
         setErrorVisible(true);
         return;
       }
 
       router.replace('/(provider)/portfolio');
     } catch (err) {
-      console.error('Upload exception:', err);
-      setErrorMessage('Verbindungsfehler. Bitte prüfe deine Internetverbindung.');
+      setErrorStatus((err as any)?.status ?? (err as any)?.response?.status);
+      setErrorMessage((err as any)?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
       setIsUploading(false);
@@ -131,7 +129,7 @@ export default function PortfolioUploadScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+      <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage} actionLabel={t('appointmentsRetry')} onAction={handleUpload} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         

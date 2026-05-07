@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, Keyb
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
-import { tokenStorage } from '../../../utils/token-storage';
 import { mapHttpError } from '../../../utils/error-messages';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import * as ImagePicker from 'expo-image-picker';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 
 export default function ClientProfileEditScreen() {
@@ -37,16 +36,7 @@ export default function ClientProfileEditScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data: any = await res.json();
+      const data: any = await apiJson('/users/me', { auth: true });
       if (data) {
         if (data.avatarUrl || data.data?.avatarUrl) {
           setAvatarUri(data.avatarUrl || data.data.avatarUrl);
@@ -75,12 +65,11 @@ export default function ClientProfileEditScreen() {
     try {
       setIsSaving(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-      
-      const res = await fetch(`${API}/users/me`, {
+
+      const res = await apiFetch('/users/me', {
+        auth: true,
         method: 'PATCH',
         headers: { 
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ firstName, lastName, phone })
@@ -127,7 +116,6 @@ export default function ClientProfileEditScreen() {
       setIsUploadingAvatar(true);
       setErrorVisible(false);
 
-      const token = await tokenStorage.getAccessToken();
       const formData = new FormData();
 
       formData.append('avatar', {
@@ -136,11 +124,9 @@ export default function ClientProfileEditScreen() {
         name: 'avatar.jpg',
       } as any);
 
-      const response = await fetch(`${API}/users/me/avatar`, {
+      const response = await apiFetch('/users/me/avatar', {
+        auth: true,
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 

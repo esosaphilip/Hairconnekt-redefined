@@ -6,10 +6,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
-import { tokenStorage } from '../../utils/token-storage';
-import { mapHttpError } from '../../utils/error-messages';
-import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson } from '@/services/apiClient';
 const DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 // We'll reorder them starting from Monday for UI purposes: Mo, Di, Mi, Do, Fr, Sa, So
 const UI_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -24,7 +22,7 @@ interface DaySchedule {
 
 export default function AvailabilityScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [bufferMinutes, setBufferMinutes] = useState<number>(0);
@@ -33,6 +31,7 @@ export default function AvailabilityScreen() {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   const [showToast, setShowToast] = useState(false);
 
   const [showPicker, setShowPicker] = useState<{ visible: boolean; dayIndex: number; field: 'openTime' | 'closeTime' }>({
@@ -46,27 +45,23 @@ export default function AvailabilityScreen() {
   const loadAvailability = async () => {
     try {
       setLoading(true);
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/providers/me/availability`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      setErrorVisible(false);
+      const data = await apiJson<any>('/providers/me/availability', {
+        auth: true,
+        timeoutMs: 20000,
+        retryCount: 1,
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Assuming data returns { schedule: DaySchedule[], bufferMinutes: number }
-        // For phase 1, mock if missing
-        if (data.schedule && data.schedule.length > 0) {
-          setSchedule(data.schedule);
-          setBufferMinutes(data.bufferMinutes || 0);
-        } else {
-          initializeDefaultSchedule();
-        }
+      if (data?.schedule && Array.isArray(data.schedule) && data.schedule.length > 0) {
+        setSchedule(data.schedule);
+        setBufferMinutes(typeof data.bufferMinutes === 'number' ? data.bufferMinutes : 0);
       } else {
         initializeDefaultSchedule();
       }
-    } catch (error) {
-      console.log('Error loading availability', error);
-      initializeDefaultSchedule();
+    } catch (error: any) {
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
+      setErrorVisible(true);
+      if (schedule.length === 0) initializeDefaultSchedule();
     } finally {
       setLoading(false);
     }
@@ -114,20 +109,13 @@ export default function AvailabilityScreen() {
     try {
       setSaving(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-
-      const response = await fetch(`${API}/providers/me/availability`, {
+      await apiJson<any>('/providers/me/availability', {
         method: 'PUT',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ schedule, bufferMinutes })
+        auth: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule, bufferMinutes }),
+        timeoutMs: 20000,
       });
-
-      if (!response.ok) {
-        throw { response: { status: response.status } };
-      }
 
       setShowToast(true);
       setTimeout(() => {
@@ -136,7 +124,8 @@ export default function AvailabilityScreen() {
       }, 1500);
 
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
+      setErrorStatus(error?.status ?? error?.response?.status);
+      setErrorMessage(error?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
       setSaving(false);
@@ -169,7 +158,13 @@ export default function AvailabilityScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+      <GermanErrorBanner
+        visible={errorVisible}
+        statusCode={errorStatus}
+        message={errorMessage}
+        actionLabel={t('appointmentsRetry')}
+        onAction={loadAvailability}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         

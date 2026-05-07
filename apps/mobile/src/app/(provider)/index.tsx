@@ -5,10 +5,10 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
-import { API } from '../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -37,25 +37,17 @@ export default function ProviderDashboardScreen() {
         return false;
       }
       try {
-        const res = await fetch(
-          `${API}/providers/me`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.status === 404) {
-          router.replace('/(provider)/register/type');
-          return false;
-        }
-        if (!res.ok) {
-          router.replace('/(auth)/login?role=provider');
-          return false;
-        }
-        const providerData = await res.json();
+        const providerData = await apiJson<any>('/providers/me', { auth: true });
         if (providerData.status?.toLowerCase() !== 'approved') {
           router.replace('/(provider)/pending');
           return false;
         }
         return true;
-      } catch {
+      } catch (err: any) {
+        if (err?.status === 404) {
+          router.replace('/(provider)/register/type');
+          return false;
+        }
         router.replace('/(auth)/login?role=provider');
         return false;
       }
@@ -74,35 +66,28 @@ export default function ProviderDashboardScreen() {
     try {
       setLoading(true);
       setError(null);
-      const token = await tokenStorage.getAccessToken();
       
       // Load stats and bookings in parallel
       const [providerRes, statsRes, bookingsRes] = await Promise.all([
-        fetch(`${API}/providers/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API}/providers/me/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API}/bookings?today=true`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        apiJson<any>('/providers/me', { auth: true }).catch(() => null),
+        apiJson<any>('/providers/me/stats', { auth: true }).catch(() => null),
+        apiJson<any>('/bookings?today=true', { auth: true }).catch(() => null),
       ]);
 
-      if (providerRes.ok) {
-        const providerData = await providerRes.json();
+      if (providerRes) {
+        const providerData = providerRes.data ?? providerRes;
         setProvider(providerData);
-        setIsOnline(providerData.isOnline ?? false);
+        setIsOnline(providerData?.isOnline ?? false);
       }
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+      if (statsRes) {
+        const statsData = statsRes.data ?? statsRes;
         setStats(statsData);
       }
 
-      if (bookingsRes.ok) {
-        const bookingsData = await bookingsRes.json();
-        setTodayBookings(bookingsData.data || []);
+      if (bookingsRes) {
+        const bookingsData = bookingsRes.data ?? bookingsRes;
+        setTodayBookings(bookingsData.data || bookingsData || []);
       }
     } catch (error) {
       console.log('Error loading dashboard data:', error);
@@ -118,11 +103,10 @@ export default function ProviderDashboardScreen() {
     setIsTogglingOnline(true);
     
     try {
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/providers/me/availability`, {
+      const response = await apiFetch('/providers/me/availability', {
+        auth: true,
         method: 'PATCH',
         headers: { 
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isOnline: newStatus })
@@ -141,10 +125,9 @@ export default function ProviderDashboardScreen() {
 
   const startBooking = async (id: string) => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/bookings/${id}/start`, {
+      const response = await apiFetch(`/bookings/${id}/start`, {
+        auth: true,
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {

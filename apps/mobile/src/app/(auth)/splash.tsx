@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { tokenStorage } from '@/utils/token-storage';
-import { API } from '@/utils/api';
 import { colors, fonts, fontSizes, lineHeights, spacing } from '@/theme';
+import { apiJson } from '@/services/apiClient';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -67,41 +67,30 @@ export default function SplashScreen() {
 
         if (accessToken && role) {
           try {
-            const meRes = await fetch(`${API}/users/me`, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            if (meRes.ok) {
-              const me = await meRes.json();
-              await tokenStorage.setUser(me);
-              if (me?.isEmailVerified === false) {
-                router.replace(
-                  `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
-                );
-                return;
-              }
+            const me = await apiJson<any>('/users/me', { auth: true });
+            await tokenStorage.setUser(me);
+            if (me?.isEmailVerified === false) {
+              router.replace(
+                `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
+              );
+              return;
             }
           } catch {}
 
           // Token exists — navigate to the correct home
           if (role === 'provider') {
             try {
-              const res = await fetch(
-                `${API}/providers/me`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              if (res.ok) {
-                const provider = await res.json();
-                if (provider.status?.toLowerCase() === 'approved') {
-                  router.replace('/(provider)' as any);
-                } else {
-                  router.replace('/(provider)/pending' as any);
-                }
-              } else if (res.status === 404) {
-                router.replace('/(provider)/register/type' as any);
+              const provider = await apiJson<any>('/providers/me', { auth: true });
+              if (provider.status?.toLowerCase() === 'approved') {
+                router.replace('/(provider)' as any);
               } else {
-                router.replace('/(auth)/login?role=provider' as any);
+                router.replace('/(provider)/pending' as any);
               }
-            } catch {
+            } catch (err: any) {
+              if (err?.status === 404) {
+                router.replace('/(provider)/register/type' as any);
+                return;
+              }
               router.replace('/(auth)/login?role=provider' as any);
             }
           } else {

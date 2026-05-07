@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import axios from 'axios';
 import { colors, fonts, fontSizes, layout, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
-import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson } from '@/services/apiClient';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -40,8 +39,11 @@ export default function LoginScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const response = await axios.post(`${API}/auth/login`, { identifier, password });
-      const authData = response.data;
+      const authData = await apiJson<any>('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
       const token = authData.accessToken;
       const role = authData.user.role;
 
@@ -57,30 +59,23 @@ export default function LoginScreen() {
 
       if (role === 'provider') {
         try {
-          const pRes = await fetch(
-            `${API}/providers/me`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (pRes.ok) {
-            const provider = await pRes.json();
-            if (provider.status?.toLowerCase() === 'approved') {
-              router.replace('/(provider)');    // ← goes straight to dashboard
-            } else {
-              router.replace('/(provider)/pending');
-            }
-          } else if (pRes.status === 404) {
-            // User is provider but no profile yet
-            router.replace('/(provider)/register/type' as any);
+          const provider = await apiJson<any>('/providers/me', { auth: true });
+          if (provider.status?.toLowerCase() === 'approved') {
+            router.replace('/(provider)');
           } else {
             router.replace('/(provider)/pending');
           }
-        } catch {
+        } catch (err: any) {
+          if (err?.status === 404) {
+            router.replace('/(provider)/register/type' as any);
+            return;
+          }
           router.replace('/(provider)/pending');
         }
         return;
       }
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.status ?? err.response?.status;
       showError(mapHttpError(status, undefined, lang), status);
     } finally {
       setIsLoading(false);

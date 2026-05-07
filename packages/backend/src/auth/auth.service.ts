@@ -36,6 +36,15 @@ let sendgridInitialized = false;
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  private intEnv(name: string, fallback: number, min?: number, max?: number): number {
+    const raw = process.env[name];
+    const parsed = raw !== undefined ? parseInt(raw, 10) : NaN;
+    let value = Number.isFinite(parsed) ? parsed : fallback;
+    if (typeof min === 'number') value = Math.max(min, value);
+    if (typeof max === 'number') value = Math.min(max, value);
+    return value;
+  }
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -54,6 +63,11 @@ export class AuthService {
 
   // ─── REGISTER ──────────────────────────────────────────────────────────────
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
+    const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+    if (isProd && dto.role === 'admin') {
+      throw new BadRequestException('Ungültige Rolle.');
+    }
+
     const email = dto.email.toLowerCase();
     const emailDomain = email.split('@')[1]?.trim()?.toLowerCase();
     if (!emailDomain) {
@@ -71,7 +85,7 @@ export class AuthService {
       throw new ConflictException('Diese E-Mail-Adresse ist bereits registriert.');
     }
 
-    const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
+    const rounds = this.intEnv('BCRYPT_ROUNDS', 12, 10, 14);
     const passwordHash = await bcrypt.hash(dto.password, rounds);
 
     const user = this.userRepo.create({
@@ -224,10 +238,10 @@ export class AuthService {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(
       Date.now() +
-        parseInt(process.env.OTP_EXPIRES_MINUTES ?? '10') * 60 * 1000,
+        this.intEnv('OTP_EXPIRES_MINUTES', 10, 5, 30) * 60 * 1000,
     );
 
-    const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
+    const rounds = this.intEnv('BCRYPT_ROUNDS', 12, 10, 14);
     const otpHash = await bcrypt.hash(otp, rounds);
 
     const reset = this.passwordResetRepo.create({
@@ -380,7 +394,7 @@ export class AuthService {
       .andWhere('"usedAt" IS NULL')
       .execute();
 
-    const rounds = parseInt(process.env.BCRYPT_ROUNDS ?? '12');
+    const rounds = this.intEnv('BCRYPT_ROUNDS', 12, 10, 14);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     const otpHash = await bcrypt.hash(otp, rounds);

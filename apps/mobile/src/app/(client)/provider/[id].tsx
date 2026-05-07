@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { tokenStorage } from '../../../utils/token-storage';
-import axios from 'axios';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { addFavourite, removeFavourite } from '../../../utils/favourites';
-import { API } from '../../../utils/api';
+import { addFavourite, removeFavourite, getFavouriteIds } from '../../../utils/favourites';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { apiJson } from '@/services/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -48,40 +46,32 @@ export default function ProviderProfile() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const token = await tokenStorage.getAccessToken();
-      const headers = { Authorization: `Bearer ${token}` };
       const coords = await getDiscoveryCoordinates();
       const locationQuery = coords
         ? `?lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}`
         : '';
 
-      const [provRes, servRes, portRes, revRes, favRes] = await Promise.all([
-        axios.get(`${API}/providers/${id}${locationQuery}`, { headers }),
-        axios.get(`${API}/providers/${id}/services`, { headers }),
-        axios.get(`${API}/providers/${id}/portfolio`, { headers }),
-        axios.get(`${API}/providers/${id}/reviews?limit=20`, { headers }),
-        axios.get(`${API}/favourites`, { headers }).catch(() => ({ data: { data: [] } }))
+      const [provRes, servRes, portRes, revRes, favIds] = await Promise.all([
+        apiJson<any>(`/providers/${id}${locationQuery}`, { auth: true }),
+        apiJson<any>(`/providers/${id}/services`, { auth: true }),
+        apiJson<any>(`/providers/${id}/portfolio`, { auth: true }),
+        apiJson<any>(`/providers/${id}/reviews?limit=20`, { auth: true }),
+        getFavouriteIds().catch(() => []),
       ]);
 
-      setProvider(provRes.data.data || provRes.data);
-      setServices(servRes.data.data || servRes.data);
+      setProvider(provRes.data || provRes);
+      setServices(servRes.data || servRes);
       
-      const portData = portRes.data.data || portRes.data || [];
+      const portData = portRes.data || portRes || [];
       console.log('Portfolio data:', JSON.stringify(portData).slice(0, 200));
       setPortfolio(portData.filter((img: any) => !!img.imageUrl));
 
-      setReviews(revRes.data.data || revRes.data);
+      setReviews(revRes.data || revRes);
 
-      const favs: any[] = favRes.data?.data ?? favRes.data ?? [];
-      const isFav = Array.isArray(favs) && favs.some(
-        (f: any) =>
-          f.id === id ||
-          f.providerId === id ||
-          f.provider?.id === id
-      );
+      const isFav = Array.isArray(favIds) && Boolean(id) && favIds.includes(id as string);
       setIsFavourite(isFav);
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.status ?? err.response?.status;
       setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {
@@ -133,23 +123,12 @@ export default function ProviderProfile() {
   const openChat = async (recipientUserId: string) => {
     if (!recipientUserId) return;
     try {
-      const token = await tokenStorage.getAccessToken();
-
-      const res = await fetch(`${API}/chat/conversations`, {
+      const data = await apiJson<any>('/chat/conversations', {
+        auth: true,
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId: recipientUserId }),
       });
-
-      if (!res.ok) {
-        console.log('Could not open chat, status:', res.status);
-        return;
-      }
-
-      const data = await res.json();
       const conversationId = data?.data?.id ?? data?.id;
 
       if (!conversationId) {

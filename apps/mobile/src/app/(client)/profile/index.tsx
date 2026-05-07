@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '@/theme';
-import { API } from '../../../utils/api';
 import { AuthService } from '../../../services/authService';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -21,17 +20,14 @@ export default function ClientProfileScreen() {
 
   const fetchUser = async () => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) {
+      setIsLoading(true);
+      const res = await apiJson<any>('/users/me', { auth: true });
+      setUser(res?.data || res);
+    } catch (err: any) {
+      if (err?.status === 401) {
         router.replace('/(auth)/login');
         return;
       }
-      setIsLoading(true);
-      const res = await axios.get(`${API}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUser(res.data?.data || res.data);
-    } catch (err) {
       console.log('Failed to fetch user', err);
     } finally {
       setIsLoading(false);
@@ -65,7 +61,6 @@ export default function ClientProfileScreen() {
   const uploadAvatar = async (asset: ImagePicker.ImagePickerAsset) => {
     try {
       setIsUploadingAvatar(true);
-      const token = await tokenStorage.getAccessToken();
       
       const formData = new FormData();
       const filename = asset.uri.split('/').pop() ?? 'avatar.jpg';
@@ -78,13 +73,10 @@ export default function ClientProfileScreen() {
         type: mimeType,
       } as any);
 
-      const res = await fetch(`${API}/users/me/avatar`, {
+      const res = await apiFetch('/users/me/avatar', {
+        auth: true,
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // BUG 8: do NOT set Content-Type; RN sets it with the boundary automatically
-        },
-        body: formData,
+        body: formData as any,
       });
 
       if (!res.ok) {

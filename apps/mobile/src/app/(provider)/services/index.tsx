@@ -3,11 +3,11 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Swi
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, spacing, shadows } from '../../../theme';
-import { tokenStorage } from '../../../utils/token-storage';
 import { PrimaryButton } from '../../../components/PrimaryButton';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { GermanErrorBanner } from '@/components/GermanErrorBanner';
+import { apiFetch, apiJson } from '@/services/apiClient';
 
 export default function ProviderServicesListScreen() {
   const router = useRouter();
@@ -15,6 +15,9 @@ export default function ProviderServicesListScreen() {
   const [categories, setCategories] = useState<{ [id: string]: string }>({});
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
 
   useFocusEffect(
     useCallback(() => {
@@ -25,25 +28,24 @@ export default function ProviderServicesListScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = await tokenStorage.getAccessToken();
+      setErrorVisible(false);
       
       const [catRes, svcRes] = await Promise.all([
-        fetch(`${API}/services/categories`),
-        fetch(`${API}/providers/me/services`, { headers: { 'Authorization': `Bearer ${token}` } })
+        apiJson<any>('/services/categories', { timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>('/providers/me/services', { auth: true, timeoutMs: 20000, retryCount: 1 })
       ]);
 
-      if (catRes.ok) {
-        const catData = await catRes.json();
-        const catMap: any = {};
-        (catData.data || catData).forEach((c: any) => { catMap[c.id] = c.name; });
-        setCategories(catMap);
-      }
+      const catData = catRes?.data ?? catRes ?? [];
+      const catMap: any = {};
+      (Array.isArray(catData) ? catData : []).forEach((c: any) => { catMap[c.id] = c.name; });
+      setCategories(catMap);
 
-      if (svcRes.ok) {
-        setServices(await svcRes.json());
-      }
+      const svcData = svcRes?.data ?? svcRes ?? [];
+      setServices(Array.isArray(svcData) ? svcData : []);
     } catch (e) {
-      console.log('Error loading services:', e);
+      setErrorStatus(e?.status ?? e?.response?.status);
+      setErrorMessage(e?.message);
+      setErrorVisible(true);
     } finally {
       setLoading(false);
     }
@@ -60,11 +62,12 @@ export default function ProviderServicesListScreen() {
     const targetStatus = !current;
     setServices(prev => prev.map(s => s.id === id ? { ...s, isActive: targetStatus } : s));
     try {
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/providers/me/services/${id}`, {
+      const res = await apiFetch(`/providers/me/services/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ isActive: targetStatus })
+        auth: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: targetStatus }),
+        timeoutMs: 20000,
       });
       if (!res.ok) throw new Error();
     } catch {
@@ -82,10 +85,10 @@ export default function ProviderServicesListScreen() {
   const deleteService = async (id: string) => {
     setServices(prev => prev.filter(s => s.id !== id));
     try {
-      const token = await tokenStorage.getAccessToken();
-      await fetch(`${API}/providers/me/services/${id}`, {
+      await apiFetch(`/providers/me/services/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        auth: true,
+        timeoutMs: 20000,
       });
     } catch (e) {
       loadData();
@@ -111,6 +114,13 @@ export default function ProviderServicesListScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <GermanErrorBanner
+          visible={errorVisible}
+          statusCode={errorStatus}
+          message={errorMessage}
+          actionLabel={t('appointmentsRetry')}
+          onAction={loadData}
+        />
         {Object.keys(groupedServices).length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>{t('servicesEmpty')}</Text>

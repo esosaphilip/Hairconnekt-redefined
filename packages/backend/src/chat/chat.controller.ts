@@ -1,10 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('chat')
 export class ChatController {
@@ -33,14 +35,16 @@ export class ChatController {
   }
 
   @Post('conversations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @Throttle({ default: { limit: 30, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
   async createConversation(@CurrentUser() user: User, @Body() dto: CreateConversationDto) {
     return this.chatService.createOrGetConversation(user.id, dto.recipientId);
   }
 
   @Post('conversations/:id/messages')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @Throttle({ default: { limit: 60, ttl: 60 } })
   @HttpCode(HttpStatus.CREATED)
   async sendMessage(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.chatService.sendMessage(user.id, id, dto.content);

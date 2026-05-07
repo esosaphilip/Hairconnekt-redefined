@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { ErrorReporter } from './common/error-reporting/error-reporter';
 
 async function bootstrap() {
   const setEnvAlias = (target: string, sources: string[]) => {
@@ -72,6 +73,39 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  app.use((req, res, next) => {
+    const existingRequestId = req.header('x-request-id');
+    const requestId =
+      existingRequestId && existingRequestId.trim() !== ''
+        ? existingRequestId
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    (req as any).requestId = requestId;
+    res.setHeader('x-request-id', requestId);
+
+    if ((process.env.NODE_ENV ?? 'development') === 'production') {
+      const startMs = Date.now();
+      res.on('finish', () => {
+        const ms = Date.now() - startMs;
+        const status = res.statusCode;
+        const path = (req.originalUrl ?? req.url ?? '').toString();
+        if (path.startsWith('/api/v1/health')) return;
+
+        const entry = {
+          requestId,
+          method: req.method,
+          path,
+          status,
+          ms,
+          ip: (req.headers['x-forwarded-for'] as string | undefined) ?? req.ip,
+          ua: req.headers['user-agent'],
+        };
+        console.log(JSON.stringify(entry));
+      });
+    }
+
+    next();
+  });
+
   const rawCorsOrigin = process.env.CORS_ORIGIN?.trim();
   const defaultCorsOrigins = [
     'https://hairconnekt.de',
@@ -109,7 +143,27 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const errorReporter = new ErrorReporter();
+  process.on('unhandledRejection', (reason) => {
+    void errorReporter.report({
+      status: 500,
+      method: 'process',
+      path: 'unhandledRejection',
+      message: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : String(reason),
+    });
+  });
+  process.on('uncaughtException', (err) => {
+    void errorReporter.report({
+      status: 500,
+      method: 'process',
+      path: 'uncaughtException',
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : String(err),
+    });
+  });
+
+  app.useGlobalFilters(new GlobalExceptionFilter(errorReporter));
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Backend running on port ${process.env.PORT ?? 3000}`);

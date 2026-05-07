@@ -2,15 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson } from '@/services/apiClient';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -29,20 +27,16 @@ export default function AppointmentsList() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const token = await tokenStorage.getAccessToken();
       let statusParam = '';
       if (activeTab === 'upcoming') statusParam = 'PENDING,CONFIRMED,IN_PROGRESS';
       if (activeTab === 'completed') statusParam = 'COMPLETED';
       if (activeTab === 'cancelled') statusParam = 'CANCELLED';
 
-      const response = await axios.get(`${API}/bookings?status=${statusParam}&limit=50`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const payload = response.data?.data || response.data || [];
+      const response = await apiJson<any>(`/bookings?status=${encodeURIComponent(statusParam)}&limit=50`, { auth: true });
+      const payload = response?.data || response || [];
       setBookings(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+      setErrorMessage(mapHttpError(err?.status ?? err?.response?.status, undefined, lang));
       setErrorVisible(true);
       setBookings([]);
     } finally {
@@ -98,21 +92,17 @@ export default function AppointmentsList() {
   const openChat = async (providerUserId: string) => {
     if (!providerUserId) return;
     try {
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/chat/conversations`, {
+      const data: any = await apiJson<any>('/chat/conversations', {
+        auth: true,
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ recipientId: providerUserId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const conversationId = data?.data?.id ?? data?.id;
-        if (conversationId) {
-          router.push(`/(shared)/chat/${conversationId}` as any);
-        }
+      const conversationId = data?.data?.id ?? data?.id;
+      if (conversationId) {
+        router.push(`/(shared)/chat/${conversationId}` as any);
       }
     } catch (err) {
       console.log('openChat error:', err);
