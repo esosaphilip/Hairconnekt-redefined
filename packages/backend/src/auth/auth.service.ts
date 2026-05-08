@@ -15,7 +15,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as sgMail from '@sendgrid/mail';
 import { createHash, randomBytes } from 'crypto';
-import disposableEmailDomains from 'disposable-email-domains';
+import * as disposableEmailDomains from 'disposable-email-domains';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
@@ -73,7 +73,14 @@ export class AuthService {
     if (!emailDomain) {
       throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
     }
-    if ((disposableEmailDomains as string[]).includes(emailDomain)) {
+    const rawDisposable: any =
+      (disposableEmailDomains as any)?.default ?? (disposableEmailDomains as any);
+    const list: string[] | null = Array.isArray(rawDisposable)
+      ? rawDisposable
+      : Array.isArray(rawDisposable?.domains)
+        ? rawDisposable.domains
+        : null;
+    if (list && list.includes(emailDomain)) {
       throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
     }
 
