@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
+import { useFavourites } from '../../contexts/FavouritesContext';
 import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
@@ -17,6 +17,7 @@ type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
 export default function ClientSearch() {
   const router = useRouter();
   const { t, lang } = useLanguage();
+  const { isFavourite, toggleFavourite } = useFavourites();
   const params = useLocalSearchParams<{ query?: string; sort?: SortOption }>();
   const initialQuery = typeof params.query === 'string' ? params.query : '';
   const initialSort: SortOption =
@@ -40,9 +41,6 @@ export default function ClientSearch() {
   
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
-
-  // Favourites
-  const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
 
   const [categoryMap, setCategoryMap] = useState<{ id: string; name: string }[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
@@ -75,14 +73,7 @@ export default function ClientSearch() {
       }
     };
 
-    // Load which providers are already favourited
-    const loadFavourites = async () => {
-      const ids = await getFavouriteIds();
-      setFavouriteIds(ids);
-    };
-
     loadCategories();
-    loadFavourites();
     loadDiscoveryLocation();
   }, []);
 
@@ -138,13 +129,6 @@ export default function ClientSearch() {
       setTotalResults(typeof meta.total === 'number' ? meta.total : newData.length);
       setHasMore(nextHasMore);
 
-      setFavouriteIds((prev) => {
-        const backendFavourites = newData
-          .filter((provider: ProviderProps) => provider.isFavourited)
-          .map((provider: ProviderProps) => provider.id);
-        return Array.from(new Set([...prev, ...backendFavourites]));
-      });
-
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
@@ -187,30 +171,6 @@ export default function ClientSearch() {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchProviders(nextPage);
-  };
-
-  const handleToggleFavourite = async (providerId: string) => {
-    const isCurrentlyFav = favouriteIds.includes(providerId);
-
-    // Optimistic update
-    setFavouriteIds(prev =>
-      isCurrentlyFav
-        ? prev.filter(id => id !== providerId)
-        : [...prev, providerId]
-    );
-
-    const success = isCurrentlyFav
-      ? await removeFavourite(providerId)
-      : await addFavourite(providerId);
-
-    // Revert if API failed
-    if (!success) {
-      setFavouriteIds(prev =>
-        isCurrentlyFav
-          ? [...prev, providerId]
-          : prev.filter(id => id !== providerId)
-      );
-    }
   };
 
   const renderFilterChips = () => (
@@ -356,10 +316,10 @@ export default function ClientSearch() {
             <ProviderCard
               provider={{
                 ...item,
-                isFavourited: favouriteIds.includes(item.id)
+                isFavourited: isFavourite(item.id)
               }}
               onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
-              onFavourite={() => handleToggleFavourite(item.id)}
+              onFavourite={() => toggleFavourite(item.id)}
             />
           )}
           onEndReached={handleLoadMore}

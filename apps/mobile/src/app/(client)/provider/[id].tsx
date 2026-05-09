@@ -5,7 +5,7 @@ import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { addFavourite, removeFavourite, getFavouriteIds } from '../../../utils/favourites';
+import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
@@ -18,6 +18,7 @@ export default function ProviderProfile() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
+  const { isFavourite, toggleFavourite } = useFavourites();
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -27,7 +28,6 @@ export default function ProviderProfile() {
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [isFavourite, setIsFavourite] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'gallery' | 'reviews'>('overview');
   const tabs = [
@@ -51,12 +51,11 @@ export default function ProviderProfile() {
         ? `?lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}`
         : '';
 
-      const [provRes, servRes, portRes, revRes, favIds] = await Promise.all([
+      const [provRes, servRes, portRes, revRes] = await Promise.all([
         apiJson<any>(`/providers/${id}${locationQuery}`, { auth: true }),
         apiJson<any>(`/providers/${id}/services`, { auth: true }),
         apiJson<any>(`/providers/${id}/portfolio`, { auth: true }),
         apiJson<any>(`/providers/${id}/reviews?limit=20`, { auth: true }),
-        getFavouriteIds().catch(() => []),
       ]);
 
       setProvider(provRes.data || provRes);
@@ -67,9 +66,6 @@ export default function ProviderProfile() {
       setPortfolio(portData.filter((img: any) => !!img.imageUrl));
 
       setReviews(revRes.data || revRes);
-
-      const isFav = Array.isArray(favIds) && Boolean(id) && favIds.includes(id as string);
-      setIsFavourite(isFav);
     } catch (err: any) {
       const status = err?.status ?? err.response?.status;
       setErrorMessage(mapHttpError(status, undefined, lang));
@@ -79,23 +75,9 @@ export default function ProviderProfile() {
     }
   };
 
-  const toggleFavourite = async () => {
-    const wasAlreadyFav = isFavourite;
-
-    // Optimistic update
-    setIsFavourite(!wasAlreadyFav);
-
-    const success = wasAlreadyFav
-      ? await removeFavourite(id as string)
-      : await addFavourite(id as string);
-
-    // Revert if API failed
-    if (!success) {
-      setIsFavourite(wasAlreadyFav);
-    }
-  };
-
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl : null;
+  const providerId = id as string;
+  const isFav = Boolean(providerId) && isFavourite(providerId);
 
   if (isLoading) {
     return (
@@ -165,8 +147,14 @@ export default function ProviderProfile() {
               <TouchableOpacity style={styles.iconButton}>
                 <Feather name="share-2" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconButton, { marginLeft: spacing.sm }]} onPress={toggleFavourite}>
-                <FontAwesome5 name="heart" solid={isFavourite} size={20} color={isFavourite ? colors.coral : colors.textPrimary} />
+              <TouchableOpacity
+                style={[styles.iconButton, { marginLeft: spacing.sm }]}
+                onPress={() => {
+                  if (!providerId) return;
+                  void toggleFavourite(providerId);
+                }}
+              >
+                <FontAwesome5 name="heart" solid={isFav} size={20} color={isFav ? colors.coral : colors.textPrimary} />
               </TouchableOpacity>
             </View>
           </View>

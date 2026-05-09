@@ -7,7 +7,7 @@ import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
-import { getFavouriteIds, addFavourite, removeFavourite } from '../../utils/favourites';
+import { useFavourites } from '../../contexts/FavouritesContext';
 import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, setDiscoveryOverride } from '../../utils/discovery-location';
 import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 import * as Location from 'expo-location';
@@ -77,6 +77,7 @@ const BELIEBTE_STYLES: PopularStyle[] = [
 export default function ClientHome() {
   const router = useRouter();
   const { lang, t } = useLanguage();
+  const { isFavourite, toggleFavourite } = useFavourites();
   
   const [firstName, setFirstName] = useState('');
   const [profileCity, setProfileCity] = useState<string>('');
@@ -88,7 +89,6 @@ export default function ClientHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
-  const [favouriteIds, setFavouriteIds] = useState<string[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
   const [radiusKm, setRadiusKm] = useState(100);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -111,7 +111,6 @@ export default function ClientHome() {
 
   useEffect(() => {
     loadUser();
-    getFavouriteIds().then(setFavouriteIds);
     bootstrapDiscovery();
     fetchPopularStyles();
   }, []);
@@ -169,30 +168,6 @@ export default function ClientHome() {
 
   const handleProviderPress = (id: string) => {
     router.push(`/(client)/provider/${id}` as any);
-  };
-
-  const handleToggleFavourite = async (providerId: string) => {
-    const isCurrentlyFav = favouriteIds.includes(providerId);
-
-    // Optimistic update
-    setFavouriteIds(prev =>
-      isCurrentlyFav
-        ? prev.filter(id => id !== providerId)
-        : [...prev, providerId]
-    );
-
-    const success = isCurrentlyFav
-      ? await removeFavourite(providerId)
-      : await addFavourite(providerId);
-
-    // Revert if API failed
-    if (!success) {
-      setFavouriteIds(prev =>
-        isCurrentlyFav
-          ? [...prev, providerId]
-          : prev.filter(id => id !== providerId)
-      );
-    }
   };
 
   return (
@@ -341,10 +316,10 @@ export default function ClientHome() {
               key={provider.id}
               provider={{
                 ...provider,
-                isFavourited: favouriteIds.includes(provider.id)
+                isFavourited: isFavourite(provider.id)
               }}
               onPress={() => handleProviderPress(provider.id)}
-              onFavourite={() => handleToggleFavourite(provider.id)}
+              onFavourite={() => toggleFavourite(provider.id)}
             />
           ))
         )}

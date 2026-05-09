@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
-import { removeFavourite } from '../../utils/favourites';
+import { useFavourites } from '../../contexts/FavouritesContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
@@ -25,11 +25,13 @@ type ProviderSummaryDto = {
 export default function FavouritesScreen() {
   const router = useRouter();
   const { t, lang } = useLanguage();
+  const { toggleFavourite, refreshFavourites } = useFavourites();
   const [favourites, setFavourites] = useState<ProviderSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchFavourites();
+    void refreshFavourites();
   }, []);
 
   const fetchFavourites = async () => {
@@ -47,30 +49,6 @@ export default function FavouritesScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleRemoveFavourite = async (providerId: string, businessName: string) => {
-    Alert.alert(
-      t('favouritesRemoveTitle'),
-      t('favouritesRemoveBody').replace('{name}', businessName),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        { 
-          text: t('remove'), 
-          style: 'destructive', 
-          onPress: async () => {
-            // Optimistic Update
-            setFavourites(prev => prev.filter(p => p.id !== providerId));
-            
-            const success = await removeFavourite(providerId);
-            if (!success) {
-              // Revert optimistic update
-              fetchFavourites();
-            }
-          } 
-        }
-      ]
-    );
   };
 
   const renderItem = ({ item }: { item: ProviderSummaryDto }) => {
@@ -95,7 +73,24 @@ export default function FavouritesScreen() {
           {/* Heart Button */}
           <TouchableOpacity 
             style={styles.heartButton} 
-            onPress={() => handleRemoveFavourite(item.id, item.businessName || item.firstName || '')}
+            onPress={() => {
+              Alert.alert(
+                t('favouritesRemoveTitle'),
+                t('favouritesRemoveBody').replace('{name}', item.businessName || item.firstName || ''),
+                [
+                  { text: t('cancel'), style: 'cancel' },
+                  {
+                    text: t('remove'),
+                    style: 'destructive',
+                    onPress: async () => {
+                      setFavourites((prev) => prev.filter((p) => p.id !== item.id));
+                      await toggleFavourite(item.id);
+                      fetchFavourites();
+                    },
+                  },
+                ],
+              );
+            }}
           >
             <FontAwesome name="heart" size={16} color={colors.coral} />
           </TouchableOpacity>
