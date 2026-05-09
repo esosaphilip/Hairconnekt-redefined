@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
+import { DateTimePickerModal } from '../../components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -34,8 +34,14 @@ export default function AvailabilityScreen() {
   const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   const [showToast, setShowToast] = useState(false);
 
-  const [showPicker, setShowPicker] = useState<{ visible: boolean; dayIndex: number; field: 'openTime' | 'closeTime' }>({
-    visible: false, dayIndex: -1, field: 'openTime'
+  const [pickerState, setPickerState] = useState<{
+    visible: boolean;
+    dayOfWeek: number;
+    field: 'openTime' | 'closeTime';
+  }>({
+    visible: false,
+    dayOfWeek: -1,
+    field: 'openTime',
   });
 
   useEffect(() => {
@@ -88,21 +94,28 @@ export default function AvailabilityScreen() {
     ));
   };
 
-  const handleTimeChange = (event: any, selectedDate?: Date) => {
-    setShowPicker({ ...showPicker, visible: Platform.OS === 'ios' });
-    
-    if (selectedDate && showPicker.dayIndex !== -1) {
-      const timeStr = selectedDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-      setSchedule(prev => prev.map(day => 
-        day.dayOfWeek === showPicker.dayIndex 
-          ? { ...day, [showPicker.field]: timeStr } 
-          : day
-      ));
-    }
+  const openTimePicker = (dayOfWeek: number, field: 'openTime' | 'closeTime') => {
+    setPickerState({ visible: true, dayOfWeek, field });
   };
 
-  const openTimePicker = (dayOfWeek: number, field: 'openTime' | 'closeTime') => {
-    setShowPicker({ visible: true, dayIndex: dayOfWeek, field });
+  const handlePickerConfirm = (selectedDate: Date) => {
+    const timeStr = selectedDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    setSchedule((prev) =>
+      prev.map((day) =>
+        day.dayOfWeek === pickerState.dayOfWeek ? { ...day, [pickerState.field]: timeStr } : day,
+      ),
+    );
+    setPickerState((prev) => ({ ...prev, visible: false }));
+  };
+
+  const getPickerValue = (): Date => {
+    const day = schedule.find((d) => d.dayOfWeek === pickerState.dayOfWeek);
+    if (!day) return new Date();
+    const timeStr = day[pickerState.field] || '09:00';
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d;
   };
 
   const handleSave = async () => {
@@ -130,14 +143,6 @@ export default function AvailabilityScreen() {
     } finally {
       setSaving(false);
     }
-  };
-
-  // Helper to parse HH:mm to Date object for the picker
-  const getTimeAsDate = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
   };
 
   if (loading) {
@@ -240,17 +245,13 @@ export default function AvailabilityScreen() {
 
       </ScrollView>
 
-      {/* Time Picker Modal */}
-      {showPicker.visible && (
-        <DateTimePicker
-          value={getTimeAsDate(
-            schedule.find(d => d.dayOfWeek === showPicker.dayIndex)?.[showPicker.field] || '09:00'
-          )}
-          mode="time"
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
+      <DateTimePickerModal
+        visible={pickerState.visible}
+        mode="time"
+        value={getPickerValue()}
+        onConfirm={handlePickerConfirm}
+        onCancel={() => setPickerState((prev) => ({ ...prev, visible: false }))}
+      />
 
       {/* Footer */}
       <View style={styles.footer}>

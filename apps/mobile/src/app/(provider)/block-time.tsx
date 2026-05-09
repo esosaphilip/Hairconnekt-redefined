@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
+import { DateTimePickerModal } from '../../components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
@@ -37,23 +37,37 @@ export default function BlockTimeScreen() {
   const [errorVisible, setErrorVisible] = useState(false);
 
   // Picker State
-  const [showPicker, setShowPicker] = useState<{ visible: boolean; mode: 'date' | 'time'; field: string }>({
-    visible: false, mode: 'date', field: ''
+  const [pickerState, setPickerState] = useState<{
+    visible: boolean;
+    mode: 'date' | 'time';
+    field: 'startDate' | 'endDate' | 'startTime' | 'endTime';
+  }>({
+    visible: false,
+    mode: 'date',
+    field: 'startDate',
   });
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowPicker({ ...showPicker, visible: Platform.OS === 'ios' }); // Keep open on iOS, close on Android
-    
-    if (selectedDate) {
-      if (showPicker.field === 'startDate') setStartDate(selectedDate);
-      if (showPicker.field === 'endDate') setEndDate(selectedDate);
-      if (showPicker.field === 'startTime') setStartTime(selectedDate);
-      if (showPicker.field === 'endTime') setEndTime(selectedDate);
-    }
+  const openPicker = (field: 'startDate' | 'endDate' | 'startTime' | 'endTime', mode: 'date' | 'time') => {
+    setPickerState({ visible: true, mode, field });
   };
 
-  const openPicker = (field: string, mode: 'date' | 'time') => {
-    setShowPicker({ visible: true, mode, field });
+  const handlePickerConfirm = (selectedDate: Date) => {
+    const field = pickerState.field;
+    setPickerState((prev) => ({ ...prev, visible: false }));
+    switch (field) {
+      case 'startDate':
+        setStartDate(selectedDate);
+        break;
+      case 'endDate':
+        setEndDate(selectedDate);
+        break;
+      case 'startTime':
+        setStartTime(selectedDate);
+        break;
+      case 'endTime':
+        setEndTime(selectedDate);
+        break;
+    }
   };
 
   const formatDate = (date: Date | null) => {
@@ -253,15 +267,19 @@ export default function BlockTimeScreen() {
 
       </ScrollView>
 
-      {/* Picker Modal (iOS usually needs a wrapper, Android opens dialog) */}
-      {showPicker.visible && (
-        <DateTimePicker
-          value={new Date()}
-          mode={showPicker.mode}
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
+      <DateTimePickerModal
+        visible={pickerState.visible}
+        mode={pickerState.mode}
+        value={
+          pickerState.field === 'startDate' ? (startDate ?? new Date())
+          : pickerState.field === 'endDate' ? (endDate ?? new Date())
+          : pickerState.field === 'startTime' ? (startTime ?? new Date())
+          : (endTime ?? new Date())
+        }
+        minimumDate={pickerState.mode === 'date' ? new Date() : undefined}
+        onConfirm={handlePickerConfirm}
+        onCancel={() => setPickerState((prev) => ({ ...prev, visible: false }))}
+      />
 
       {/* Footer Button */}
       <View style={styles.footer}>
