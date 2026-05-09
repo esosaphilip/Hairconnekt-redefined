@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
@@ -74,6 +74,36 @@ export default function ProviderCalendarScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteBlock = (blockId: string, blockReason: string) => {
+    Alert.alert(
+      'Zeitblock löschen',
+      `Möchtest du den Block "${blockReason || 'Zeitblock'}" wirklich löschen?`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await tokenStorage.getAccessToken();
+              const res = await fetch(`${API}/providers/me/blocks/${blockId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (res.ok || res.status === 204) {
+                setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+              } else {
+                Alert.alert('Fehler', 'Der Zeitblock konnte nicht gelöscht werden.');
+              }
+            } catch {
+              Alert.alert('Fehler', 'Verbindungsfehler. Bitte erneut versuchen.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handlePrevMonth = () => {
@@ -237,10 +267,21 @@ export default function ProviderCalendarScreen() {
           <>
             {dayBlocks.map(block => (
               <View key={block.id} style={styles.blockCard}>
-                <Text style={styles.blockTitle}>🚫 {t('calendarBlocked')}: {block.reason || t('blockTimeNoReason')}</Text>
-                <Text style={styles.blockTime}>
-                  {block.isAllDay ? t('calendarAllDay') : `${block.startTime || ''} – ${block.endTime || ''}`}
-                </Text>
+                <View style={styles.blockCardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.blockTitle}>🚫 {t('calendarBlocked')}: {block.reason || t('blockTimeNoReason')}</Text>
+                    <Text style={styles.blockTime}>
+                      {block.isAllDay ? t('calendarAllDay') : `${block.startTime || ''} – ${block.endTime || ''}`}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteBlock(block.id, block.reason || '')}
+                    style={styles.blockDeleteButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather name="trash-2" size={16} color="#BF6000" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
 
@@ -367,6 +408,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: spacing.md,
     marginBottom: spacing.md,
+  },
+  blockCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  blockDeleteButton: {
+    padding: 4,
+    marginLeft: spacing.sm,
   },
   blockTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.orange, marginBottom: 4 },
   blockTime: { fontFamily: fonts.body, fontSize: 14, color: colors.orange },
