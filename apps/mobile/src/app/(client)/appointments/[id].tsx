@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
@@ -121,6 +121,7 @@ export default function AppointmentDetails() {
   }
 
   const provider = booking.provider || {};
+  const providerPhone: string | null = provider.phone ?? provider.user?.phone ?? null;
   const user = provider.user || {};
   const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
   const avatarUri = user.avatarUrl as string | undefined;
@@ -201,10 +202,18 @@ export default function AppointmentDetails() {
             </TouchableOpacity>
             <View style={styles.btnDivider} />
             <TouchableOpacity 
-              style={styles.providerBtn}
+              style={[styles.providerBtn, !providerPhone && { opacity: 0.4 }]}
+              disabled={!providerPhone}
               onPress={() => {
-                if (provider.phone) {
-                  Linking.openURL(`tel:${provider.phone}`);
+                if (!providerPhone) return;
+                if (Platform.OS === 'android') {
+                  Linking.openURL(`tel:${providerPhone}`).catch((err) => {
+                    console.log('[BUG-011] Android tel: link failed:', err);
+                  });
+                } else {
+                  Linking.openURL(`tel:${providerPhone}`).catch((err) => {
+                    console.log('[BUG-011] iOS tel: link failed:', err);
+                  });
                 }
               }}
             >
