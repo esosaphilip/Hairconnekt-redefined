@@ -131,7 +131,8 @@ export class ProvidersService {
   async findAll(query: Record<string, string>, user?: { id?: string; sub?: string; role?: string }) {
     const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
     const page = Math.max(Number(query.page) || 1, 1);
-    const search = query.search?.trim().toLowerCase();
+    const trimmedSearch = query.search?.trim();
+    const search = trimmedSearch ? trimmedSearch.toLowerCase() : undefined;
     const categoryId = query.categoryId || query.services || query.category;
     const sort = this.normalizeSearchSort(query.sort);
     const lat = this.toOptionalNumber(query.lat);
@@ -142,7 +143,7 @@ export class ProvidersService {
       .createQueryBuilder('p')
       .where('p.status = :status', { status: ProviderStatus.APPROVED });
 
-    if (search || categoryId) {
+    if (categoryId) {
       qb.distinct(true);
       qb.leftJoin(
         Service,
@@ -164,10 +165,16 @@ export class ProvidersService {
       qb.andWhere(
         new Brackets((subQb) => {
           subQb
-            .where('LOWER(p.businessName) LIKE :searchTerm', { searchTerm })
-            .orWhere('LOWER(p.city) LIKE :searchTerm', { searchTerm })
-            .orWhere('LOWER(service.name) LIKE :searchTerm', { searchTerm })
-            .orWhere('LOWER(service.description) LIKE :searchTerm', { searchTerm });
+            .where('LOWER(p.businessName) LIKE LOWER(:searchTerm)', { searchTerm })
+            .orWhere('LOWER(p.city) LIKE LOWER(:searchTerm)', { searchTerm })
+            .orWhere(
+              'EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.name) LIKE LOWER(:searchTerm))',
+              { searchTerm },
+            )
+            .orWhere(
+              'EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.description) LIKE LOWER(:searchTerm))',
+              { searchTerm },
+            );
         }),
       );
     }
