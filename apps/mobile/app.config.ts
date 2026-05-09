@@ -6,16 +6,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const base = (appJson?.expo ?? config) as ExpoConfig;
   const profile = process.env.EAS_BUILD_PROFILE ?? '';
 
-  const isPreview = profile === 'preview';
-  const isProduction = profile === 'production';
+  const isNonProduction =
+    profile === 'development' || profile === 'preview' || profile === 'staging';
+  const isProduction =
+    profile === 'production' || profile === 'production-internal';
 
-  const name = isPreview ? 'HC Staging' : 'HairConnekt';
+  const name = isNonProduction ? 'HC Staging' : 'HairConnekt';
 
-  const androidPackage = isPreview
+  const androidPackage = isNonProduction
     ? 'de.hairconnekt.app.staging'
     : base.android?.package ?? 'de.hairconnekt.app';
 
-  const iosBundleIdentifier = isPreview
+  const iosBundleIdentifier = isNonProduction
     ? 'de.hairconnekt.app.staging'
     : base.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
 
