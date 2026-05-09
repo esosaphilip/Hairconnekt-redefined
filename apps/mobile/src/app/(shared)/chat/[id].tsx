@@ -7,6 +7,7 @@ import { io, Socket } from 'socket.io-client';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { tokenStorage } from '@/utils/token-storage';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
+import { MessageTicks } from '../../../components/MessageTicks';
 import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -323,12 +324,9 @@ export default function SharedChatScreen() {
         <View style={[styles.metaRow, isOwn ? styles.metaRowOwn : styles.metaRowOther]}>
           <Text style={styles.timestamp}>{formatTime(msg.createdAt)}</Text>
           {isOwn && (
-            <Feather
-              name="check"
-              size={fontSizes.xs}
-              color={msg.isRead ? colors.teal : colors.textTertiary}
-              style={styles.readIcon}
-            />
+            <View style={{ marginLeft: 4 }}>
+              <MessageTicks isRead={msg.isRead} />
+            </View>
           )}
         </View>
       </View>
