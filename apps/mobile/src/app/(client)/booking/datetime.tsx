@@ -79,9 +79,36 @@ export default function ClientBookingDateTime() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!selectedDate || !selectedTime) return;
-    
+
+    const providerIdValue = (Array.isArray(providerId) ? providerId[0] : providerId) as string;
+
+    try {
+      const token = await tokenStorage.getAccessToken();
+      const res = await axios.get(
+        `${API}/providers/${providerIdValue}/slots?date=${selectedDate}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      const freshSlots: Array<{ time: string; available: boolean }> =
+        res.data?.slots ?? res.data?.data ?? [];
+
+      const stillAvailable = freshSlots.find(
+        (s) => s.time === selectedTime && s.available,
+      );
+
+      if (!stillAvailable) {
+        setErrorMessage(
+          'Dieser Zeitslot ist leider nicht mehr verfügbar. Bitte wähle eine andere Zeit.',
+        );
+        setErrorVisible(true);
+        setSelectedTime('');
+        fetchSlots(selectedDate);
+        return;
+      }
+    } catch {}
+
     router.push({
       pathname: '/(client)/booking/details',
       params: { 

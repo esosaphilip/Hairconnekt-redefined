@@ -208,8 +208,12 @@ export class ProvidersController {
   @Get('me/blocks')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER)
-  async getTimeBlocks(@CurrentUser() user: User) {
-    return this.providersService.getTimeBlocks(user.id);
+  async getTimeBlocks(
+    @CurrentUser() user: User,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.providersService.getTimeBlocks(user.id, from, to);
   }
 
   @Post('me/blocks')

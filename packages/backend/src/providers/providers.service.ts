@@ -9,7 +9,7 @@ import { User } from '../entities/user.entity';
 import { Service } from '../entities/service.entity';
 import { Favourite } from '../entities/favourite.entity';
 import { TimeBlock } from '../entities/time-block.entity';
-import { Booking } from '../entities/booking.entity';
+import { Booking, BookingStatus } from '../entities/booking.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { Review } from '../entities/review.entity';
 import { RegisterProviderDto } from './dto/register-provider.dto';
@@ -473,12 +473,25 @@ export class ProvidersService {
   }
 
   // --- Time Blocks ---
-  async getTimeBlocks(userId: string) {
+  async getTimeBlocks(userId: string, from?: string, to?: string) {
     const provider = await this.getMe(userId);
-    return this.timeBlockRepo.find({
-      where: { providerId: provider.id },
-      order: { startDate: 'ASC' },
-    });
+
+    const fromDate = from ?? new Date().toISOString().split('T')[0];
+    const toDate =
+      to ??
+      (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 90);
+        return d.toISOString().split('T')[0];
+      })();
+
+    return this.timeBlockRepo
+      .createQueryBuilder('block')
+      .where('block.providerId = :providerId', { providerId: provider.id })
+      .andWhere('block.startDate <= :to', { to: toDate })
+      .andWhere('block.endDate >= :from', { from: fromDate })
+      .orderBy('block.startDate', 'ASC')
+      .getMany();
   }
 
   async createTimeBlock(userId: string, data: any) {
@@ -665,6 +678,7 @@ export class ProvidersService {
       throw new BadRequestException('date parameter is required (YYYY-MM-DD)');
     }
 
+    const dateParam = dateStr;
     const provider = await this.providerRepo.findOne({
       where: { id: providerId }
     });
@@ -689,45 +703,93 @@ export class ProvidersService {
       return { date: dateStr, providerId, slots: [] };
     }
 
-    // Generate 30-min slots between openTime and closeTime
-    const slots = [];
     const [openH, openM] = schedule.openTime.split(':').map(Number);
     const [closeH, closeM] = schedule.closeTime.split(':').map(Number);
     const bufferMin = provider.bufferMinutes ?? 0;
     const slotInterval = 30; // 30 minute slots
 
-    let currentH = openH;
-    let currentM = openM;
+    const openMinutes = openH * 60 + openM;
+    const closeMinutes = closeH * 60 + closeM;
 
-    while (
-      currentH < closeH ||
-      (currentH === closeH && currentM < closeM)
+    const allSlotMinutes: number[] = [];
+    for (
+      let m = openMinutes;
+      m < closeMinutes;
+      m += slotInterval + bufferMin
     ) {
-      const timeStr = `${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`;
-
-      // Check if this slot is booked
-      const existingBooking = await this.bookingRepo.findOne({
-        where: {
-          providerId,
-          scheduledDate: dateStr,
-          scheduledTime: timeStr,
-          status: Not('CANCELLED' as any),
-        },
-      });
-
-      slots.push({
-        time: timeStr,
-        startTime: timeStr,
-        available: !existingBooking,
-        isAvailable: !existingBooking,
-      });
-
-      // Advance by slot interval + buffer
-      const totalMinutes = currentH * 60 + currentM + slotInterval + bufferMin;
-      currentH = Math.floor(totalMinutes / 60);
-      currentM = totalMinutes % 60;
+      allSlotMinutes.push(m);
     }
 
-    return { date: dateStr, providerId, slots };
+    const occupiedRanges: Array<{ start: number; end: number }> = [];
+
+    const existingBookings = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .select(['booking.scheduledTime'])
+      .where('booking.providerId = :providerId', { providerId })
+      .andWhere('booking.scheduledDate = :date', { date: dateParam })
+      .andWhere('booking.status != :cancelled', { cancelled: BookingStatus.CANCELLED })
+      .getMany();
+
+    for (const booking of existingBookings) {
+      if (!booking.scheduledTime) continue;
+      const [h, min] = booking.scheduledTime.split(':').map(Number);
+      const start = h * 60 + min;
+      occupiedRanges.push({ start, end: start + slotInterval + bufferMin });
+    }
+
+    const timeBlocks = await this.timeBlockRepo
+      .createQueryBuilder('block')
+      .where('block.providerId = :providerId', { providerId })
+      .andWhere('block.startDate <= :date', { date: dateParam })
+      .andWhere('block.endDate >= :date', { date: dateParam })
+      .getMany();
+
+    const hasAllDayBlock = timeBlocks.some((b) => b.isAllDay);
+    if (hasAllDayBlock) {
+      const slots = allSlotMinutes.map((slotMinute) => {
+        const hours = Math.floor(slotMinute / 60)
+          .toString()
+          .padStart(2, '0');
+        const mins = (slotMinute % 60).toString().padStart(2, '0');
+        const timeStr = `${hours}:${mins}`;
+        return {
+          time: timeStr,
+          startTime: timeStr,
+          available: false,
+          isAvailable: false,
+        };
+      });
+      return { date: dateParam, providerId, slots };
+    }
+
+    for (const block of timeBlocks) {
+      if (!block.isAllDay && block.startTime && block.endTime) {
+        const [bStartHour, bStartMin] = block.startTime.split(':').map(Number);
+        const [bEndHour, bEndMin] = block.endTime.split(':').map(Number);
+
+        occupiedRanges.push({
+          start: bStartHour * 60 + bStartMin,
+          end: bEndHour * 60 + bEndMin,
+        });
+      }
+    }
+
+    const isSlotOccupied = (slotMinute: number) =>
+      occupiedRanges.some((range) => slotMinute >= range.start && slotMinute < range.end);
+
+    const slots = allSlotMinutes.map((slotMinute) => {
+      const hours = Math.floor(slotMinute / 60).toString().padStart(2, '0');
+      const mins = (slotMinute % 60).toString().padStart(2, '0');
+      const timeStr = `${hours}:${mins}`;
+      const available = !isSlotOccupied(slotMinute);
+      return {
+        time: timeStr,
+        startTime: timeStr,
+        available,
+        isAvailable: available,
+      };
+    });
+
+    return { date: dateParam, providerId, slots };
   }
 }

@@ -175,6 +175,20 @@ export class BookingsService {
       throw new BadRequestException('scheduledTime must be in HH:MM format');
     }
 
+    const allDayBlockExists = await this.timeBlockRepo
+      .createQueryBuilder('block')
+      .where('block.providerId = :providerId', { providerId })
+      .andWhere('block.startDate <= :date', { date: scheduledDate })
+      .andWhere('block.endDate >= :date', { date: scheduledDate })
+      .andWhere('block.isAllDay = true')
+      .getOne();
+
+    if (allDayBlockExists) {
+      throw new ConflictException(
+        'Dieser Tag ist vom Anbieter blockiert und steht nicht zur Verfügung.',
+      );
+    }
+
     await this.validateBookingSlot(providerId, scheduledDate, scheduledTime);
 
     const services = await this.serviceRepo.findBy({ id: In(serviceIds) });
