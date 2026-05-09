@@ -1,11 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import Expo, { ExpoPushMessage } from 'expo-server-sdk';
 import { Repository } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
 import { User } from '../entities/user.entity';
 
-const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
+type ExpoPushMessage = {
+  to: string;
+  title?: string;
+  body?: string;
+  data?: Record<string, any>;
+  sound?: 'default' | null;
+  badge?: number;
+  channelId?: string;
+};
+
+type ExpoClient = {
+  chunkPushNotifications: (messages: ExpoPushMessage[]) => ExpoPushMessage[][];
+  sendPushNotificationsAsync: (messages: ExpoPushMessage[]) => Promise<any>;
+};
+
+type ExpoModule = {
+  default: new (opts: { accessToken?: string }) => ExpoClient;
+};
+
+let expoModulePromise: Promise<ExpoModule> | null = null;
+let expoClient: ExpoClient | null = null;
+let isExpoPushTokenFn: ((token: string) => boolean) | null = null;
+
+const importExpoServerSdk = () =>
+  (new Function('return import("expo-server-sdk")')() as Promise<ExpoModule>);
+
+const getExpoClient = async (): Promise<ExpoClient> => {
+  if (expoClient) return expoClient;
+  if (!expoModulePromise) expoModulePromise = importExpoServerSdk();
+
+  const mod = await expoModulePromise;
+  const ExpoClass = mod.default;
+  expoClient = new ExpoClass({ accessToken: process.env.EXPO_ACCESS_TOKEN });
+  isExpoPushTokenFn = (ExpoClass as any).isExpoPushToken?.bind(ExpoClass) ?? null;
+  return expoClient;
+};
 
 export interface SendPushParams {
   userId: string;
@@ -58,7 +92,10 @@ export class NotificationsService {
       );
 
       if (!user.expoPushToken) return;
-      if (!Expo.isExpoPushToken(user.expoPushToken)) return;
+      if (!isExpoPushTokenFn) {
+        await getExpoClient();
+      }
+      if (!isExpoPushTokenFn || !isExpoPushTokenFn(user.expoPushToken)) return;
 
       const message: ExpoPushMessage = {
         to: user.expoPushToken,
@@ -70,6 +107,7 @@ export class NotificationsService {
         channelId: 'default',
       };
 
+      const expo = await getExpoClient();
       const chunks = expo.chunkPushNotifications([message]);
       for (const chunk of chunks) {
         await expo.sendPushNotificationsAsync(chunk);
@@ -79,4 +117,3 @@ export class NotificationsService {
     }
   }
 }
-
