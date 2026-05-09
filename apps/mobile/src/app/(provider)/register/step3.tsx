@@ -7,10 +7,12 @@ import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterStep3Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
+  const { t } = useLanguage();
 
   const [loadingServices, setLoadingServices] = useState(true);
   const [servicesError, setServicesError] = useState(false);
@@ -30,7 +32,21 @@ export default function RegisterStep3Screen() {
   const [cancellationPolicy, setCancellationPolicy] = useState<PolicyType>(initialPolicy);
   const [bio, setBio] = useState(form.bio || '');
 
-  const availableLanguages = ['Deutsch', 'Englisch', 'Französisch', 'Arabisch', 'Türkisch'];
+  const availableLanguages: {
+    value: string;
+    labelKey:
+      | 'languageGerman'
+      | 'languageEnglish'
+      | 'languageFrench'
+      | 'languageArabic'
+      | 'languageTurkish';
+  }[] = [
+    { value: 'Deutsch', labelKey: 'languageGerman' },
+    { value: 'Englisch', labelKey: 'languageEnglish' },
+    { value: 'Französisch', labelKey: 'languageFrench' },
+    { value: 'Arabisch', labelKey: 'languageArabic' },
+    { value: 'Türkisch', labelKey: 'languageTurkish' },
+  ];
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -73,7 +89,7 @@ export default function RegisterStep3Screen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.progressText}>Schritt 3 / 5</Text>
+        <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '3').replace('{total}', '5')}</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -89,15 +105,15 @@ export default function RegisterStep3Screen() {
         
         {/* SECTION 1 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spezialisierungen</Text>
-          <Text style={styles.sectionSubtitle}>Welche Services bietest du an?</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep3SpecialisationsTitle')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('providerRegisterStep3SpecialisationsSubtitle')}</Text>
           
           {loadingServices ? (
             <ActivityIndicator size="small" color={colors.coral} style={{ marginVertical: spacing.md }} />
           ) : servicesError ? (
             <View style={styles.errorBanner}>
               <Feather name="alert-circle" size={20} color={colors.error} />
-              <Text style={styles.errorText}>Dienste konnten nicht geladen werden.</Text>
+              <Text style={styles.errorText}>{t('providerRegisterStep3ServicesLoadError')}</Text>
             </View>
           ) : (
             <View style={styles.chipsRow}>
@@ -121,8 +137,8 @@ export default function RegisterStep3Screen() {
 
         {/* SECTION 2 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Erfahrung</Text>
-          <Text style={styles.experienceLabel}>{experienceYears} Jahre Erfahrung</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep3ExperienceTitle')}</Text>
+          <Text style={styles.experienceLabel}>{t('providerRegisterStep3ExperienceYears').replace('{years}', String(experienceYears))}</Text>
           <Slider
             style={{ width: '100%', height: 40 }}
             minimumValue={0}
@@ -138,31 +154,31 @@ export default function RegisterStep3Screen() {
 
         {/* SECTION 3 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sprachen</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep3LanguagesTitle')}</Text>
           <View style={styles.chipsRow}>
-            {availableLanguages.map((lang) => {
-              const isSelected = languages.includes(lang);
+            {availableLanguages.map((item) => {
+              const isSelected = languages.includes(item.value);
               return (
                 <TouchableOpacity
-                  key={lang}
-                  onPress={() => toggleLanguage(lang)}
+                  key={item.value}
+                  onPress={() => toggleLanguage(item.value)}
                   style={[styles.chip, isSelected ? styles.chipSelected : styles.chipUnselected]}
                 >
                   <Text style={[styles.chipText, isSelected ? styles.chipTextSelected : styles.chipTextUnselected]}>
-                    {lang}
+                    {t(item.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
           {languages.length === 0 && (
-            <Text style={[styles.errorText, { marginTop: spacing.xs, marginLeft: 0 }]}>Bitte wähle mindestens eine Sprache aus.</Text>
+            <Text style={[styles.errorText, { marginTop: spacing.xs, marginLeft: 0 }]}>{t('providerRegisterStep3LanguagesRequired')}</Text>
           )}
         </View>
 
         {/* SECTION 4 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Stornierungsrichtlinie</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep3CancellationTitle')}</Text>
           <View style={styles.pillsRow}>
             {policyValues.map((policy) => {
               const isSelected = cancellationPolicy === policy;
@@ -183,7 +199,7 @@ export default function RegisterStep3Screen() {
 
         {/* SECTION 5 */}
         <View style={[styles.section, { borderBottomWidth: 0 }]}>
-          <Text style={styles.sectionTitle}>Über mich (optional)</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep3AboutTitle')}</Text>
           <TextInput
             style={styles.textArea}
             multiline
@@ -191,7 +207,7 @@ export default function RegisterStep3Screen() {
             maxLength={500}
             value={bio}
             onChangeText={setBio}
-            placeholder="Erzähle Kunden von dir und deiner Arbeit..."
+            placeholder={t('providerRegisterStep3BioPlaceholder')}
             textAlignVertical="top"
           />
           <Text style={styles.charCounter}>{bio.length}/500</Text>
@@ -201,7 +217,7 @@ export default function RegisterStep3Screen() {
 
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Weiter" 
+          label={t('next')} 
           onPress={handleNext} 
           variant="filled" 
           disabled={languages.length === 0}

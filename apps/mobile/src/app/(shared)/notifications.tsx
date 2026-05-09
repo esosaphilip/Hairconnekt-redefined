@@ -4,25 +4,52 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Notification {
   id: string;
   type: string;
-  title: string;
-  body: string;
+  titleDe: string;
+  titleEn?: string | null;
+  bodyDe: string;
+  bodyEn?: string | null;
+  data?: Record<string, any> | null;
   isRead: boolean;
   createdAt: string;
-  referenceId?: string;
 }
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'booking' | 'message' | 'system'>('all');
+
+  const BOOKING_TYPES = [
+    'new_booking',
+    'booking_confirmed',
+    'booking_declined',
+    'booking_cancelled_by_client',
+    'booking_cancelled_by_provider',
+    'booking_rescheduled',
+    'booking_started',
+    'booking_completed',
+    'booking_reminder_24h',
+    'booking_reminder_2h',
+  ];
+  const MESSAGE_TYPES = ['message_received'];
+  const SYSTEM_TYPES = [
+    'provider_approved',
+    'provider_rejected',
+    'review_received',
+    'review_response',
+    'new_favourite',
+  ];
 
   useEffect(() => {
     loadNotifications(1, true);
@@ -70,12 +97,8 @@ export default function NotificationsScreen() {
       markAsRead(notif.id);
     }
 
-    if (notif.type.includes('booking')) {
-      router.push(`/(client)/appointments/${notif.referenceId}` as any);
-    } else if (notif.type === 'review_received') {
-      router.push('/(client)/profile/reviews' as any);
-    } else if (notif.type === 'message_received') {
-      router.push(`/(client)/chat/${notif.referenceId}` as any);
+    if (notif.data?.screen) {
+      router.push(notif.data.screen as any);
     }
   };
 
@@ -91,17 +114,17 @@ export default function NotificationsScreen() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     
-    if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+    if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
 
     const diffMs = Date.now() - d.getTime();
     if (diffMs > 0 && d.toDateString() === today.toDateString()) {
       const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 60) return `vor ${diffMins} Min.`;
+      if (diffMins < 60) return t('notificationsAgoMins').replace('{minutes}', String(diffMins));
       const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `vor ${diffHours} Std.`;
+      if (diffHours < 24) return t('notificationsAgoHours').replace('{hours}', String(diffHours));
     }
 
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const getDateLabel = (isoString: string) => {
@@ -110,13 +133,21 @@ export default function NotificationsScreen() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (d.toDateString() === today.toDateString()) return 'Heute';
-    if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    if (d.toDateString() === today.toDateString()) return t('notificationsToday');
+    if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
+  const filteredNotifications = notifications.filter((n) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'booking') return BOOKING_TYPES.includes(n.type);
+    if (activeFilter === 'message') return MESSAGE_TYPES.includes(n.type);
+    if (activeFilter === 'system') return SYSTEM_TYPES.includes(n.type);
+    return true;
+  });
+
   const groupedData: { label: string; data: Notification[] }[] = [];
-  notifications.forEach(n => {
+  filteredNotifications.forEach(n => {
     const label = getDateLabel(n.createdAt);
     let group = groupedData.find(g => g.label === label);
     if (!group) {
@@ -134,16 +165,27 @@ export default function NotificationsScreen() {
 
   const getIconConfig = (type: string) => {
     switch (type) {
-      case 'booking_confirmed':
-        return { name: 'calendar', color: '#FFFFFF', bg: '#4CAF50' };
-      case 'booking_cancelled':
-        return { name: 'x', color: '#FFFFFF', bg: colors.error };
       case 'new_booking':
-        return { name: 'clock', color: '#FFFFFF', bg: colors.coral };
+        return { name: 'calendar', color: '#FFFFFF', bg: colors.coral };
+      case 'booking_confirmed':
+        return { name: 'check-circle', color: '#FFFFFF', bg: '#4CAF50' };
+      case 'booking_declined':
+        return { name: 'x-circle', color: '#FFFFFF', bg: colors.error };
+      case 'booking_cancelled_by_client':
+      case 'booking_cancelled_by_provider':
+        return { name: 'x-circle', color: '#FFFFFF', bg: colors.error };
+      case 'booking_rescheduled':
+        return { name: 'refresh-cw', color: '#FFFFFF', bg: '#F5A623' };
+      case 'booking_started':
+        return { name: 'play-circle', color: '#FFFFFF', bg: '#4CAF50' };
+      case 'booking_completed':
+        return { name: 'star', color: '#FFFFFF', bg: colors.gold };
       case 'review_received':
         return { name: 'star', color: '#FFFFFF', bg: colors.gold };
       case 'message_received':
-        return { name: 'message-square', color: '#FFFFFF', bg: colors.teal };
+        return { name: 'message-circle', color: '#FFFFFF', bg: colors.coral };
+      case 'provider_approved':
+        return { name: 'check-circle', color: '#FFFFFF', bg: '#4CAF50' };
       default:
         return { name: 'bell', color: '#FFFFFF', bg: colors.borderStrong };
     }
@@ -156,6 +198,8 @@ export default function NotificationsScreen() {
 
     const notif = item as Notification;
     const iconConfig = getIconConfig(notif.type);
+    const title = lang === 'en' ? (notif.titleEn || notif.titleDe) : notif.titleDe;
+    const body = lang === 'en' ? (notif.bodyEn || notif.bodyDe) : notif.bodyDe;
 
     return (
       <TouchableOpacity
@@ -168,9 +212,9 @@ export default function NotificationsScreen() {
         </View>
 
         <View style={styles.contentCol}>
-          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>{notif.title}</Text>
+          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>{title}</Text>
           <Text style={styles.bodyText} numberOfLines={2}>
-            {notif.body}
+            {body}
           </Text>
           <Text style={styles.timeText}>{getRelativeTime(notif.createdAt)}</Text>
         </View>
@@ -188,9 +232,9 @@ export default function NotificationsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Benachrichtigungen</Text>
+        <Text style={styles.headerTitle}>{t('notificationsTitle')}</Text>
         <TouchableOpacity onPress={markAllAsRead} disabled={unreadCount === 0}>
-          <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>Alle lesen</Text>
+          <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>{t('notificationsMarkAll')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -201,19 +245,42 @@ export default function NotificationsScreen() {
       ) : flattenedData.length === 0 ? (
         <View style={styles.centerContainer}>
           <Feather name="bell" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
-          <Text style={styles.emptyTitle}>Keine Benachrichtigungen</Text>
-          <Text style={styles.emptySub}>Hier siehst du Updates zu deinen Buchungen</Text>
+          <Text style={styles.emptyTitle}>{t('notificationsEmpty')}</Text>
+          <Text style={styles.emptySub}>{t('notificationsEmptySub')}</Text>
         </View>
       ) : (
-        <FlatList
-          data={flattenedData}
-          keyExtractor={item => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={{ margin: spacing.md }} color={colors.coral} /> : null}
-        />
+        <>
+          <View style={styles.filterRow}>
+            {[
+              { key: 'all', label: t('notificationsAll') },
+              { key: 'booking', label: t('notificationsBookings') },
+              { key: 'message', label: t('notificationsMessages') },
+              { key: 'system', label: t('notificationsSystem') },
+            ].map((f) => {
+              const isActive = activeFilter === (f.key as any);
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[styles.filterPill, isActive && styles.filterPillActive]}
+                  onPress={() => setActiveFilter(f.key as any)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <FlatList
+            data={flattenedData}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={isLoadingMore ? <ActivityIndicator style={{ margin: spacing.md }} color={colors.coral} /> : null}
+          />
+        </>
       )}
     </SafeAreaView>
   );
@@ -239,6 +306,27 @@ const styles = StyleSheet.create({
   readAllTextDisabled: { color: colors.borderStrong },
 
   listContent: { paddingBottom: 40 },
+
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  filterPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#FFFFFF',
+  },
+  filterPillActive: {
+    borderColor: colors.coral,
+    backgroundColor: '#FFF5F4',
+  },
+  filterText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.textSecondary },
+  filterTextActive: { color: colors.coral },
 
   sectionHeader: {
     fontFamily: fonts.bodyBold,

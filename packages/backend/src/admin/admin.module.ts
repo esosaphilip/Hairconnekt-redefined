@@ -8,10 +8,12 @@ import { User } from '../entities/user.entity';
 import { ServiceCategory } from '../entities/service-category.entity';
 import { Service } from '../entities/service.entity';
 import { PopularStyle } from '../entities/popular-style.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ServiceCategory, Provider, User, Service, PopularStyle]),
+    NotificationsModule,
   ],
   controllers: [AdminCategoriesController, AdminProvidersController, AdminStatsController],
 })

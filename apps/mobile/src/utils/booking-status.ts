@@ -1,13 +1,22 @@
 export const bookingStatus = (s?: string): string =>
   s?.toLowerCase() ?? '';
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Ausstehend',
-  confirmed: 'Bestätigt',
-  in_progress: 'In Bearbeitung',
-  completed: 'Abgeschlossen',
-  cancelled: 'Storniert',
+const STATUS_LABELS: Record<'de' | 'en', Record<string, string>> = {
+  de: {
+    pending: 'Ausstehend',
+    confirmed: 'Bestätigt',
+    in_progress: 'In Bearbeitung',
+    completed: 'Abgeschlossen',
+    cancelled: 'Storniert',
+  },
+  en: {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    in_progress: 'In Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  },
 };
 
-export const bookingStatusLabel = (s?: string): string =>
-  STATUS_LABELS[bookingStatus(s)] ?? 'Unbekannt';
+export const bookingStatusLabel = (s?: string, lang: 'de' | 'en' = 'de'): string =>
+  STATUS_LABELS[lang]?.[bookingStatus(s)] ?? (lang === 'en' ? 'Unknown' : 'Unbekannt');

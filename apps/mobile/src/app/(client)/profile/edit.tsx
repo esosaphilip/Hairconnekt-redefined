@@ -12,7 +12,7 @@ import { apiFetch, apiJson } from '@/services/apiClient';
 
 export default function ClientProfileEditScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,7 +57,7 @@ export default function ClientProfileEditScreen() {
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
-      setErrorMessage('Vorname und Nachname dürfen nicht leer sein.');
+      setErrorMessage(t('personalInfoNameRequired'));
       setErrorVisible(true);
       return;
     }
@@ -106,7 +106,7 @@ export default function ClientProfileEditScreen() {
       }
     } catch (error) {
       console.log('Error picking avatar', error);
-      setErrorMessage('Fehler beim Auswählen des Bildes.');
+      setErrorMessage(t('personalInfoPickImageError'));
       setErrorVisible(true);
     }
   };
@@ -161,12 +161,12 @@ export default function ClientProfileEditScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Persönliche Informationen</Text>
+          <Text style={styles.headerTitle}>{t('personalInfoTitle')}</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.saveButtonTextContainer}>
             {isSaving ? (
               <ActivityIndicator size="small" color={colors.teal} />
             ) : (
-              <Text style={styles.saveButtonText}>Speichern</Text>
+              <Text style={styles.saveButtonText}>{t('save')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -204,27 +204,27 @@ export default function ClientProfileEditScreen() {
                 <Feather name="camera" size={16} color={colors.primary} />
               </View>
             </TouchableOpacity>
-            <Text style={styles.avatarHint}>Dein Profilbild</Text>
+            <Text style={styles.avatarHint}>{t('personalInfoAvatar')}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Vorname</Text>
-            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="Vorname" />
+            <Text style={styles.inputLabel}>{t('personalInfoFirstName')}</Text>
+            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder={t('personalInfoFirstName')} />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Nachname</Text>
-            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder="Nachname" />
+            <Text style={styles.inputLabel}>{t('personalInfoLastName')}</Text>
+            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder={t('personalInfoLastName')} />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>E-Mail</Text>
+            <Text style={styles.inputLabel}>{t('personalInfoEmail')}</Text>
             <TextInput style={[styles.input, styles.inputDisabled]} value={email} editable={false} selectTextOnFocus={false} />
-            <Text style={styles.hintText}>E-Mail kann nicht geändert werden</Text>
+            <Text style={styles.hintText}>{t('personalInfoEmailNote')}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Telefon</Text>
+            <Text style={styles.inputLabel}>{t('personalInfoPhone')}</Text>
             <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+49 ..." keyboardType="phone-pad" />
           </View>
         </ScrollView>
@@ -234,7 +234,7 @@ export default function ClientProfileEditScreen() {
             {isSaving ? (
               <ActivityIndicator color={colors.background} />
             ) : (
-              <Text style={styles.primaryButtonText}>Änderungen speichern</Text>
+              <Text style={styles.primaryButtonText}>{t('personalInfoSave')}</Text>
             )}
           </TouchableOpacity>
         </View>

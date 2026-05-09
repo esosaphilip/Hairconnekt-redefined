@@ -5,17 +5,19 @@ import { Feather } from '@expo/vector-icons';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderTypeScreen() {
   const router = useRouter();
   const { update } = useRegistration();
+  const { t } = useLanguage();
   const [selected, setSelected] = useState('');
 
   const types = [
-    { value: 'freelancer', emoji: '🧑', title: 'Einzelperson / Freelancer', subtitle: 'Ich arbeite selbstständig' },
-    { value: 'salon', emoji: '🏢', title: 'Salon / Barbershop', subtitle: 'Ich habe ein Geschäft' },
-    { value: 'mobile', emoji: '📍', title: 'Mobiler Service', subtitle: 'Ich komme zu meinen Kunden' },
-    { value: 'barber', emoji: '✂️', title: 'Barber', subtitle: 'Haar- und Bartpflege' }
+    { value: 'freelancer', emoji: '🧑', titleKey: 'providerTypeFreelancerTitle', subtitleKey: 'providerTypeFreelancerSub' },
+    { value: 'salon', emoji: '🏢', titleKey: 'providerTypeSalonTitle', subtitleKey: 'providerTypeSalonSub' },
+    { value: 'mobile', emoji: '📍', titleKey: 'providerTypeMobileTitle', subtitleKey: 'providerTypeMobileSub' },
+    { value: 'barber', emoji: '✂️', titleKey: 'providerTypeBarberTitle', subtitleKey: 'providerTypeBarberSub' },
   ];
 
   return (
@@ -27,8 +29,8 @@ export default function ProviderTypeScreen() {
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Was beschreibt dich am besten?</Text>
-        <Text style={styles.subtitle}>Wähle deine Kontoart aus</Text>
+        <Text style={styles.title}>{t('providerTypeTitle')}</Text>
+        <Text style={styles.subtitle}>{t('providerTypeSubtitle')}</Text>
 
         <View style={styles.cardsContainer}>
           {types.map((type) => {
@@ -44,8 +46,8 @@ export default function ProviderTypeScreen() {
               >
                 <Text style={styles.emoji}>{type.emoji}</Text>
                 <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>{type.title}</Text>
-                  <Text style={styles.cardSubtitle}>{type.subtitle}</Text>
+                  <Text style={styles.cardTitle}>{t(type.titleKey)}</Text>
+                  <Text style={styles.cardSubtitle}>{t(type.subtitleKey)}</Text>
                 </View>
                 <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
                   {isSelected && <View style={styles.radioInner} />}
@@ -58,7 +60,7 @@ export default function ProviderTypeScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Weiter" 
+          label={t('next')} 
           onPress={() => {
             update({ providerType: selected });
             router.push('/(provider)/register/step1');

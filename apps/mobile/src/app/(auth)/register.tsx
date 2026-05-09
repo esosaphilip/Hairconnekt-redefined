@@ -13,7 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -40,11 +40,11 @@ export default function RegisterScreen() {
       return;
     }
     if (password !== confirmPassword) {
-      showError('Passwörter stimmen nicht überein.');
+      showError(t('passwordsDontMatch'));
       return;
     }
     if (!acceptedTerms) {
-      showError('Bitte akzeptiere die AGB und die Datenschutzerklärung.');
+      showError(t('acceptTermsRequired'));
       return;
     }
 
@@ -79,26 +79,26 @@ export default function RegisterScreen() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.heading}>Kundenkonto erstellen</Text>
+        <Text style={styles.heading}>{t('registerClientTitle')}</Text>
         
         <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
 
-        <FormInput label="Vorname" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
-        <FormInput label="Nachname" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
-        <FormInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <FormInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <FormInput label="Passwort" value={password} onChangeText={setPassword} secureText />
-        <FormInput label="Passwort bestätigen" value={confirmPassword} onChangeText={setConfirmPassword} secureText />
+        <FormInput label={t('firstName')} value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+        <FormInput label={t('lastName')} value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+        <FormInput label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" />
+        <FormInput label={t('phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <FormInput label={t('password')} value={password} onChangeText={setPassword} secureText />
+        <FormInput label={t('passwordConfirm')} value={confirmPassword} onChangeText={setConfirmPassword} secureText />
 
         <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedTerms(!acceptedTerms)}>
           <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]} />
-          <Text style={styles.checkboxText}>Ich akzeptiere die AGB und Datenschutzerklärung</Text>
+          <Text style={styles.checkboxText}>{t('acceptTerms')}</Text>
         </TouchableOpacity>
 
-        <PrimaryButton label="Konto erstellen" onPress={handleRegister} loading={isLoading} />
+        <PrimaryButton label={t('registerCreateAccount')} onPress={handleRegister} loading={isLoading} />
 
         <TouchableOpacity style={styles.footer} onPress={() => router.push('/(auth)/login?role=client' as any)}>
-          <Text style={styles.footerText}>Bereits registriert? Anmelden</Text>
+          <Text style={styles.footerText}>{t('registerAlreadyHaveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

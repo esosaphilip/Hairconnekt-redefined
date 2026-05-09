@@ -3,16 +3,6 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 
-export enum NotificationType {
-  BOOKING_REQUEST = 'booking_request',
-  BOOKING_CONFIRMED = 'booking_confirmed',
-  BOOKING_CANCELLED = 'booking_cancelled',
-  BOOKING_COMPLETED = 'booking_completed',
-  NEW_MESSAGE = 'new_message',
-  NEW_REVIEW = 'new_review',
-  SYSTEM = 'system',
-}
-
 @Entity('notifications')
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
@@ -25,16 +15,22 @@ export class Notification {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'enum', enum: NotificationType })
-  type: NotificationType;
+  @Column({ type: 'varchar', length: 100 })
+  type: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ length: 200 })
   titleDe: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ length: 200 })
+  titleEn: string;
+
+  @Column({ length: 500 })
   bodyDe: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ length: 500 })
+  bodyEn: string;
+
+  @Column({ type: 'jsonb', default: {} })
   data: Record<string, any>;
 
   @Column({ type: 'boolean', default: false })

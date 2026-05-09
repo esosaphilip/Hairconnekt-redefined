@@ -11,18 +11,15 @@ import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 
-const RATING_LABELS: Record<number, string> = {
-  1: 'Schlecht',
-  2: 'Nicht gut',
-  3: 'OK',
-  4: 'Gut',
-  5: 'Ausgezeichnet'
-};
+const RATING_LABELS = {
+  de: { 1: 'Schlecht', 2: 'Nicht gut', 3: 'OK', 4: 'Gut', 5: 'Ausgezeichnet' },
+  en: { 1: 'Bad', 2: 'Not great', 3: 'OK', 4: 'Good', 5: 'Excellent' },
+} as const;
 
 export default function WriteReviewScreen() {
   const router = useRouter();
   const { bookingId } = useLocalSearchParams();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +68,7 @@ export default function WriteReviewScreen() {
       router.replace(`/(client)/appointments/${bookingId}` as any);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        setErrorMessage('Du hast diesen Termin bereits bewertet.');
+        setErrorMessage(t('reviewAlreadySubmitted'));
       } else {
         setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
       }
@@ -87,7 +84,7 @@ export default function WriteReviewScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Bewertung schreiben</Text>
+          <Text style={styles.headerTitle}>{t('reviewWrite')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
@@ -96,11 +93,15 @@ export default function WriteReviewScreen() {
   }
 
   const providerName = booking?.provider?.businessName || 
-    (booking?.provider?.user?.firstName ? `${booking.provider.user.firstName} ${booking.provider.user.lastName}` : 'Anbieter');
+    (booking?.provider?.user?.firstName ? `${booking.provider.user.firstName} ${booking.provider.user.lastName}` : t('providerGeneric'));
   const serviceNames = booking?.services?.map((s: any) => s.name).join(', ') || '';
   const avatarUrl = booking?.provider?.user?.avatarUrl;
 
   const isButtonDisabled = rating === 0 || comment.trim().length < 10 || isSubmitting;
+  const ratingLabel =
+    rating > 0
+      ? (((RATING_LABELS as any)[lang] || RATING_LABELS.de)[rating] ?? ' ')
+      : ' ';
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -108,7 +109,7 @@ export default function WriteReviewScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bewertung schreiben</Text>
+        <Text style={styles.headerTitle}>{t('reviewWrite')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -131,7 +132,7 @@ export default function WriteReviewScreen() {
         </View>
 
         <View style={styles.ratingSection}>
-          <Text style={styles.questionTitle}>Wie war dein Erlebnis?</Text>
+          <Text style={styles.questionTitle}>{t('reviewQuestion')}</Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((starValue) => {
               const isFilled = starValue <= rating;
@@ -151,14 +152,14 @@ export default function WriteReviewScreen() {
             })}
           </View>
           <View style={styles.labelContainer}>
-            <Text style={styles.ratingLabel}>{rating > 0 ? RATING_LABELS[rating] : ' '}</Text>
+            <Text style={styles.ratingLabel}>{ratingLabel}</Text>
           </View>
         </View>
 
         <View style={styles.commentSection}>
           <TextInput
             style={styles.commentInput}
-            placeholder="Teile deine Erfahrung mit anderen Kunden..."
+            placeholder={t('reviewPlaceholder')}
             placeholderTextColor="rgba(26,26,26,0.5)"
             value={comment}
             onChangeText={setComment}
@@ -181,7 +182,7 @@ export default function WriteReviewScreen() {
           {isSubmitting ? (
              <ActivityIndicator color={colors.surface} />
           ) : (
-             <Text style={styles.submitButtonText}>Bewertung senden</Text>
+             <Text style={styles.submitButtonText}>{t('reviewSubmit')}</Text>
           )}
         </TouchableOpacity>
       </View>

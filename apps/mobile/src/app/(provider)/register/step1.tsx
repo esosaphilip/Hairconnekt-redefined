@@ -5,10 +5,12 @@ import { Feather } from '@expo/vector-icons';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterStep1Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
+  const { t } = useLanguage();
 
   const [firstName, setFirstName] = useState(form.firstName || '');
   const [lastName, setLastName] = useState(form.lastName || '');
@@ -34,21 +36,21 @@ export default function RegisterStep1Screen() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!firstName.trim()) newErrors.firstName = 'Vorname ist erforderlich';
-    if (!lastName.trim()) newErrors.lastName = 'Nachname ist erforderlich';
+    if (!firstName.trim()) newErrors.firstName = t('providerRegisterFirstNameRequired');
+    if (!lastName.trim()) newErrors.lastName = t('providerRegisterLastNameRequired');
     
-    if (!email.trim()) newErrors.email = 'E-Mail ist erforderlich';
-    else if (!isEmailValid(email)) newErrors.email = 'Bitte gib eine gültige E-Mail-Adresse ein';
+    if (!email.trim()) newErrors.email = t('providerRegisterEmailRequired');
+    else if (!isEmailValid(email)) newErrors.email = t('providerRegisterEmailInvalid');
 
-    if (!phone.trim()) newErrors.phone = 'Telefonnummer ist erforderlich';
-    else if (!isPhoneValid(formatPhone(phone))) newErrors.phone = 'Bitte gib eine gültige deutsche Telefonnummer ein. (+49...)';
+    if (!phone.trim()) newErrors.phone = t('providerRegisterPhoneRequired');
+    else if (!isPhoneValid(formatPhone(phone))) newErrors.phone = t('providerRegisterPhoneInvalid');
 
-    if (!password) newErrors.password = 'Passwort ist erforderlich';
-    else if (password.length < 8) newErrors.password = 'Passwort muss mindestens 8 Zeichen lang sein';
+    if (!password) newErrors.password = t('providerRegisterPasswordRequired');
+    else if (password.length < 8) newErrors.password = t('providerRegisterPasswordTooShort');
 
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwörter stimmen nicht überein.';
+    if (password !== confirmPassword) newErrors.confirmPassword = t('passwordsDontMatch');
 
-    if (!acceptedTerms) newErrors.acceptedTerms = 'Bitte akzeptiere die AGB.';
+    if (!acceptedTerms) newErrors.acceptedTerms = t('providerRegisterAcceptTermsRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,7 +76,7 @@ export default function RegisterStep1Screen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.progressText}>Schritt 1 / 5</Text>
+        <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '1').replace('{total}', '5')}</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -87,11 +89,11 @@ export default function RegisterStep1Screen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Persönliche Daten</Text>
-        <Text style={styles.subtitle}>Bitte gib deine Daten ein</Text>
+        <Text style={styles.title}>{t('providerRegisterStep1Title')}</Text>
+        <Text style={styles.subtitle}>{t('providerRegisterStep1Subtitle')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Vorname</Text>
+          <Text style={styles.label}>{t('firstName')}</Text>
           <TextInput
             style={[styles.input, errors.firstName && styles.inputError]}
             value={firstName}
@@ -102,7 +104,7 @@ export default function RegisterStep1Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nachname</Text>
+          <Text style={styles.label}>{t('lastName')}</Text>
           <TextInput
             style={[styles.input, errors.lastName && styles.inputError]}
             value={lastName}
@@ -113,7 +115,7 @@ export default function RegisterStep1Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>E-Mail</Text>
+          <Text style={styles.label}>{t('email')}</Text>
           <TextInput
             style={[styles.input, errors.email && styles.inputError]}
             value={email}
@@ -127,7 +129,7 @@ export default function RegisterStep1Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Telefon (+49...)</Text>
+          <Text style={styles.label}>{t('providerRegisterPhoneLabel')}</Text>
           <TextInput
             style={[styles.input, errors.phone && styles.inputError]}
             value={phone}
@@ -139,13 +141,13 @@ export default function RegisterStep1Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Passwort</Text>
+          <Text style={styles.label}>{t('password')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
               value={password}
               onChangeText={(t) => { setPassword(t); setErrors(prev => ({...prev, password: ''})); }}
-              placeholder="Mindestens 8 Zeichen"
+              placeholder={t('providerRegisterPasswordPlaceholder')}
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
@@ -156,13 +158,13 @@ export default function RegisterStep1Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Passwort bestätigen</Text>
+          <Text style={styles.label}>{t('passwordConfirm')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={[styles.input, styles.passwordInput, errors.confirmPassword && styles.inputError]}
               value={confirmPassword}
               onChangeText={(t) => { setConfirmPassword(t); setErrors(prev => ({...prev, confirmPassword: ''})); }}
-              placeholder="Passwort wiederholen"
+              placeholder={t('providerRegisterPasswordConfirmPlaceholder')}
               secureTextEntry={!showConfirmPassword}
             />
             <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
@@ -179,7 +181,9 @@ export default function RegisterStep1Screen() {
             trackColor={{ true: colors.coral, false: colors.borderStrong || '#EEEEEE' }}
           />
           <Text style={styles.termsText}>
-            Ich akzeptiere die <Text style={styles.linkText}>AGB für Anbieter</Text> und <Text style={styles.linkText}>Datenschutzerklärung</Text>
+            {t('providerRegisterTermsPrefix')}{' '}
+            <Text style={styles.linkText}>{t('providerRegisterTermsProviders')}</Text> {t('providerRegisterTermsAnd')}{' '}
+            <Text style={styles.linkText}>{t('providerRegisterTermsPrivacy')}</Text>
           </Text>
         </View>
         {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}
@@ -187,7 +191,7 @@ export default function RegisterStep1Screen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <PrimaryButton label="Weiter" onPress={handleNext} variant="filled" />
+        <PrimaryButton label={t('next')} onPress={handleNext} variant="filled" />
       </View>
     </SafeAreaView>
   );

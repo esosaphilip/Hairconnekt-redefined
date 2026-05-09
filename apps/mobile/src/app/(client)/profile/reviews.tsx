@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 interface Review {
@@ -22,6 +23,8 @@ interface Review {
 
 export default function ClientReviewsScreen() {
   const router = useRouter();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -62,8 +65,7 @@ export default function ClientReviewsScreen() {
 
   const formatDate = (isoString: string) => {
     const d = new Date(isoString);
-    const months = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
-    return `${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}`;
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const renderItem = ({ item }: { item: Review }) => (
@@ -77,7 +79,7 @@ export default function ClientReviewsScreen() {
               <Feather name="briefcase" size={20} color={colors.textSecondary} />
             </View>
           )}
-          <Text style={styles.providerName}>{item.provider?.businessName || 'Unbekannt'}</Text>
+          <Text style={styles.providerName}>{item.provider?.businessName || t('myReviewsUnknown')}</Text>
         </View>
       </View>
 
@@ -98,7 +100,7 @@ export default function ClientReviewsScreen() {
 
       {item.response && (
         <View style={styles.responseBox}>
-          <Text style={styles.responseLabel}>Antwort des Anbieters:</Text>
+          <Text style={styles.responseLabel}>{t('myReviewsResponse')}</Text>
           <Text style={styles.responseText}>{item.response}</Text>
         </View>
       )}
@@ -114,10 +116,10 @@ export default function ClientReviewsScreen() {
     return (
       <View style={styles.emptyContainer}>
         <Feather name="star" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
-        <Text style={styles.emptyTitle}>Noch keine Bewertungen</Text>
-        <Text style={styles.emptySub}>Deine Bewertungen nach abgeschlossenen Terminen erscheinen hier</Text>
+        <Text style={styles.emptyTitle}>{t('myReviewsEmpty')}</Text>
+        <Text style={styles.emptySub}>{t('myReviewsEmptySub')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(client)/appointments/' as any)}>
-          <Text style={styles.emptyButtonText}>Termine ansehen</Text>
+          <Text style={styles.emptyButtonText}>{t('myReviewsViewAppts')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -129,7 +131,7 @@ export default function ClientReviewsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meine Bewertungen</Text>
+        <Text style={styles.headerTitle}>{t('myReviewsTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 

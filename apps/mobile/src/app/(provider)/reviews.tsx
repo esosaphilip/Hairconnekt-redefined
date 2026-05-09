@@ -6,6 +6,7 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ReviewSummary {
   avgRating: number;
@@ -23,15 +24,18 @@ interface Review {
   response: string | null;
 }
 
-const FILTER_OPTIONS = ['Alle', '5 ★', '4 ★', '3 ★', '2 ★', '1 ★', 'Unbeantwortet'];
+type FilterValue = 'all' | 'unanswered' | '5' | '4' | '3' | '2' | '1';
+const FILTER_VALUES: FilterValue[] = ['all', '5', '4', '3', '2', '1', 'unanswered'];
 
 export default function ReviewsScreen() {
   const router = useRouter();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
   const [providerId, setProviderId] = useState<string | null>(null);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>('Alle');
+  const [activeFilter, setActiveFilter] = useState<FilterValue>('all');
   
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -65,7 +69,7 @@ export default function ReviewsScreen() {
         return;
       }
       setProviderId(pId);
-      await loadReviews(pId, 'Alle', 1, true);
+      await loadReviews(pId, 'all', 1, true);
     } catch (error) {
       console.log('Error initializing reviews', error);
     } finally {
@@ -73,12 +77,12 @@ export default function ReviewsScreen() {
     }
   };
 
-  const loadReviews = async (pId: string, filter: string, pageNum: number, refresh = false) => {
+  const loadReviews = async (pId: string, filter: FilterValue, pageNum: number, refresh = false) => {
     try {
       let url = `${API}/providers/${pId}/reviews?page=${pageNum}&limit=20`;
       
-      if (filter.includes('★')) {
-        url += `&rating=${filter.charAt(0)}`;
+      if (filter !== 'all' && filter !== 'unanswered') {
+        url += `&rating=${filter}`;
       }
 
       const token = await tokenStorage.getAccessToken();
@@ -95,7 +99,7 @@ export default function ReviewsScreen() {
       let newReviews = data.data || [];
       
       // Client-side filter for 'Unbeantwortet' if server doesn't support it directly
-      if (filter === 'Unbeantwortet') {
+      if (filter === 'unanswered') {
         newReviews = newReviews.filter((r: Review) => !r.response);
       }
 
@@ -108,7 +112,7 @@ export default function ReviewsScreen() {
     }
   };
 
-  const handleFilterChange = (filter: string) => {
+  const handleFilterChange = (filter: FilterValue) => {
     setActiveFilter(filter);
     if (providerId) {
       setIsLoading(true);
@@ -159,7 +163,7 @@ export default function ReviewsScreen() {
 
   const formatDate = (isoString: string) => {
     const d = new Date(isoString);
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
   const renderHeader = () => (
@@ -168,7 +172,7 @@ export default function ReviewsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bewertungen</Text>
+        <Text style={styles.headerTitle}>{t('providerReviewsTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -186,7 +190,9 @@ export default function ReviewsScreen() {
                 />
               ))}
             </View>
-            <Text style={styles.totalReviewsText}>{summary.totalReviews} Bewertungen</Text>
+            <Text style={styles.totalReviewsText}>
+              {t('providerReviewsBased')} {summary.totalReviews} {t('providerReviewsCount')}
+            </Text>
           </View>
           
           <View style={styles.overviewRight}>
@@ -209,15 +215,17 @@ export default function ReviewsScreen() {
 
       <View style={styles.filterScrollContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {FILTER_OPTIONS.map(opt => {
+          {FILTER_VALUES.map(opt => {
             const isActive = activeFilter === opt;
+            const label =
+              opt === 'all' ? t('providerReviewsAll') : opt === 'unanswered' ? t('providerReviewsFilter') : `${opt} ★`;
             return (
               <TouchableOpacity 
                 key={opt} 
                 style={[styles.filterChip, isActive && styles.filterChipActive]}
                 onPress={() => handleFilterChange(opt)}
               >
-                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{opt}</Text>
+                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -252,16 +260,16 @@ export default function ReviewsScreen() {
       {item.response ? (
         <View style={styles.responseBox}>
           <View style={styles.responseHeader}>
-            <Text style={styles.responseLabel}>✏️ Deine Antwort</Text>
+            <Text style={styles.responseLabel}>{t('providerReviewsOwnReply')}</Text>
             <TouchableOpacity onPress={() => openReplyModal(item)}>
-              <Text style={styles.editLink}>Bearbeiten</Text>
+              <Text style={styles.editLink}>{t('providerReviewsEdit')}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.responseText}>{item.response}</Text>
         </View>
       ) : (
         <TouchableOpacity style={styles.replyButton} onPress={() => openReplyModal(item)}>
-          <Text style={styles.replyButtonText}>Antworten</Text>
+          <Text style={styles.replyButtonText}>{t('providerReviewsReply')}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -269,14 +277,22 @@ export default function ReviewsScreen() {
 
   const renderEmpty = () => {
     if (isLoading) return <ActivityIndicator size="large" color={colors.coral} style={{ marginTop: 40 }} />;
+    const activeLabel =
+      activeFilter === 'all'
+        ? t('providerReviewsAll')
+        : activeFilter === 'unanswered'
+          ? t('providerReviewsFilter')
+          : `${activeFilter} ★`;
     return (
       <View style={styles.emptyState}>
         <Feather name="star" size={48} color={colors.borderStrong} />
-        <Text style={styles.emptyTitle}>Noch keine Bewertungen</Text>
-        {activeFilter !== 'Alle' ? (
-          <Text style={styles.emptySub}>Keine Ergebnisse für "{activeFilter}"</Text>
+        <Text style={styles.emptyTitle}>{t('providerReviewsEmpty')}</Text>
+        {activeFilter !== 'all' ? (
+          <Text style={styles.emptySub}>
+            {t('noResults')} "{activeLabel}"
+          </Text>
         ) : (
-          <Text style={styles.emptySub}>Deine ersten Kunden werden hier erscheinen</Text>
+          <Text style={styles.emptySub}>{t('providerReviewsEmptySub')}</Text>
         )}
       </View>
     );
@@ -300,7 +316,7 @@ export default function ReviewsScreen() {
       <Modal visible={!!respondingToId} transparent animationType="slide" onRequestClose={closeReplyModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.bottomSheet}>
-            <Text style={styles.sheetTitle}>Auf Bewertung antworten</Text>
+            <Text style={styles.sheetTitle}>{t('providerReviewsReplyTitle')}</Text>
             
             {targetReview && (
               <View style={styles.sheetReviewQuote}>
@@ -312,7 +328,7 @@ export default function ReviewsScreen() {
               style={styles.replyInput}
               value={responseText}
               onChangeText={setResponseText}
-              placeholder="Deine Antwort..."
+              placeholder={t('providerReviewsReplyPlaceholder')}
               placeholderTextColor={colors.textTertiary}
               multiline
               maxLength={1000}
@@ -323,11 +339,11 @@ export default function ReviewsScreen() {
 
             <View style={styles.sheetActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={closeReplyModal}>
-                <Text style={styles.cancelBtnText}>Abbrechen</Text>
+                <Text style={styles.cancelBtnText}>{t('providerReviewsCancel')}</Text>
               </TouchableOpacity>
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <PrimaryButton 
-                  label="Antwort senden" 
+                  label={t('providerReviewsSubmit')} 
                   onPress={submitResponse}
                   loading={isSubmittingResponse}
                   disabled={!responseText.trim()}

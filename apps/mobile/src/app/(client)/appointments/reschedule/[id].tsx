@@ -13,7 +13,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function RescheduleAppointment() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const timeSuffix = lang === 'de' ? ' Uhr' : '';
 
   // Booking Data
   const [booking, setBooking] = useState<any>(null);
@@ -43,11 +45,19 @@ export default function RescheduleAppointment() {
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long' }).format(currentMonth);
   const daysCount = daysInMonth(year, month);
   const firstDay = firstDayOfMonth(year, month);
   
-  const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const dayNames = [
+    t('availabilityDayMon'),
+    t('availabilityDayTue'),
+    t('availabilityDayWed'),
+    t('availabilityDayThu'),
+    t('availabilityDayFri'),
+    t('availabilityDaySat'),
+    t('availabilityDaySun'),
+  ];
 
   const handlePrevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
@@ -109,7 +119,7 @@ export default function RescheduleAppointment() {
     const cleanTime = selectedTime.substring(0, 5);
 
     if (!dateRegex.test(selectedDate) || !timeRegex.test(cleanTime)) {
-      setErrorMessage('Ungültiges Datum oder Uhrzeit. Bitte erneut auswählen.');
+      setErrorMessage(t('bookingInvalidSlot'));
       setErrorVisible(true);
       return;
     }
@@ -136,15 +146,10 @@ export default function RescheduleAppointment() {
         const err = await res.json().catch(() => ({}));
         const backendMessage = Array.isArray(err?.message) ? err.message[0] : err?.message;
         if (res.status === 409) {
-          throw new Error(
-            'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.'
-          );
+          throw new Error(t('bookingSlotTaken'));
         }
         if (res.status === 400) {
-          throw new Error(
-            backendMessage ??
-              'Dieser Termin ist leider nicht möglich. Bitte wähle ein anderes Datum oder Uhrzeit.'
-          );
+          throw new Error(t('bookingInvalidSlot'));
         }
         throw new Error(backendMessage ?? mapHttpError(res.status, undefined, lang));
       }
@@ -223,7 +228,7 @@ export default function RescheduleAppointment() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Termin verschieben</Text>
+          <Text style={styles.headerTitle}>{t('rescheduleTitle')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
@@ -231,7 +236,7 @@ export default function RescheduleAppointment() {
     );
   }
 
-  const providerName = booking?.provider?.businessName || (booking?.provider?.user?.firstName ? `${booking.provider.user.firstName} ${booking.provider.user.lastName}` : 'Anbieter');
+  const providerName = booking?.provider?.businessName || (booking?.provider?.user?.firstName ? `${booking.provider.user.firstName} ${booking.provider.user.lastName}` : t('providerGeneric'));
   const serviceNames = booking?.services?.map((s: any) => s.name).join(', ') || '';
 
   return (
@@ -240,7 +245,7 @@ export default function RescheduleAppointment() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Termin verschieben</Text>
+        <Text style={styles.headerTitle}>{t('rescheduleTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -248,7 +253,7 @@ export default function RescheduleAppointment() {
         
         {/* Current Booking Info */}
         <View style={styles.currentBookingCard}>
-          <Text style={styles.currentBookingTitle}>Dein aktueller Termin</Text>
+          <Text style={styles.currentBookingTitle}>{t('rescheduleCurrentBooking')}</Text>
           <Text style={styles.currentBookingProvider}>{providerName}</Text>
           <Text style={styles.currentBookingServices}>{serviceNames}</Text>
           <View style={styles.currentBookingDateTime}>
@@ -256,7 +261,7 @@ export default function RescheduleAppointment() {
             <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
             <Text style={styles.currentBookingDot}> • </Text>
             <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={styles.currentBookingText}>{booking?.scheduledTime} Uhr</Text>
+            <Text style={styles.currentBookingText}>{booking?.scheduledTime}{timeSuffix}</Text>
           </View>
         </View>
 
@@ -268,7 +273,7 @@ export default function RescheduleAppointment() {
             <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
               <Feather name="chevron-left" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.monthTitle}>{monthNames[month]} {year}</Text>
+            <Text style={styles.monthTitle}>{monthLabel} {year}</Text>
             <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
               <Feather name="chevron-right" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -284,12 +289,12 @@ export default function RescheduleAppointment() {
         {/* Dynamic Time Slots Block */}
         {selectedDate ? (
           <View style={styles.slotsSection}>
-            <Text style={styles.slotsHeader}>Verfügbare Zeiten</Text>
+            <Text style={styles.slotsHeader}>{t('bookingAvailableTimes')}</Text>
             
             {isSlotsLoading ? (
               <ActivityIndicator size="large" color={colors.coral} style={{ marginVertical: spacing.xl }} />
             ) : slots.length === 0 ? (
-              <Text style={styles.emptySlotsText}>Keine freien Termine an diesem Tag.</Text>
+              <Text style={styles.emptySlotsText}>{t('bookingNoSlots')}</Text>
             ) : (
               <View style={styles.slotsGrid}>
                 {slots.map((slot, idx) => {
@@ -314,10 +319,10 @@ export default function RescheduleAppointment() {
 
         {/* Reason Block */}
         <View style={styles.reasonSection}>
-          <Text style={styles.reasonLabel}>Grund für Verschiebung (optional)</Text>
+          <Text style={styles.reasonLabel}>{t('rescheduleReason')}</Text>
           <TextInput
             style={styles.reasonInput}
-            placeholder="Bitte gib einen Grund an..."
+            placeholder={t('rescheduleReasonPlaceholder')}
             value={reason}
             onChangeText={setReason}
             multiline
@@ -332,10 +337,10 @@ export default function RescheduleAppointment() {
       <View style={styles.footer}>
         <View style={styles.footerRow}>
           <Text style={styles.footerDateText}>
-            {selectedDate ? `Neues Datum: ${formatOutputDate(selectedDate)}` : 'Wähle ein Datum'}
+            {selectedDate ? `${t('rescheduleNewDate')}: ${formatOutputDate(selectedDate)}` : t('bookingChooseDate')}
           </Text>
           <Text style={styles.footerTimeText}>
-            {selectedTime ? `${selectedTime} UHR` : ''}
+            {selectedTime ? `${selectedTime}${lang === 'de' ? ' UHR' : ''}` : ''}
           </Text>
         </View>
         <TouchableOpacity 
@@ -346,7 +351,7 @@ export default function RescheduleAppointment() {
           {isSubmitting ? (
              <ActivityIndicator color={colors.surface} />
           ) : (
-             <Text style={styles.nextButtonText}>Termin verschieben</Text>
+             <Text style={styles.nextButtonText}>{t('rescheduleConfirm')}</Text>
           )}
         </TouchableOpacity>
       </View>

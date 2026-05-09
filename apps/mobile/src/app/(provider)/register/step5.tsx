@@ -7,21 +7,32 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterStep5Screen() {
   const router = useRouter();
   const { form, reset } = useRegistration();
+  const { t } = useLanguage();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressText, setProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const languageLabel = (value: string): string => {
+    if (value === 'Deutsch') return t('languageGerman');
+    if (value === 'Englisch') return t('languageEnglish');
+    if (value === 'Französisch') return t('languageFrench');
+    if (value === 'Arabisch') return t('languageArabic');
+    if (value === 'Türkisch') return t('languageTurkish');
+    return value;
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
     try {
       // STEP 1: Create user account
-      setProgressText('Konto wird erstellt...');
+      setProgressText(t('providerRegisterSubmittingAccount'));
       const authRes = await fetch(`${API}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,16 +49,16 @@ export default function RegisterStep5Screen() {
 
       if (!authRes.ok) {
         if (authRes.status === 409) {
-          throw new Error('Diese E-Mail-Adresse ist bereits registriert.');
+          throw new Error(t('providerRegisterEmailTaken'));
         }
-        throw new Error('Konto konnte nicht erstellt werden.');
+        throw new Error(t('providerRegisterAccountCreateFailed'));
       }
 
       const authData = await authRes.json();
       const token = authData.accessToken;
 
       // STEP 2: Upload user avatar (BUG 9: before providers/register so the user exists)
-      setProgressText('Profilbild wird hochgeladen...');
+      setProgressText(t('providerRegisterUploadingProfilePhoto'));
       if (form.profilePhotoUri) {
         const fd = new FormData();
         fd.append('avatar', { 
@@ -62,7 +73,7 @@ export default function RegisterStep5Screen() {
       }
 
       // STEP 3: Create provider profile record
-      setProgressText('Profil wird erstellt...');
+      setProgressText(t('providerRegisterCreatingProfile'));
       const provRes = await fetch(`${API}/providers/register`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -84,11 +95,11 @@ export default function RegisterStep5Screen() {
 
       if (!provRes.ok) {
         await tokenStorage.save(token, authData.refreshToken, 'provider');
-        throw new Error('Profil konnte nicht erstellt werden. Bitte überprüfe deine Angaben und versuche es erneut.');
+        throw new Error(t('providerRegisterProfileCreateFailed'));
       }
 
       // STEP 4: Upload ID document (BUG 9: requires provider record to exist)
-      setProgressText('Ausweis wird hochgeladen...');
+      setProgressText(t('providerRegisterUploadingId'));
       if (form.idDocumentUri) {
         const fd = new FormData();
         fd.append('idDocument', {
@@ -102,7 +113,7 @@ export default function RegisterStep5Screen() {
       }
 
       // STEP 5: Upload portfolio images
-      setProgressText('Portfolio wird hochgeladen...');
+      setProgressText(t('providerRegisterUploadingPortfolio'));
       for (const uri of form.portfolioUris) {
         const fd = new FormData();
         fd.append('portfolio', {
@@ -115,14 +126,14 @@ export default function RegisterStep5Screen() {
         });
       }
 
-      setProgressText('Fertig!');
+      setProgressText(t('done'));
       await tokenStorage.save(token, authData.refreshToken, 'provider');
       await AsyncStorage.removeItem('registrationForm');
       reset();
       router.replace('/(provider)/pending');
 
     } catch (err: any) {
-      setError(err.message ?? 'Ein unbekannter Fehler ist aufgetreten.');
+      setError(err.message ?? t('errorUnknown'));
     } finally {
       setIsSubmitting(false);
       setProgressText('');
@@ -139,7 +150,7 @@ export default function RegisterStep5Screen() {
         >
           <Feather name="arrow-left" size={24} color={isSubmitting ? colors.textTertiary : colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.progressText}>Schritt 5 / 5</Text>
+        <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '5').replace('{total}', '5')}</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -152,8 +163,8 @@ export default function RegisterStep5Screen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Zusammenfassung</Text>
-        <Text style={styles.subtitle}>Bitte prüfe deine Angaben vor dem Absenden.</Text>
+        <Text style={styles.title}>{t('providerRegisterSummaryTitle')}</Text>
+        <Text style={styles.subtitle}>{t('providerRegisterSummarySubtitle')}</Text>
 
         {error && (
           <View style={styles.errorBanner}>
@@ -162,7 +173,7 @@ export default function RegisterStep5Screen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
             <TouchableOpacity onPress={handleSubmit} style={styles.retryBtn}>
-              <Text style={styles.retryBtnText}>Erneut versuchen</Text>
+              <Text style={styles.retryBtnText}>{t('appointmentsRetry')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -170,77 +181,77 @@ export default function RegisterStep5Screen() {
         {/* Card 1 */}
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Geschäftsinformationen</Text>
+            <Text style={styles.cardTitle}>{t('providerRegisterSummaryBusinessTitle')}</Text>
             <TouchableOpacity onPress={() => router.push('/(provider)/register/step2')}>
-              <Text style={styles.editLink}>Bearbeiten</Text>
+              <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.cardValueMain}>{form.businessName}</Text>
           <Text style={styles.cardValueSub}>{form.street} {form.houseNumber}, {form.postalCode} {form.city}</Text>
-          <Text style={styles.cardValueSub}>Radius: {form.serviceRadius} km</Text>
+          <Text style={styles.cardValueSub}>{t('providerRegisterRadiusLabel').replace('{km}', String(form.serviceRadius))}</Text>
         </View>
 
         {/* Card 2 */}
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Services & Erfahrung</Text>
+            <Text style={styles.cardTitle}>{t('providerRegisterSummaryServicesTitle')}</Text>
             <TouchableOpacity onPress={() => router.push('/(provider)/register/step3')}>
-              <Text style={styles.editLink}>Bearbeiten</Text>
+              <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.cardValueMain}>{form.serviceIds.length} Services gewählt</Text>
-          <Text style={styles.cardValueSub}>{form.experienceYears} Jahre Erfahrung</Text>
-          <Text style={styles.cardValueSub}>{form.languages.join(', ')}</Text>
+          <Text style={styles.cardValueMain}>{t('providerRegisterSummaryServicesSelected').replace('{count}', String(form.serviceIds.length))}</Text>
+          <Text style={styles.cardValueSub}>{t('providerRegisterStep3ExperienceYears').replace('{years}', String(form.experienceYears ?? 0))}</Text>
+          <Text style={styles.cardValueSub}>{(form.languages ?? []).map(languageLabel).join(', ')}</Text>
         </View>
 
         {/* Card 3 */}
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Portfolio</Text>
+            <Text style={styles.cardTitle}>{t('providerRegisterSummaryPortfolioTitle')}</Text>
             <TouchableOpacity onPress={() => router.push('/(provider)/register/step4')}>
-              <Text style={styles.editLink}>Bearbeiten</Text>
+              <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>
           <Text style={[styles.cardValueMain, form.profilePhotoUri ? styles.greenText : styles.redText]}>
-            {form.profilePhotoUri ? '✓ Profilbild' : '✗ Profilbild fehlt'}
+            {form.profilePhotoUri ? t('providerRegisterSummaryProfilePhotoOk') : t('providerRegisterSummaryProfilePhotoMissing')}
           </Text>
-          <Text style={styles.cardValueSub}>{form.portfolioUris.length} Portfolio-Fotos</Text>
+          <Text style={styles.cardValueSub}>{t('providerRegisterSummaryPortfolioPhotos').replace('{count}', String(form.portfolioUris.length))}</Text>
           <Text style={[styles.cardValueSub, form.idDocumentUri ? styles.greenText : styles.redText]}>
-            {form.idDocumentUri ? '✓ Ausweis' : '✗ Ausweis fehlt'}
+            {form.idDocumentUri ? t('providerRegisterSummaryIdOk') : t('providerRegisterSummaryIdMissing')}
           </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>WAS PASSIERT JETZT?</Text>
+        <Text style={styles.sectionTitle}>{t('providerRegisterNextStepsTitle')}</Text>
         
         <View style={styles.nextStepRow}>
           <View style={styles.goldCircle}><Text style={styles.goldCircleText}>1</Text></View>
           <View style={styles.nextStepContent}>
-            <Text style={styles.nextStepTitle}>Prüfung deiner Angaben</Text>
-            <Text style={styles.nextStepSub}>~24 Stunden</Text>
+            <Text style={styles.nextStepTitle}>{t('providerRegisterNextStep1Title')}</Text>
+            <Text style={styles.nextStepSub}>{t('providerRegisterNextStepTime24h')}</Text>
           </View>
         </View>
 
         <View style={styles.nextStepRow}>
           <View style={styles.goldCircle}><Text style={styles.goldCircleText}>2</Text></View>
           <View style={styles.nextStepContent}>
-            <Text style={styles.nextStepTitle}>Verifizierung deines Ausweises</Text>
-            <Text style={styles.nextStepSub}>~24 Stunden</Text>
+            <Text style={styles.nextStepTitle}>{t('providerRegisterNextStep2Title')}</Text>
+            <Text style={styles.nextStepSub}>{t('providerRegisterNextStepTime24h')}</Text>
           </View>
         </View>
 
         <View style={styles.nextStepRow}>
           <View style={styles.goldCircle}><Text style={styles.goldCircleText}>3</Text></View>
           <View style={styles.nextStepContent}>
-            <Text style={styles.nextStepTitle}>Freischaltung deines Profils</Text>
-            <Text style={styles.nextStepSub}>~1 Stunde</Text>
+            <Text style={styles.nextStepTitle}>{t('providerRegisterNextStep3Title')}</Text>
+            <Text style={styles.nextStepSub}>{t('providerRegisterNextStepTime1h')}</Text>
           </View>
         </View>
 
         <View style={styles.nextStepRow}>
           <View style={styles.goldCircle}><Text style={styles.goldCircleText}>4</Text></View>
           <View style={styles.nextStepContent}>
-            <Text style={styles.nextStepTitle}>Bestätigungs-E-Mail</Text>
-            <Text style={styles.nextStepSub}>Sofort</Text>
+            <Text style={styles.nextStepTitle}>{t('providerRegisterNextStep4Title')}</Text>
+            <Text style={styles.nextStepSub}>{t('providerRegisterNextStepTimeImmediate')}</Text>
           </View>
         </View>
 
@@ -255,7 +266,7 @@ export default function RegisterStep5Screen() {
           {isSubmitting ? (
             <ActivityIndicator size="small" color={colors.background} />
           ) : (
-            <Text style={styles.submitButtonText}>Registrierung absenden</Text>
+            <Text style={styles.submitButtonText}>{t('providerRegisterSubmit')}</Text>
           )}
         </TouchableOpacity>
       </View>

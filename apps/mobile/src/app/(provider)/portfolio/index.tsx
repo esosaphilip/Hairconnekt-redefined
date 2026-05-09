@@ -6,6 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -23,6 +24,7 @@ interface PortfolioImage {
 
 export default function PortfolioScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [images, setImages] = useState<PortfolioImage[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,12 +67,12 @@ export default function PortfolioScreen() {
 
   const handleDelete = (id: string) => {
     Alert.alert(
-      "Foto löschen",
-      "Bist du sicher, dass du dieses Foto aus deinem Portfolio löschen möchtest?",
+      t('portfolioDeleteTitle'),
+      t('portfolioDeleteBody'),
       [
-        { text: "Abbrechen", style: "cancel" },
+        { text: t('cancel'), style: "cancel" },
         { 
-          text: "Löschen", 
+          text: t('delete'), 
           style: "destructive",
           onPress: async () => {
             // Optimistic update

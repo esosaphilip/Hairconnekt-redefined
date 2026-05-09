@@ -77,10 +77,10 @@ export default function ProviderServiceEditScreen() {
 
   const validate = () => {
     const newErrs: any = {};
-    if (!form.name.trim()) newErrs.name = 'Pflichtfeld';
-    if (!form.categoryId) newErrs.categoryId = 'Bitte wählen';
-    if (!form.durationMin || form.durationMin <= 0) newErrs.durationMin = 'Ungültig';
-    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) newErrs.price = 'Gültigen Preis eingeben';
+    if (!form.name.trim()) newErrs.name = t('fieldRequired');
+    if (!form.categoryId) newErrs.categoryId = t('selectPlease');
+    if (!form.durationMin || form.durationMin <= 0) newErrs.durationMin = t('invalidValue');
+    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) newErrs.price = t('enterValidPrice');
     
     setErrors(newErrs);
     return Object.keys(newErrs).length === 0;
@@ -138,7 +138,7 @@ export default function ProviderServiceEditScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isNew ? 'Service hinzufügen' : 'Service bearbeiten'}</Text>
+        <Text style={styles.headerTitle}>{isNew ? t('servicesAdd') : t('servicesEdit')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -151,7 +151,7 @@ export default function ProviderServiceEditScreen() {
           onAction={errorAction === 'save' ? handleSave : loadData}
         />
 
-        <Text style={styles.label}>Kategorie <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>{t('serviceCategory')} <Text style={styles.required}>*</Text></Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.sm }}>
           {categories.map(c => (
             <TouchableOpacity 
@@ -165,17 +165,17 @@ export default function ProviderServiceEditScreen() {
         </ScrollView>
         {errors.categoryId && <Text style={styles.errorText}>{errors.categoryId}</Text>}
 
-        <Text style={styles.label}>Service-Name <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>{t('serviceName')} <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={[styles.input, errors.name && styles.inputError]}
           value={form.name}
           onChangeText={(v) => setForm(f => ({ ...f, name: v }))}
           maxLength={100}
-          placeholder="z.B. Knotless Braids"
+          placeholder={t('serviceNamePlaceholder')}
         />
         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
-        <Text style={styles.label}>Beschreibung (Optional)</Text>
+        <Text style={styles.label}>{t('serviceDescriptionOptional')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={form.description}
@@ -183,31 +183,34 @@ export default function ProviderServiceEditScreen() {
           maxLength={500}
           multiline
           numberOfLines={4}
-          placeholder="Infos für den Kunden"
+          placeholder={t('serviceDescriptionPlaceholder')}
         />
 
-        <Text style={styles.label}>Dauer (Minuten) <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>{t('serviceDurationMinutes')} <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={[styles.input, errors.durationMin && styles.inputError]}
           value={form.durationMin.toString()}
           onChangeText={(v) => setForm(f => ({ ...f, durationMin: parseInt(v) || 0 }))}
           keyboardType="number-pad"
         />
-        <Text style={styles.helperText}>≈ {Math.floor(form.durationMin / 60)} Std. {form.durationMin % 60 ? `${form.durationMin % 60} Min.` : ''}</Text>
+        <Text style={styles.helperText}>
+          ≈ {Math.floor(form.durationMin / 60)} {t('hoursShort')}{' '}
+          {form.durationMin % 60 ? `${form.durationMin % 60} ${t('minutesShort')}` : ''}
+        </Text>
 
-        <Text style={styles.label}>Preis-Typ <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>{t('servicePriceType')} <Text style={styles.required}>*</Text></Text>
         <View style={styles.segmentedControl}>
           <TouchableOpacity 
             style={[styles.segment, form.priceType === 'fixed' && styles.segmentActive]}
             onPress={() => setForm(f => ({ ...f, priceType: 'fixed' }))}
-          ><Text style={[styles.segmentText, form.priceType === 'fixed' && styles.segmentTextActive]}>Festpreis</Text></TouchableOpacity>
+          ><Text style={[styles.segmentText, form.priceType === 'fixed' && styles.segmentTextActive]}>{t('servicePriceTypeFixed')}</Text></TouchableOpacity>
           <TouchableOpacity 
             style={[styles.segment, form.priceType === 'from' && styles.segmentActive]}
             onPress={() => setForm(f => ({ ...f, priceType: 'from' }))}
-          ><Text style={[styles.segmentText, form.priceType === 'from' && styles.segmentTextActive]}>Ab-Preis</Text></TouchableOpacity>
+          ><Text style={[styles.segmentText, form.priceType === 'from' && styles.segmentTextActive]}>{t('servicePriceTypeFrom')}</Text></TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Preis (€) <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>{t('servicePriceEuro')} <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={[styles.input, errors.price && styles.inputError]}
           value={form.price}
@@ -219,8 +222,8 @@ export default function ProviderServiceEditScreen() {
 
         <View style={styles.toggleRow}>
           <View>
-            <Text style={styles.toggleLabel}>Aktiv</Text>
-            <Text style={styles.toggleHelper}>Kunden können diesen Service buchen</Text>
+            <Text style={styles.toggleLabel}>{t('active')}</Text>
+            <Text style={styles.toggleHelper}>{t('serviceActiveHelper')}</Text>
           </View>
           <Switch
             value={form.isActive}
@@ -235,7 +238,7 @@ export default function ProviderServiceEditScreen() {
       <View style={styles.footer}>
         <View style={{ width: '100%' }}>
           <PrimaryButton 
-            label={saving ? 'Speichert...' : 'Speichern'} 
+            label={saving ? t('saving') : t('save')} 
             onPress={handleSave} 
             disabled={saving}
           />

@@ -173,7 +173,7 @@ export default function BookingRequestScreen() {
   
   const getStatusBadge = () => {
     const s = bookingStatus(booking.status);
-    const label = bookingStatusLabel(booking.status);
+    const label = bookingStatusLabel(booking.status, lang);
     if (s === 'pending')
       return <View style={styles.badgePending}><Text style={styles.badgePendingText}>{label}</Text></View>;
     if (s === 'confirmed' || s === 'in_progress')

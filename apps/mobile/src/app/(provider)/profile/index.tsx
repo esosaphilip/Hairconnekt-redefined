@@ -7,10 +7,12 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { AuthService } from '../../../services/authService';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 export default function ProviderProfileHubScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [provider, setProvider] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function ProviderProfileHubScreen() {
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Berechtigung fehlt', 'Wir benötigen Zugriff auf deine Fotos.');
+      Alert.alert(t('permissionMissingTitle'), t('photoPermissionBody'));
       return;
     }
 
@@ -79,7 +81,7 @@ export default function ProviderProfileHubScreen() {
         setProvider((prev: any) => ({ ...prev, avatarUrl: newUrl }));
         setUser((prev: any) => ({ ...prev, avatarUrl: newUrl }));
       } else {
-        Alert.alert('Fehler', 'Das Bild konnte nicht hochgeladen werden.');
+        Alert.alert(t('error'), t('avatarUploadFailed'));
       }
     } catch (error) {
       console.log('Upload error:', error);
@@ -90,12 +92,12 @@ export default function ProviderProfileHubScreen() {
 
   const switchToClientMode = () => {
     Alert.alert(
-      'Zu anderem Kunden-Konto wechseln',
-      'Du wirst abgemeldet und kannst dich danach mit einem separaten Kunden-Konto anmelden.',
+      t('switchToClientTitle'),
+      t('switchToClientBody'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Weiter',
+          text: t('next'),
           onPress: async () => {
             await AuthService.logout();
             router.replace('/(auth)/login?role=client' as any);
@@ -107,12 +109,12 @@ export default function ProviderProfileHubScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Abmelden',
-      'Möchtest du dich wirklich abmelden?',
+      t('settingsLogoutConfirm'),
+      t('settingsLogoutBody'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         { 
-          text: 'Abmelden', 
+          text: t('logout'), 
           style: 'destructive',
           onPress: async () => {
             await tokenStorage.clear();
@@ -132,7 +134,7 @@ export default function ProviderProfileHubScreen() {
   }
 
   const fullName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
-  const displayName = provider?.businessName || (fullName.length > 0 ? fullName : 'Mein Profil');
+  const displayName = provider?.businessName || (fullName.length > 0 ? fullName : t('myProfile'));
   const avgRating = Number(provider?.avgRating);
   const totalReviews = Number(provider?.totalReviews);
 
@@ -141,7 +143,7 @@ export default function ProviderProfileHubScreen() {
       {/* HEADER */}
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Profil</Text>
+        <Text style={styles.headerTitle}>{t('tabProfile')}</Text>
         <TouchableOpacity onPress={() => router.push('/(shared)/settings' as any)} style={styles.headerIcon}>
           <Feather name="settings" size={24} color={colors.primary} />
         </TouchableOpacity>
@@ -172,18 +174,18 @@ export default function ProviderProfileHubScreen() {
           
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={14} color={colors.textSecondary} />
-            <Text style={styles.locationText}>{provider?.city || 'Nicht angegeben'}</Text>
+            <Text style={styles.locationText}>{provider?.city || t('notSpecified')}</Text>
           </View>
 
           {Number.isFinite(avgRating) && avgRating > 0 && (
             <Text style={styles.ratingText}>
-              ⭐ {avgRating.toFixed(1)} ({Number.isFinite(totalReviews) ? totalReviews : 0} Bewertungen)
+              ⭐ {avgRating.toFixed(1)} ({Number.isFinite(totalReviews) ? totalReviews : 0} {t('providerReviewsCount')})
             </Text>
           )}
 
           <View style={[styles.statusBadge, provider?.status?.toLowerCase() === 'approved' ? styles.statusApproved : styles.statusPending]}>
             <Text style={[styles.statusBadgeText, provider?.status?.toLowerCase() === 'approved' ? styles.statusApprovedText : styles.statusPendingText]}>
-              {provider?.status?.toLowerCase() === 'approved' ? '✓ Verifiziert' : '⏳ Prüfung läuft'}
+              {provider?.status?.toLowerCase() === 'approved' ? t('providerVerified') : t('providerUnderReview')}
             </Text>
           </View>
         </View>
@@ -192,49 +194,49 @@ export default function ProviderProfileHubScreen() {
         <View style={styles.menuContainer}>
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/profile/edit')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Profil bearbeiten</Text>
+              <Text style={styles.menuCardText}>{t('providerEditTitle')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/profile/preview')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Profilvorschau</Text>
+              <Text style={styles.menuCardText}>{t('providerProfilePreview')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/services')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Services & Preise</Text>
+              <Text style={styles.menuCardText}>{t('providerServicesPrices')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/portfolio')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Portfolio</Text>
+              <Text style={styles.menuCardText}>{t('providerPortfolio')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/availability')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Verfügbarkeit</Text>
+              <Text style={styles.menuCardText}>{t('availabilityTitle')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/reviews')}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Bewertungen</Text>
+              <Text style={styles.menuCardText}>{t('providerReviewsTitle')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(shared)/settings' as any)}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.menuCardText}>Einstellungen</Text>
+              <Text style={styles.menuCardText}>{t('settingsTitle')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
@@ -244,14 +246,14 @@ export default function ProviderProfileHubScreen() {
         <View style={styles.menuContainer}>
           <TouchableOpacity style={[styles.menuCard, styles.switchModeCard]} onPress={switchToClientMode}>
             <View style={styles.menuCardLeft}>
-              <Text style={styles.switchModeText}>👤 Mit anderem Kunden-Konto anmelden</Text>
+              <Text style={styles.switchModeText}>{t('providerSwitchToClient')}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* LOGOUT */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>ABMELDEN</Text>
+          <Text style={styles.logoutText}>{t('logout').toUpperCase()}</Text>
         </TouchableOpacity>
 
       </ScrollView>

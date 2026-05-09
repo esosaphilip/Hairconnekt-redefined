@@ -46,7 +46,7 @@ export default function PortfolioUploadScreen() {
       }
     } catch (error) {
       console.log('Error picking image', error);
-      setErrorMessage('Fehler beim Auswählen des Bildes.');
+      setErrorMessage(t('pickImageError'));
       setErrorVisible(true);
     }
   };
@@ -125,7 +125,7 @@ export default function PortfolioUploadScreen() {
         <TouchableOpacity onPress={() => router.replace('/(provider)/portfolio')} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Foto hochladen</Text>
+        <Text style={styles.headerTitle}>{t('portfolioUploadTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -144,25 +144,25 @@ export default function PortfolioUploadScreen() {
               <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" onError={(e) => console.log('Preview error:', e.nativeEvent.error)} />
               <View style={styles.changeImageOverlay}>
                 <Feather name="camera" size={24} color={colors.background} />
-                <Text style={styles.changeImageText}>Ändern</Text>
+                <Text style={styles.changeImageText}>{t('portfolioUploadChange')}</Text>
               </View>
             </>
           ) : (
             <View style={styles.emptyPickerContent}>
               <Feather name="camera" size={48} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
-              <Text style={styles.emptyPickerText}>Foto auswählen</Text>
+              <Text style={styles.emptyPickerText}>{t('portfolioUploadPick')}</Text>
             </View>
           )}
         </TouchableOpacity>
 
         {/* Caption Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Caption (optional)</Text>
+          <Text style={styles.label}>{t('portfolioUploadCaptionOptional')}</Text>
           <TextInput
             style={styles.textArea}
             value={caption}
             onChangeText={setCaption}
-            placeholder="Beschreibe diesen Style..."
+            placeholder={t('portfolioUploadCaptionPlaceholder')}
             placeholderTextColor={colors.textTertiary}
             multiline
             maxLength={200}
@@ -173,7 +173,7 @@ export default function PortfolioUploadScreen() {
 
         {/* Style Tags */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Style-Tags</Text>
+          <Text style={styles.label}>{t('portfolioUploadStyleTags')}</Text>
           <View style={styles.tagsContainer}>
             {PRESET_TAGS.map(tag => {
               const isSelected = styleTags.includes(tag);
@@ -197,7 +197,7 @@ export default function PortfolioUploadScreen() {
               style={styles.customTagInput}
               value={customTag}
               onChangeText={setCustomTag}
-              placeholder="Eigener Tag..."
+              placeholder={t('portfolioUploadCustomTagPlaceholder')}
               placeholderTextColor={colors.textTertiary}
               onSubmitEditing={addCustomTag}
               returnKeyType="done"
@@ -228,7 +228,7 @@ export default function PortfolioUploadScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Hochladen" 
+          label={t('portfolioUploadButton')} 
           onPress={handleUpload}
           disabled={!imageUri}
           loading={isUploading}

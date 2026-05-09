@@ -6,10 +6,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterStep4Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
+  const { t } = useLanguage();
 
   const handlePickProfilePhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -61,7 +63,7 @@ export default function RegisterStep4Screen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.progressText}>Schritt 4 / 5</Text>
+        <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '4').replace('{total}', '5')}</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -77,7 +79,7 @@ export default function RegisterStep4Screen() {
 
         {/* SECTION 1: Profilbild */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profilbild</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep4ProfilePhotoTitle')}</Text>
           <View style={styles.profilePhotoContainer}>
             <TouchableOpacity style={styles.profilePhotoCircle} onPress={handlePickProfilePhoto}>
               {form.profilePhotoUri ? (
@@ -90,7 +92,7 @@ export default function RegisterStep4Screen() {
               ) : (
                 <View style={styles.profilePhotoEmpty}>
                   <Feather name="camera" size={32} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
-                  <Text style={styles.emptyText}>Foto hinzufügen</Text>
+                  <Text style={styles.emptyText}>{t('providerRegisterStep4AddPhoto')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -99,21 +101,21 @@ export default function RegisterStep4Screen() {
 
         {/* SECTION 2: Ausweis */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ausweis / Reisepass</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep4IdTitle')}</Text>
           <TouchableOpacity style={styles.documentCard} onPress={handlePickIdDocument}>
             {form.idDocumentUri ? (
               <View style={styles.documentFilled}>
                 <Feather name="check-circle" size={24} color={colors.green || '#4CAF50'} style={{ marginRight: spacing.sm }} />
-                <Text style={styles.documentSuccessText}>Ausweis hochgeladen</Text>
+                <Text style={styles.documentSuccessText}>{t('providerRegisterStep4IdUploaded')}</Text>
                 <TouchableOpacity onPress={handlePickIdDocument} style={styles.changeDocBtn}>
-                  <Text style={styles.changeDocText}>Ändern</Text>
+                  <Text style={styles.changeDocText}>{t('providerRegisterStep4Change')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.documentEmpty}>
                 <Feather name="file-text" size={24} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
-                <Text style={styles.documentEmptyTitle}>Ausweis hochladen</Text>
-                <Text style={styles.documentEmptySub}>Personalausweis oder Reisepass</Text>
+                <Text style={styles.documentEmptyTitle}>{t('providerRegisterStep4UploadId')}</Text>
+                <Text style={styles.documentEmptySub}>{t('providerRegisterStep4IdSubtitle')}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -121,7 +123,7 @@ export default function RegisterStep4Screen() {
 
         {/* SECTION 3: Portfolio */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Portfolio (mind. 1 Foto)</Text>
+          <Text style={styles.sectionTitle}>{t('providerRegisterStep4PortfolioTitle')}</Text>
           <View style={styles.portfolioGrid}>
             {form.portfolioUris.map((uri, idx) => (
               <View key={`${uri}-${idx}`} style={styles.portfolioItemContainer}>
@@ -137,7 +139,7 @@ export default function RegisterStep4Screen() {
             
             <TouchableOpacity style={styles.addPortfolioCard} onPress={handlePickPortfolio}>
               <Feather name="plus" size={24} color={colors.coral} style={{ marginBottom: spacing.xs }} />
-              <Text style={styles.addPortfolioText}>Foto hinzufügen</Text>
+              <Text style={styles.addPortfolioText}>{t('providerRegisterStep4AddPhoto')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -146,7 +148,7 @@ export default function RegisterStep4Screen() {
 
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Weiter" 
+          label={t('next')} 
           onPress={() => router.push('/(provider)/register/step5')} 
           disabled={!isFormValid}
           variant="filled"

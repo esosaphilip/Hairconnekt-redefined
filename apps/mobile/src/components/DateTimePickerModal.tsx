@@ -8,6 +8,9 @@ interface Props {
   mode: 'date' | 'time';
   value: Date;
   minimumDate?: Date;
+  locale?: string;
+  cancelLabel?: string;
+  confirmLabel?: string;
   onConfirm: (date: Date) => void;
   onCancel: () => void;
 }
@@ -17,9 +20,12 @@ export function DateTimePickerModal({
   mode,
   value,
   minimumDate,
+  locale,
+  cancelLabel,
+  confirmLabel,
   onConfirm,
   onCancel,
-}: Props) {
+}: Props): React.ReactElement | null {
   const [tempDate, setTempDate] = useState<Date>(value);
 
   useEffect(() => {
@@ -57,10 +63,10 @@ export function DateTimePickerModal({
         <View style={styles.sheet}>
           <View style={styles.toolbar}>
             <TouchableOpacity onPress={onCancel} style={styles.toolbarBtn}>
-              <Text style={styles.cancelText}>Abbrechen</Text>
+              <Text style={styles.cancelText}>{cancelLabel ?? 'Abbrechen'}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => onConfirm(tempDate)} style={styles.toolbarBtn}>
-              <Text style={styles.confirmText}>Fertig</Text>
+              <Text style={styles.confirmText}>{confirmLabel ?? 'Fertig'}</Text>
             </TouchableOpacity>
           </View>
           <DateTimePicker
@@ -69,7 +75,7 @@ export function DateTimePickerModal({
             display="spinner"
             minimumDate={minimumDate}
             onChange={handleChange}
-            locale="de-DE"
+            locale={locale}
             textColor={colors.textPrimary as any}
           />
         </View>

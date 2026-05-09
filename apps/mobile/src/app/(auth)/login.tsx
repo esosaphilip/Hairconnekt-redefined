@@ -13,7 +13,7 @@ import { apiJson } from '@/services/apiClient';
 export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole } = useLocalSearchParams<{ role: 'client' | 'provider' }>();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
   
   const [identifier, setIdentifier] = useState('');
@@ -98,7 +98,7 @@ export default function LoginScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.roleToggleText, role === 'client' && styles.roleToggleTextActive]}>
-              Kunde
+              {t('roleClient')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -107,29 +107,29 @@ export default function LoginScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.roleToggleText, role === 'provider' && styles.roleToggleTextActive]}>
-              Anbieter
+              {t('roleProvider')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.heading}>Willkommen zurück!</Text>
+        <Text style={styles.heading}>{t('welcomeBack')}</Text>
         
         <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
 
-        <FormInput label="E-Mail / Telefon" value={identifier} onChangeText={setIdentifier} keyboardType="email-address" />
-        <FormInput label="Passwort" value={password} onChangeText={setPassword} secureText />
+        <FormInput label={t('loginIdentifier')} value={identifier} onChangeText={setIdentifier} keyboardType="email-address" />
+        <FormInput label={t('password')} value={password} onChangeText={setPassword} secureText />
         
         <TouchableOpacity onPress={() => router.push('/(auth)/password-reset' as any)}>
-          <Text style={styles.forgotPassword}>Passwort vergessen?</Text>
+          <Text style={styles.forgotPassword}>{t('forgotPassword')}</Text>
         </TouchableOpacity>
 
         <View style={{ marginTop: spacing.xl }}>
-          <PrimaryButton label="Anmelden" onPress={handleLogin} loading={isLoading} />
+          <PrimaryButton label={t('login')} onPress={handleLogin} loading={isLoading} />
         </View>
 
         <TouchableOpacity style={styles.footer} onPress={() => router.push(role === 'provider' ? '/(provider)/register/type' as any : '/(auth)/register' as any)}>
           <Text style={styles.footerText}>
-            {role === 'client' ? 'Noch kein Konto? Als Kunde registrieren' : 'Noch kein Konto? Als Anbieter registrieren'}
+            {role === 'client' ? t('loginNoAccountClient') : t('loginNoAccountProvider')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

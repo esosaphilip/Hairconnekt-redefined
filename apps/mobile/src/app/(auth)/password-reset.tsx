@@ -12,7 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PasswordResetScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
@@ -50,7 +50,7 @@ export default function PasswordResetScreen() {
 
   const handleSendCode = async () => {
     if (!email) {
-      showError(mapHttpError(400, 'Bitte gib deine E-Mail-Adresse ein.', lang));
+      showError(mapHttpError(400, t('enterYourEmail'), lang));
       return;
     }
     resetOtpAndFocusFirst();
@@ -71,7 +71,7 @@ export default function PasswordResetScreen() {
   const handleVerifyOtp = async () => {
     const code = otp.join('');
     if (code.length < 6) {
-      showError('Bitte gib den 6-stelligen Code ein.');
+      showError(t('otpEnter6Digits'));
       return;
     }
     try {
@@ -84,9 +84,9 @@ export default function PasswordResetScreen() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 400 || status === 401) {
-        showError('Ungültiger Code. Bitte versuche es erneut.');
+        showError(t('verifyEmailInvalidCode'));
       } else if (status === 410) {
-        showError('Code abgelaufen. Bitte fordere einen neuen an.');
+        showError(t('verifyEmailExpiredCode'));
       } else {
         showError(mapHttpError(status, undefined, lang), status);
       }
@@ -97,12 +97,12 @@ export default function PasswordResetScreen() {
 
   const handleResetPassword = async () => {
     if (!resetToken) {
-      showError('Code-Verifizierung fehlgeschlagen. Bitte starte den Vorgang neu.');
+      showError(t('resetVerificationFailed'));
       setStep(1);
       return;
     }
     if (!newPassword || newPassword !== confirmPassword) {
-      showError('Passwörter stimmen nicht überein.');
+      showError(t('passwordsDontMatch'));
       return;
     }
     try {
@@ -155,7 +155,7 @@ export default function PasswordResetScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Text style={styles.backText}>{'<- Zurück'}</Text>
+          <Text style={styles.backText}>{'<- ' + t('back')}</Text>
         </TouchableOpacity>
 
         <View style={styles.progressContainer}>
@@ -168,21 +168,21 @@ export default function PasswordResetScreen() {
 
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.heading}>Passwort vergessen?</Text>
-            <Text style={styles.bodyText}>Gib deine E-Mail-Adresse ein, um einen Code zu erhalten.</Text>
+            <Text style={styles.heading}>{t('passwordResetTitle')}</Text>
+            <Text style={styles.bodyText}>{t('passwordResetBody')}</Text>
             
-            <FormInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" />
+            <FormInput label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" />
             
             <View style={{ marginTop: spacing.md }}>
-              <PrimaryButton label="Code senden" onPress={handleSendCode} loading={isLoading} />
+              <PrimaryButton label={t('passwordResetSendCode')} onPress={handleSendCode} loading={isLoading} />
             </View>
           </View>
         )}
 
         {step === 2 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.heading}>Code eingeben</Text>
-            <Text style={styles.bodyText}>Bitte gib den 6-stelligen Code ein, der an deine E-Mail gesendet wurde.</Text>
+            <Text style={styles.heading}>{t('passwordResetEnterCodeTitle')}</Text>
+            <Text style={styles.bodyText}>{t('passwordResetEnterCodeBody')}</Text>
             
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
@@ -200,23 +200,23 @@ export default function PasswordResetScreen() {
             </View>
 
             <TouchableOpacity style={styles.resendLink} onPress={handleSendCode}>
-              <Text style={styles.resendText}>Code erneut senden</Text>
+              <Text style={styles.resendText}>{t('verifyEmailResend')}</Text>
             </TouchableOpacity>
 
-            <PrimaryButton label="Bestätigen" onPress={handleVerifyOtp} loading={isLoading} />
+            <PrimaryButton label={t('confirm')} onPress={handleVerifyOtp} loading={isLoading} />
           </View>
         )}
 
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.heading}>Neues Passwort</Text>
-            <Text style={styles.bodyText}>Bitte gib ein sicheres neues Passwort ein.</Text>
+            <Text style={styles.heading}>{t('passwordResetNewPasswordTitle')}</Text>
+            <Text style={styles.bodyText}>{t('passwordResetNewPasswordBody')}</Text>
             
-            <FormInput label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureText />
-            <FormInput label="Passwort bestätigen" value={confirmPassword} onChangeText={setConfirmPassword} secureText />
+            <FormInput label={t('passwordResetNewPasswordLabel')} value={newPassword} onChangeText={setNewPassword} secureText />
+            <FormInput label={t('passwordConfirm')} value={confirmPassword} onChangeText={setConfirmPassword} secureText />
 
             <View style={{ marginTop: spacing.md }}>
-              <PrimaryButton label="Passwort speichern" onPress={handleResetPassword} loading={isLoading} />
+              <PrimaryButton label={t('passwordResetSavePassword')} onPress={handleResetPassword} loading={isLoading} />
             </View>
           </View>
         )}

@@ -41,7 +41,7 @@ export default function ClientProfileScreen() {
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Berechtigung erforderlich', 'Wir benötigen Zugriff auf deine Fotos, um ein Profilbild hochzuladen.');
+      Alert.alert(t('permissionMissingTitle'), t('photoPermissionBody'));
       return;
     }
 
@@ -80,7 +80,7 @@ export default function ClientProfileScreen() {
       });
 
       if (!res.ok) {
-        throw new Error('Upload fehlgeschlagen');
+        throw new Error(t('avatarUploadFailed'));
       }
 
       const data = await res.json();
@@ -89,7 +89,7 @@ export default function ClientProfileScreen() {
       // BUG 4: bust the image cache so UI refreshes
       setAvatarVersion(Date.now());
     } catch (err) {
-      Alert.alert('Fehler', 'Das Bild konnte nicht hochgeladen werden.');
+      Alert.alert(t('error'), t('avatarUploadFailed'));
     } finally {
       setIsUploadingAvatar(false);
     }

@@ -46,6 +46,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "disposable-email-domains": "^1.0.62",
+    "expo-server-sdk": "^6.1.0",
     "helmet": "^8.1.0",
     "multer": "^2.1.1",
     "passport": "^0.7.0",

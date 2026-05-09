@@ -12,7 +12,8 @@ import { ChatService } from '@/services/chatService';
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,13 +72,13 @@ export default function ChatListScreen() {
     if (Number.isNaN(date.getTime())) return '';
     const diffMs = Date.now() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins <= 0) return 'Gerade eben';
-    if (diffMins < 60) return `vor ${diffMins} Min.`;
+    if (diffMins <= 0) return t('relativeJustNow');
+    if (diffMins < 60) return t('relativeMinutesAgo').replace('{minutes}', String(diffMins));
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `vor ${diffHours} Std.`;
+    if (diffHours < 24) return t('relativeHoursAgo').replace('{hours}', String(diffHours));
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays === 1) return 'Gestern';
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    if (diffDays === 1) return t('relativeYesterday');
+    return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
   };
 
   const handlePress = (item: Conversation) => {
@@ -148,8 +149,8 @@ export default function ChatListScreen() {
     return (
       <View style={styles.emptyContainer}>
         <Feather name="message-circle" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
-        <Text style={styles.emptyTitle}>Noch keine Nachrichten</Text>
-        <Text style={styles.emptySub}>Starte ein Gespräch über deine Buchungen</Text>
+        <Text style={styles.emptyTitle}>{t('chatEmpty')}</Text>
+        <Text style={styles.emptySub}>{t('chatEmptySub')}</Text>
       </View>
     );
   };
@@ -157,7 +158,7 @@ export default function ChatListScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Nachrichten</Text>
+        <Text style={styles.headerTitle}>{t('chatTitle')}</Text>
       </View>
 
       <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />

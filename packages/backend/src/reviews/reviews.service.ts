@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { Review } from '../entities/review.entity';
 import { Booking, BookingStatus } from '../entities/booking.entity';
 import { Provider } from '../entities/provider.entity';
+import { User } from '../entities/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReviewsService {
@@ -15,6 +17,9 @@ export class ReviewsService {
     private bookingRepository: Repository<Booking>,
     @InjectRepository(Provider)
     private providerRepository: Repository<Provider>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createReview(user: any, dto: CreateReviewDto) {
@@ -54,6 +59,26 @@ export class ReviewsService {
     });
 
     await this.reviewRepository.save(review);
+
+    if (booking?.provider?.userId) {
+      const client = await this.userRepository.findOne({
+        where: { id: userId },
+        select: ['id', 'firstName'],
+      });
+      if (client) {
+        try {
+          await this.notificationsService.sendToUser({
+            userId: booking.provider.userId,
+            type: 'review_received',
+            titleDe: 'Neue Bewertung erhalten ⭐',
+            titleEn: 'New Review Received ⭐',
+            bodyDe: `${client.firstName} hat dir ${review.rating} Sterne gegeben`,
+            bodyEn: `${client.firstName} gave you ${review.rating} stars`,
+            data: { screen: '/(provider)/reviews' },
+          });
+        } catch {}
+      }
+    }
     
     // Update Provider aggregates
     const providerId = booking.providerId;

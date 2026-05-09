@@ -6,9 +6,11 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderPendingScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [error, setError] = useState<string | null>(null);
   const consecutiveErrors = useRef(0);
 
@@ -47,7 +49,7 @@ export default function ProviderPendingScreen() {
       } catch (err) {
         consecutiveErrors.current += 1;
         if (consecutiveErrors.current >= 5) {
-          setError('Verbindung zum Server fehlgeschlagen. Bitte starte die App neu.');
+          setError(t('providerPendingConnectionFailed'));
           clearInterval(intervalRef.current);
         }
       }
@@ -90,10 +92,9 @@ export default function ProviderPendingScreen() {
           </View>
         </View>
 
-        <Text style={styles.heading}>Registrierung wird geprüft</Text>
+        <Text style={styles.heading}>{t('providerPendingTitle')}</Text>
         <Text style={styles.body}>
-          Deine Registrierung wird gerade von unserem Team überprüft.{'\n'}
-          Dies dauert in der Regel 1-3 Werktage.
+          {t('providerPendingBody').replace('{time}', t('providerPendingProcessingValue'))}
         </Text>
 
 
@@ -108,8 +109,8 @@ export default function ProviderPendingScreen() {
               <View style={[styles.timelineLine, styles.timelineLineGreen]} />
             </View>
             <View style={styles.timelineRight}>
-              <Text style={styles.timelineTitle}>Registrierung eingereicht</Text>
-              <Text style={styles.timelineSub}>Deine Daten wurden erfolgreich übermittelt</Text>
+              <Text style={styles.timelineTitle}>{t('providerPendingStep1Title')}</Text>
+              <Text style={styles.timelineSub}>{t('providerPendingStep1Sub')}</Text>
             </View>
           </View>
 
@@ -122,8 +123,8 @@ export default function ProviderPendingScreen() {
               <View style={[styles.timelineLine, styles.timelineLineGrey]} />
             </View>
             <View style={styles.timelineRight}>
-              <Text style={[styles.timelineTitle, { marginTop: -2 }]}>Überprüfung läuft</Text>
-              <Text style={styles.timelineSub}>Unser Team prüft deine Angaben</Text>
+              <Text style={[styles.timelineTitle, { marginTop: -2 }]}>{t('providerPendingStep2Title')}</Text>
+              <Text style={styles.timelineSub}>{t('providerPendingStep2Sub')}</Text>
             </View>
           </View>
 
@@ -135,8 +136,8 @@ export default function ProviderPendingScreen() {
               </View>
             </View>
             <View style={styles.timelineRight}>
-              <Text style={[styles.timelineTitle, styles.timelineTitleGrey]}>Freischaltung</Text>
-              <Text style={styles.timelineSub}>Du erhältst eine Bestätigungs-E-Mail</Text>
+              <Text style={[styles.timelineTitle, styles.timelineTitleGrey]}>{t('providerPendingStep3Title')}</Text>
+              <Text style={styles.timelineSub}>{t('providerPendingStep3Sub')}</Text>
             </View>
           </View>
         </View>
@@ -148,13 +149,13 @@ export default function ProviderPendingScreen() {
               <Feather name="clock" size={20} color={colors.primary} />
             </View>
             <View>
-              <Text style={styles.infoLabel}>Bearbeitungszeit</Text>
-              <Text style={styles.infoValue}>1-3 Werktage</Text>
+              <Text style={styles.infoLabel}>{t('providerPendingProcessingTime')}</Text>
+              <Text style={styles.infoValue}>{t('providerPendingProcessingValue')}</Text>
             </View>
           </View>
           <Text style={styles.infoText}>
-            Du erhältst eine E-Mail sobald dein Account freigeschaltet wurde.{'\n'}
-            Prüfe auch deinen Spam-Ordner.
+            {t('providerPendingEmailNotice')}{'\n'}
+            {t('providerPendingSpamNotice')}
           </Text>
         </View>
 
@@ -163,13 +164,13 @@ export default function ProviderPendingScreen() {
       {/* Footer Buttons */}
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Zurück zum Login" 
+          label={t('backToLogin')} 
           onPress={handleLogout}
           variant="filled"
         />
         <View style={{ height: spacing.md }} />
         <PrimaryButton 
-          label="Support kontaktieren" 
+          label={t('contactSupport')} 
           onPress={handleSupport}
           variant="outline"
         />

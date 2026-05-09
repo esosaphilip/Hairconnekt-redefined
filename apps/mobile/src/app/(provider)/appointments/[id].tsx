@@ -13,7 +13,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<any>(null);
@@ -64,7 +65,7 @@ export default function ProviderAppointmentDetailScreen() {
       if (res.ok) {
         const data = await res.json();
         const conversationId = data.data?.id ?? data.id;
-        router.push(`/(shared)/chat/${conversationId}` as any);
+        router.push(('/(shared)/chat/' + conversationId) as any);
       }
     } catch {}
   };
@@ -97,12 +98,12 @@ export default function ProviderAppointmentDetailScreen() {
       if (response.ok) {
         fetchBookingDetails();
       } else {
-        let msg = 'Buchung konnte nicht bestätigt werden.';
+        let msg = t('providerBookingAcceptError');
         try {
           const j: any = await response.json();
           msg = j?.message || msg;
         } catch {}
-        Alert.alert('Fehler', msg);
+        Alert.alert(t('error'), msg);
         fetchBookingDetails();
       }
     } catch (error) {
@@ -114,12 +115,12 @@ export default function ProviderAppointmentDetailScreen() {
 
   const declineBooking = () => {
     Alert.alert(
-      'Buchung ablehnen',
-      'Möchtest du diese Buchung wirklich ablehnen?',
+      t('bookingRequestDeclineTitle'),
+      t('bookingRequestDeclineBody'),
       [
-        { text: 'Zurück', style: 'cancel' },
+        { text: t('back'), style: 'cancel' },
         {
-          text: 'Ablehnen',
+          text: t('bookingRequestDecline'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -133,12 +134,12 @@ export default function ProviderAppointmentDetailScreen() {
               if (response.ok) {
                 fetchBookingDetails();
               } else {
-                let msg = 'Buchung konnte nicht abgelehnt werden.';
+                let msg = t('providerBookingDeclineError');
                 try {
                   const j: any = await response.json();
                   msg = j?.message || msg;
                 } catch {}
-                Alert.alert('Fehler', msg);
+                Alert.alert(t('error'), msg);
                 fetchBookingDetails();
               }
             } catch (error) {
@@ -154,7 +155,7 @@ export default function ProviderAppointmentDetailScreen() {
 
   const getStatusText = (status: string) => {
     const s = bookingStatus(status);
-    return bookingStatusLabel(s);
+    return bookingStatusLabel(s, lang);
   };
 
   const getStatusColor = (status: string) => {
@@ -181,11 +182,11 @@ export default function ProviderAppointmentDetailScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Termindetails</Text>
+          <Text style={styles.headerTitle}>{t('providerAppointmentDetailsTitle')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={{ fontFamily: fonts.body, color: colors.textSecondary }}>Termin nicht gefunden</Text>
+          <Text style={{ fontFamily: fonts.body, color: colors.textSecondary }}>{t('providerAppointmentNotFound')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -197,7 +198,7 @@ export default function ProviderAppointmentDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Termindetails</Text>
+        <Text style={styles.headerTitle}>{t('providerAppointmentDetailsTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -208,7 +209,9 @@ export default function ProviderAppointmentDetailScreen() {
           <View style={[styles.statusChip, { backgroundColor: getStatusColor(booking.status) }]}>
             <Text style={styles.statusChipText}>{getStatusText(booking.status)}</Text>
           </View>
-          <Text style={styles.bookingNumber}>Buchungsnummer: {booking.bookingNumber || `HC-${booking.id.substring(0,4).toUpperCase()}`}</Text>
+          <Text style={styles.bookingNumber}>
+            {t('providerBookingNumberLabel')}: {booking.bookingNumber || ('HC-' + booking.id.substring(0, 4).toUpperCase())}
+          </Text>
         </View>
 
         {/* Client Card */}
@@ -226,20 +229,20 @@ export default function ProviderAppointmentDetailScreen() {
                 {booking.client?.firstName} {booking.client?.lastName}
               </Text>
               <Text style={styles.clientCity}>
-                {booking.client?.city || booking.client?.address?.city || 'Stadt unbekannt'}
+                {booking.client?.city || booking.client?.address?.city || t('providerUnknownCity')}
               </Text>
             </View>
           </View>
 
           <View style={styles.clientActions}>
             <TouchableOpacity style={styles.greyButton} onPress={openChat}>
-              <Text style={styles.greyButtonText}>Nachricht</Text>
+              <Text style={styles.greyButtonText}>{t('message')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.greyButton} 
-              onPress={() => booking.client?.phone ? Linking.openURL(`tel:${booking.client.phone}`) : null}
+              onPress={() => (booking.client?.phone ? Linking.openURL('tel:' + booking.client.phone) : null)}
             >
-              <Text style={styles.greyButtonText}>Anrufen</Text>
+              <Text style={styles.greyButtonText}>{t('call')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -252,10 +255,10 @@ export default function ProviderAppointmentDetailScreen() {
 
         {/* Appointment Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Termininfo</Text>
+          <Text style={styles.cardTitle}>{t('appointmentsInfo')}</Text>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Service</Text>
+            <Text style={styles.infoLabel}>{t('service')}</Text>
             <Text style={styles.infoValue}>
               {booking.services?.map((s: any) => s.name).join(', ') || 'Service'}
             </Text>
@@ -263,30 +266,35 @@ export default function ProviderAppointmentDetailScreen() {
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>
-              <Feather name="calendar" size={14} color={colors.textSecondary} /> Datum
+              <Feather name="calendar" size={14} color={colors.textSecondary} /> {t('date')}
             </Text>
             <Text style={styles.infoValue}>
-              {new Date(booking.scheduledDate).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              {new Date(booking.scheduledDate).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
             </Text>
           </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>
-              <Feather name="clock" size={14} color={colors.textSecondary} /> Zeit
+              <Feather name="clock" size={14} color={colors.textSecondary} /> {t('time')}
             </Text>
-            <Text style={styles.infoValue}>{booking.scheduledTime} Uhr</Text>
+            <Text style={styles.infoValue}>
+              {booking.scheduledTime}
+              {lang === 'de' ? ' ' + t('timeSuffix') : ''}
+            </Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Service-Preis</Text>
+            <Text style={styles.infoLabel}>{t('bookingServicePrice')}</Text>
             <Text style={styles.infoValue}>€{formatAmount(booking.totalPrice, lang)}</Text>
           </View>
 
           {(booking.platformFeeAmount > 0) && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Plattform-Gebühr ({booking.platformFeePercent}%)</Text>
+              <Text style={styles.infoLabel}>
+                {t('bookingPlatformFee')} ({booking.platformFeePercent}%)
+              </Text>
               <Text style={styles.infoValue}>-€{formatAmount(booking.platformFeeAmount, lang)}</Text>
             </View>
           )}
@@ -295,14 +303,14 @@ export default function ProviderAppointmentDetailScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, styles.boldGreenText]}>
-              <Feather name="briefcase" size={16} color={colors.green} /> Deine Auszahlung
+              <Feather name="briefcase" size={16} color={colors.green} /> {t('providerPayout')}
             </Text>
             <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(booking.providerPayout ?? booking.totalPrice, lang)}</Text>
           </View>
 
           <View style={styles.paymentMethodRow}>
             <View style={styles.orangeDot} />
-            <Text style={styles.paymentMethodText}>Zahlung bei Abschluss</Text>
+            <Text style={styles.paymentMethodText}>{t('providerPaymentOnCompletion')}</Text>
           </View>
 
         </View>
@@ -313,7 +321,7 @@ export default function ProviderAppointmentDetailScreen() {
       {bookingStatus(booking.status) === 'pending' && (
         <View style={styles.footer}>
           <PrimaryButton
-            label="Buchung annehmen"
+            label={t('providerBookingAccept')}
             onPress={acceptBooking}
             loading={isAccepting}
             disabled={isDeclining}
@@ -328,7 +336,7 @@ export default function ProviderAppointmentDetailScreen() {
             {isDeclining ? (
               <ActivityIndicator color={colors.error} />
             ) : (
-              <Text style={styles.declineButtonText}>Ablehnen</Text>
+              <Text style={styles.declineButtonText}>{t('bookingRequestDecline')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -337,7 +345,7 @@ export default function ProviderAppointmentDetailScreen() {
       {bookingStatus(booking.status) === 'confirmed' && (
         <View style={styles.footer}>
           <PrimaryButton 
-            label="Termin starten" 
+            label={t('providerStartAppointment')} 
             onPress={() => updateBookingStatus('start')}
             variant="filled"
           />
@@ -350,7 +358,7 @@ export default function ProviderAppointmentDetailScreen() {
             style={[styles.actionButton, { backgroundColor: colors.green }]} 
             onPress={() => updateBookingStatus('complete')}
           >
-            <Text style={styles.actionButtonText}>Termin abschließen</Text>
+            <Text style={styles.actionButtonText}>{t('apptComplete')}</Text>
           </TouchableOpacity>
         </View>
       )}

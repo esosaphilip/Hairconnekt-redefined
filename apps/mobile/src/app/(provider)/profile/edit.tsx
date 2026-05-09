@@ -11,7 +11,16 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 
-const AVAILABLE_LANGUAGES = ['Deutsch', 'Englisch', 'Französisch', 'Arabisch', 'Türkisch', 'Hausa', 'Yoruba', 'Igbo'];
+const AVAILABLE_LANGUAGES = [
+  { value: 'Deutsch', labelKey: 'languageGerman' },
+  { value: 'Englisch', labelKey: 'languageEnglish' },
+  { value: 'Französisch', labelKey: 'languageFrench' },
+  { value: 'Arabisch', labelKey: 'languageArabic' },
+  { value: 'Türkisch', labelKey: 'languageTurkish' },
+  { value: 'Hausa', labelKey: 'languageHausa' },
+  { value: 'Yoruba', labelKey: 'languageYoruba' },
+  { value: 'Igbo', labelKey: 'languageIgbo' },
+];
 
 type CancellationPolicy = '24h' | '48h' | '72h';
 
@@ -116,7 +125,7 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       console.log('Error picking avatar', error);
-      setErrorMessage('Fehler beim Auswählen des Bildes.');
+      setErrorMessage(t('providerEditPickImageError'));
       setErrorVisible(true);
     }
   };
@@ -199,9 +208,9 @@ export default function EditProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profil bearbeiten</Text>
+        <Text style={styles.headerTitle}>{t('providerEditTitle')}</Text>
         <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-          <Text style={styles.headerSaveText}>Speichern</Text>
+          <Text style={styles.headerSaveText}>{t('save')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -240,20 +249,20 @@ export default function EditProfileScreen() {
 
         {/* Basic Info */}
         <FormInput 
-          label="Business-Name / Dein Name" 
+          label={t('providerEditName')} 
           value={form.businessName} 
           onChangeText={(val) => setForm({ ...form, businessName: val })} 
-          placeholder="Dein Anzeigename"
+          placeholder={t('providerEditDisplayNamePlaceholder')}
           maxLength={100}
         />
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Über mich (Bio)</Text>
+          <Text style={styles.label}>{t('providerEditBio')}</Text>
           <TextInput
             style={styles.bioInput}
             value={form.bio}
             onChangeText={(val) => setForm({ ...form, bio: val })}
-            placeholder="Erzähle deinen Kunden etwas über dich..."
+            placeholder={t('providerEditBioPlaceholder')}
             placeholderTextColor={colors.textTertiary}
             multiline
             maxLength={500}
@@ -266,7 +275,7 @@ export default function EditProfileScreen() {
         <View style={styles.rowInputs}>
           <View style={{ flex: 2, marginRight: spacing.md }}>
             <FormInput 
-              label="Straße" 
+              label={t('providerEditStreet')} 
               value={form.street} 
               onChangeText={(val) => setForm({ ...form, street: val })} 
               placeholder="Musterstr."
@@ -274,7 +283,7 @@ export default function EditProfileScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <FormInput 
-              label="Nr." 
+              label={t('providerEditHouseNumber')} 
               value={form.houseNumber} 
               onChangeText={(val) => setForm({ ...form, houseNumber: val })} 
               placeholder="12a"
@@ -285,7 +294,7 @@ export default function EditProfileScreen() {
         <View style={styles.rowInputs}>
           <View style={{ flex: 1, marginRight: spacing.md }}>
             <FormInput 
-              label="PLZ" 
+              label={t('providerEditPostalCode')} 
               value={form.postalCode} 
               onChangeText={(val) => setForm({ ...form, postalCode: val })} 
               placeholder="10115"
@@ -294,7 +303,7 @@ export default function EditProfileScreen() {
           </View>
           <View style={{ flex: 2 }}>
             <FormInput 
-              label="Stadt" 
+              label={t('providerEditCity')} 
               value={form.city} 
               onChangeText={(val) => setForm({ ...form, city: val })} 
               placeholder="Berlin"
@@ -304,7 +313,9 @@ export default function EditProfileScreen() {
 
         {/* Radius */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Service-Radius: {form.serviceRadius} km</Text>
+          <Text style={styles.label}>
+            {t('providerEditRadius')}: {form.serviceRadius} km
+          </Text>
           <Slider
             style={styles.slider}
             minimumValue={5}
@@ -320,18 +331,18 @@ export default function EditProfileScreen() {
 
         {/* Languages */}
         <View style={styles.inputGroup}>
-          <Text style={styles.sectionTitle}>Sprachen</Text>
+          <Text style={styles.sectionTitle}>{t('providerEditLanguages')}</Text>
           <View style={styles.chipContainer}>
-            {AVAILABLE_LANGUAGES.map(lang => {
-              const isSelected = form.languages.includes(lang);
+            {AVAILABLE_LANGUAGES.map((item) => {
+              const isSelected = form.languages.includes(item.value);
               return (
                 <TouchableOpacity
-                  key={lang}
+                  key={item.value}
                   style={[styles.chip, isSelected && styles.chipSelected]}
-                  onPress={() => toggleLanguage(lang)}
+                  onPress={() => toggleLanguage(item.value)}
                 >
                   <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                    {lang}
+                    {t(item.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -341,7 +352,7 @@ export default function EditProfileScreen() {
 
         {/* Cancellation Policy */}
         <View style={styles.inputGroup}>
-          <Text style={styles.sectionTitle}>Stornierungsrichtlinie</Text>
+          <Text style={styles.sectionTitle}>{t('providerEditCancellation')}</Text>
           
           <TouchableOpacity 
             style={[styles.radioCard, form.cancellationPolicy === '24h' && styles.radioCardSelected]}
@@ -349,12 +360,14 @@ export default function EditProfileScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '24h' && styles.radioTitleSelected]}>24 Stunden</Text>
+              <Text style={[styles.radioTitle, form.cancellationPolicy === '24h' && styles.radioTitleSelected]}>
+                {t('providerEditCancel24')}
+              </Text>
               <View style={[styles.radioCircle, form.cancellationPolicy === '24h' && styles.radioCircleSelected]}>
                 {form.cancellationPolicy === '24h' && <View style={styles.radioInnerCircle} />}
               </View>
             </View>
-            <Text style={styles.radioDesc}>Kostenlose Stornierung bis 24h vorher</Text>
+            <Text style={styles.radioDesc}>{t('providerEditCancel24Desc')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -363,12 +376,14 @@ export default function EditProfileScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '48h' && styles.radioTitleSelected]}>48 Stunden</Text>
+              <Text style={[styles.radioTitle, form.cancellationPolicy === '48h' && styles.radioTitleSelected]}>
+                {t('providerEditCancel48')}
+              </Text>
               <View style={[styles.radioCircle, form.cancellationPolicy === '48h' && styles.radioCircleSelected]}>
                 {form.cancellationPolicy === '48h' && <View style={styles.radioInnerCircle} />}
               </View>
             </View>
-            <Text style={styles.radioDesc}>Kostenlose Stornierung bis 48h vorher</Text>
+            <Text style={styles.radioDesc}>{t('providerEditCancel48Desc')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -377,12 +392,14 @@ export default function EditProfileScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '72h' && styles.radioTitleSelected]}>72 Stunden</Text>
+              <Text style={[styles.radioTitle, form.cancellationPolicy === '72h' && styles.radioTitleSelected]}>
+                {t('providerEditCancel72')}
+              </Text>
               <View style={[styles.radioCircle, form.cancellationPolicy === '72h' && styles.radioCircleSelected]}>
                 {form.cancellationPolicy === '72h' && <View style={styles.radioInnerCircle} />}
               </View>
             </View>
-            <Text style={styles.radioDesc}>Kostenlose Stornierung bis 72h vorher</Text>
+            <Text style={styles.radioDesc}>{t('providerEditCancel72Desc')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -391,7 +408,7 @@ export default function EditProfileScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Änderungen speichern" 
+          label={t('providerEditSave')} 
           onPress={handleSave}
           loading={isSaving}
         />

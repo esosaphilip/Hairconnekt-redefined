@@ -13,7 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email?: string }>();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +80,7 @@ export default function VerifyEmailScreen() {
   const handleVerify = async () => {
     const code = otp.join('');
     if (code.length < 6) {
-      showError('Bitte gib den 6-stelligen Code ein.');
+      showError(t('otpEnter6Digits'));
       return;
     }
 
@@ -130,11 +130,11 @@ export default function VerifyEmailScreen() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 400 || status === 401) {
-        showError('Ungültiger Code. Bitte versuche es erneut.', status);
+        showError(t('verifyEmailInvalidCode'), status);
       } else if (status === 410) {
-        showError('Code abgelaufen. Bitte fordere einen neuen an.', status);
+        showError(t('verifyEmailExpiredCode'), status);
       } else if (status === 429) {
-        showError('Du hast zu oft einen Code angefordert. Bitte versuche es später erneut.', status);
+        showError(t('verifyEmailTooManyRequests'), status);
       } else {
         showError(mapHttpError(status, undefined, lang), status);
       }
@@ -160,7 +160,7 @@ export default function VerifyEmailScreen() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 429) {
-        showError('Du hast zu oft einen Code angefordert. Bitte versuche es später erneut.', status);
+        showError(t('verifyEmailTooManyRequests'), status);
       } else {
         showError(mapHttpError(status, undefined, lang), status);
       }
@@ -169,7 +169,7 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const subtitleEmail = typeof email === 'string' && email.length > 0 ? email : 'deine E-Mail-Adresse';
+  const subtitleEmail = typeof email === 'string' && email.length > 0 ? email : t('yourEmailAddress');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -177,8 +177,8 @@ export default function VerifyEmailScreen() {
         <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
 
         <View style={styles.stepContainer}>
-          <Text style={styles.heading}>E-Mail bestätigen</Text>
-          <Text style={styles.bodyText}>Wir haben dir einen Code an {subtitleEmail} gesendet.</Text>
+          <Text style={styles.heading}>{t('verifyEmailTitle')}</Text>
+          <Text style={styles.bodyText}>{t('verifyEmailBody').replace('{email}', subtitleEmail)}</Text>
 
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
@@ -196,10 +196,10 @@ export default function VerifyEmailScreen() {
           </View>
 
           <TouchableOpacity style={styles.resendLink} onPress={handleResend} disabled={isLoading}>
-            <Text style={styles.resendText}>Code erneut senden</Text>
+            <Text style={styles.resendText}>{t('verifyEmailResend')}</Text>
           </TouchableOpacity>
 
-          <PrimaryButton label="Bestätigen" onPress={handleVerify} loading={isLoading} />
+          <PrimaryButton label={t('confirm')} onPress={handleVerify} loading={isLoading} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

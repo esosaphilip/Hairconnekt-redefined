@@ -140,7 +140,7 @@ export default function ProviderDashboardScreen() {
 
   const getTodayDateString = () => {
     const today = new Date();
-    return today.toLocaleDateString('de-DE', { 
+    return today.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { 
       weekday: 'long', 
       day: 'numeric', 
       month: 'long', 
@@ -277,7 +277,7 @@ export default function ProviderDashboardScreen() {
                     bookingStatus(booking.status) === 'confirmed' ? { color: colors.green } : 
                     bookingStatus(booking.status) === 'in_progress' ? { color: colors.orange } : {}
                   ]}>
-                    {bookingStatusLabel(booking.status)}
+                    {bookingStatusLabel(booking.status, lang)}
                   </Text>
                 </View>
               </View>

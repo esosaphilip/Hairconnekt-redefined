@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking, Alert, Modal, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-// Temporarily comment out Notifications to avoid Expo Go SDK 53 errors
-// import * as Notifications from 'expo-notifications';
-// import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout, shadows } from '@/theme';
@@ -27,14 +25,10 @@ export default function SharedSettingsScreen() {
   const [versionTapCount, setVersionTapCount] = useState(0);
   const [diagnosticsEnabled, setDiagnosticsEnabled] = useState(false);
 
-  useEffect(() => {
-    registerForPushNotificationsAsync();
-  }, []);
-
-  async function registerForPushNotificationsAsync() {
-    // Dummy implementation for Expo Go
-    console.log('Push notifications mocked for Expo Go');
-  }
+  const handleNotificationSettings = async () => {
+    await Notifications.getPermissionsAsync();
+    await Linking.openSettings();
+  };
 
   const handleLink = (url: string) => {
     Linking.openURL(url).catch(() => {
@@ -165,27 +159,23 @@ export default function SharedSettingsScreen() {
             <TouchableOpacity
               style={[styles.langPill, lang === 'de' && styles.langPillActive]}
               onPress={() => setLang('de')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.langPillText, lang === 'de' && styles.langPillTextActive]}>
-                {t('settingsLanguageDe')}
-              </Text>
+              <Text style={[styles.langPillText, lang === 'de' && styles.langPillTextActive]}>{t('settingsLanguageDe')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.langPill, lang === 'en' && styles.langPillActive]}
               onPress={() => setLang('en')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.langPillText, lang === 'en' && styles.langPillTextActive]}>
-                {t('settingsLanguageEn')}
-              </Text>
+              <Text style={[styles.langPillText, lang === 'en' && styles.langPillTextActive]}>{t('settingsLanguageEn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>{t('settingsAccount')}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("bell", t('settingsNotifications'), () => router.push('/(shared)/notifications' as any))}
+          {renderRow("bell", t('settingsNotifications'), handleNotificationSettings)}
         </View>
 
         <Text style={styles.sectionTitle}>{t('settingsLegal')}</Text>
@@ -317,6 +307,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     padding: spacing.lg,
+  },
+  langStaticTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+  },
+  langStaticNote: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   langPill: {
     flex: 1,

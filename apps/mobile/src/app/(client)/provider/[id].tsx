@@ -18,6 +18,7 @@ export default function ProviderProfile() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   const { isFavourite, toggleFavourite } = useFavourites();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -304,7 +305,7 @@ export default function ProviderProfile() {
                         <Text style={styles.reviewerName}>{item.clientName || t('clientNameDefault')}</Text>
                         <View style={{flexDirection: 'row'}}>{[...Array(item.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
                       </View>
-                      <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE') : ''}</Text>
+                      <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : ''}</Text>
                     </View>
                     <Text style={styles.reviewComment}>{item.comment}</Text>
                   </View>

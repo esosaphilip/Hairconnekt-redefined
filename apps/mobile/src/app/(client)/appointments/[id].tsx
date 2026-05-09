@@ -16,6 +16,7 @@ export default function AppointmentDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +47,7 @@ export default function AppointmentDetails() {
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+      return new Date(d).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return d;
     }

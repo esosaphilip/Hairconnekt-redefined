@@ -34,6 +34,7 @@ const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 export default function ProviderCalendarScreen() {
   const router = useRouter();
   const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -77,13 +78,14 @@ export default function ProviderCalendarScreen() {
   };
 
   const handleDeleteBlock = (blockId: string, blockReason: string) => {
+    const reason = blockReason || t('calendarDeleteBlockFallbackReason');
     Alert.alert(
-      'Zeitblock löschen',
-      `Möchtest du den Block "${blockReason || 'Zeitblock'}" wirklich löschen?`,
+      t('calendarDeleteBlockTitle'),
+      t('calendarDeleteBlockBody').replace('{reason}', reason),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Löschen',
+          text: t('delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -95,10 +97,10 @@ export default function ProviderCalendarScreen() {
               if (res.ok || res.status === 204) {
                 setBlocks((prev) => prev.filter((b) => b.id !== blockId));
               } else {
-                Alert.alert('Fehler', 'Der Zeitblock konnte nicht gelöscht werden.');
+                Alert.alert(t('error'), t('calendarDeleteBlockError'));
               }
             } catch {
-              Alert.alert('Fehler', 'Verbindungsfehler. Bitte erneut versuchen.');
+              Alert.alert(t('error'), t('networkErrorTryAgain'));
             }
           },
         },
@@ -230,7 +232,7 @@ export default function ProviderCalendarScreen() {
           <Feather name="chevron-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.monthText}>
-          {currentMonth.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' })}
+          {currentMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
         </Text>
         <View style={styles.monthRightRow}>
           <TouchableOpacity onPress={handleJumpToToday} style={styles.todayPill}>
@@ -256,7 +258,7 @@ export default function ProviderCalendarScreen() {
 
       <ScrollView style={styles.agendaContainer} contentContainerStyle={styles.agendaContent}>
         <Text style={styles.agendaDateHeading}>
-          {selectedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+          {selectedDate.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
         </Text>
 
         <Text style={styles.earningsText}>{t('dashboardEarnings')}: €{formatAmount(potentialEarnings, lang)}</Text>
@@ -310,7 +312,7 @@ export default function ProviderCalendarScreen() {
                         styles.statusText, 
                         booking.status === 'CONFIRMED' ? styles.statusConfirmedText : styles.statusPendingText
                       ]}>
-                        {bookingStatusLabel(booking.status)}
+                        {bookingStatusLabel(booking.status, lang)}
                       </Text>
                     </View>
                   </View>

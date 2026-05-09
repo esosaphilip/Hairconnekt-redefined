@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 interface Address {
@@ -18,6 +19,7 @@ interface Address {
 
 export default function AddressesScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,12 +82,12 @@ export default function AddressesScreen() {
 
   const handleDeletePress = (id: string) => {
     Alert.alert(
-      'Adresse löschen',
-      'Möchtest du diese Adresse wirklich löschen?',
+      t('addressesDeleteTitle'),
+      t('addressesDeleteBody'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         { 
-          text: 'Löschen', 
+          text: t('delete'), 
           style: 'destructive',
           onPress: async () => {
             try {
@@ -127,7 +129,7 @@ export default function AddressesScreen() {
 
   const handleSave = async () => {
     if (!label || !street || !houseNumber || !postalCode || !city) {
-      Alert.alert('Fehler', 'Bitte fülle alle Felder aus.');
+      Alert.alert(t('error'), t('addressesFillAllFields'));
       return;
     }
 
@@ -149,7 +151,7 @@ export default function AddressesScreen() {
       await loadAddresses();
     } catch (error) {
       console.log('Error saving address:', error);
-      Alert.alert('Fehler', 'Die Adresse konnte nicht gespeichert werden.');
+      Alert.alert(t('error'), t('addressesSaveError'));
     } finally {
       setIsSaving(false);
     }
@@ -162,7 +164,7 @@ export default function AddressesScreen() {
           <Text style={styles.cardLabel}>{item.label}</Text>
           {item.isDefault && (
             <View style={styles.defaultBadge}>
-              <Text style={styles.defaultBadgeText}>Standard</Text>
+              <Text style={styles.defaultBadgeText}>{t('addressesDefault')}</Text>
             </View>
           )}
         </View>
@@ -181,7 +183,7 @@ export default function AddressesScreen() {
 
       {!item.isDefault && (
         <TouchableOpacity onPress={() => handleSetDefault(item.id)} style={styles.setDefaultButton}>
-          <Text style={styles.setDefaultText}>Als Standard setzen</Text>
+          <Text style={styles.setDefaultText}>{t('addressesSetDefault')}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -196,10 +198,10 @@ export default function AddressesScreen() {
     return (
       <View style={styles.emptyContainer}>
         <Feather name="map-pin" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
-        <Text style={styles.emptyTitle}>Noch keine Adressen gespeichert</Text>
-        <Text style={styles.emptySub}>Füge eine Adresse hinzu für mobile Services</Text>
+        <Text style={styles.emptyTitle}>{t('addressesEmpty')}</Text>
+        <Text style={styles.emptySub}>{t('addressesEmptySub')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={handleAddPress}>
-          <Text style={styles.emptyButtonText}>Adresse hinzufügen</Text>
+          <Text style={styles.emptyButtonText}>{t('addressesAdd')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -211,14 +213,14 @@ export default function AddressesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meine Adressen</Text>
+        <Text style={styles.headerTitle}>{t('addressesTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {listErrorVisible && !isLoading && (
         <View style={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.sm }}>
           <Text style={{ fontFamily: fonts.body, color: colors.error, fontSize: fontSizes.sm }}>
-            Adressen konnten nicht geladen werden. Bitte erneut versuchen.
+            {t('addressesLoadError')}
           </Text>
         </View>
       )}
@@ -252,17 +254,17 @@ export default function AddressesScreen() {
       >
         <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{editingId ? 'Adresse bearbeiten' : 'Adresse hinzufügen'}</Text>
+            <Text style={styles.modalTitle}>{editingId ? t('addressesEdit') : t('addressesAdd')}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
               <Feather name="x" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalContent}>
-            <Text style={styles.inputLabel}>Bezeichnung</Text>
+            <Text style={styles.inputLabel}>{t('addressesLabel')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Zuhause, Arbeit, Eltern..."
+              placeholder={t('addressesLabelPlaceholder')}
               value={label}
               onChangeText={setLabel}
               placeholderTextColor={colors.textTertiary}
@@ -270,7 +272,7 @@ export default function AddressesScreen() {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.md }]}>
-                <Text style={styles.inputLabel}>Straße</Text>
+                <Text style={styles.inputLabel}>{t('addressesStreet')}</Text>
                 <TextInput
                   style={styles.input}
                   value={street}
@@ -278,7 +280,7 @@ export default function AddressesScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Hausnummer</Text>
+                <Text style={styles.inputLabel}>{t('addressesHouseNumber')}</Text>
                 <TextInput
                   style={styles.input}
                   value={houseNumber}
@@ -289,7 +291,7 @@ export default function AddressesScreen() {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.md }]}>
-                <Text style={styles.inputLabel}>PLZ</Text>
+                <Text style={styles.inputLabel}>{t('addressesPostalCode')}</Text>
                 <TextInput
                   style={styles.input}
                   value={postalCode}
@@ -299,7 +301,7 @@ export default function AddressesScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 2 }]}>
-                <Text style={styles.inputLabel}>Stadt</Text>
+                <Text style={styles.inputLabel}>{t('addressesCity')}</Text>
                 <TextInput
                   style={styles.input}
                   value={city}
@@ -309,7 +311,7 @@ export default function AddressesScreen() {
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Als Standardadresse festlegen</Text>
+              <Text style={styles.switchLabel}>{t('addressesSetDefaultToggle')}</Text>
               <Switch
                 value={isDefault}
                 onValueChange={setIsDefault}
@@ -324,7 +326,7 @@ export default function AddressesScreen() {
               {isSaving ? (
                 <ActivityIndicator color={colors.background} />
               ) : (
-                <Text style={styles.saveButtonText}>Speichern</Text>
+                <Text style={styles.saveButtonText}>{t('addressesSave')}</Text>
               )}
             </TouchableOpacity>
           </View>

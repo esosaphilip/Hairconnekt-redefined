@@ -3,13 +3,11 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Swi
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
-import { DateTimePickerModal } from '../../components/DateTimePickerModal';
+import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
-const DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-// We'll reorder them starting from Monday for UI purposes: Mo, Di, Mi, Do, Fr, Sa, So
 const UI_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const BUFFER_OPTIONS = [0, 15, 30, 45, 60];
 
@@ -23,6 +21,16 @@ interface DaySchedule {
 export default function AvailabilityScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const dayNames = [
+    t('availabilityDaySun'),
+    t('availabilityDayMon'),
+    t('availabilityDayTue'),
+    t('availabilityDayWed'),
+    t('availabilityDayThu'),
+    t('availabilityDayFri'),
+    t('availabilityDaySat'),
+  ];
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [bufferMinutes, setBufferMinutes] = useState<number>(0);
@@ -99,7 +107,7 @@ export default function AvailabilityScreen() {
   };
 
   const handlePickerConfirm = (selectedDate: Date) => {
-    const timeStr = selectedDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const timeStr = selectedDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     setSchedule((prev) =>
       prev.map((day) =>
         day.dayOfWeek === pickerState.dayOfWeek ? { ...day, [pickerState.field]: timeStr } : day,
@@ -159,7 +167,7 @@ export default function AvailabilityScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Verfügbarkeit</Text>
+        <Text style={styles.headerTitle}>{t('availabilityTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -182,7 +190,7 @@ export default function AvailabilityScreen() {
             return (
               <View key={dayIndex} style={styles.dayRow}>
                 <View style={styles.dayHeader}>
-                  <Text style={styles.dayName}>{DAY_NAMES[dayIndex]}</Text>
+                    <Text style={styles.dayName}>{dayNames[dayIndex]}</Text>
                   <Switch
                     value={dayData.isOpen}
                     onValueChange={() => toggleDay(dayIndex)}
@@ -197,7 +205,7 @@ export default function AvailabilityScreen() {
                       style={styles.timeInput}
                       onPress={() => openTimePicker(dayIndex, 'openTime')}
                     >
-                      <Text style={styles.timeLabel}>Von</Text>
+                      <Text style={styles.timeLabel}>{t('availabilityFrom')}</Text>
                       <View style={styles.timeValueBox}>
                         <Text style={styles.timeValue}>{dayData.openTime}</Text>
                         <Feather name="clock" size={16} color={colors.textSecondary} />
@@ -210,7 +218,7 @@ export default function AvailabilityScreen() {
                       style={styles.timeInput}
                       onPress={() => openTimePicker(dayIndex, 'closeTime')}
                     >
-                      <Text style={styles.timeLabel}>Bis</Text>
+                      <Text style={styles.timeLabel}>{t('availabilityTo')}</Text>
                       <View style={styles.timeValueBox}>
                         <Text style={styles.timeValue}>{dayData.closeTime}</Text>
                         <Feather name="clock" size={16} color={colors.textSecondary} />
@@ -218,7 +226,7 @@ export default function AvailabilityScreen() {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <Text style={styles.closedText}>Nicht verfügbar</Text>
+                  <Text style={styles.closedText}>{t('availabilityClosed')}</Text>
                 )}
               </View>
             );
@@ -227,7 +235,7 @@ export default function AvailabilityScreen() {
 
         {/* Buffer Time */}
         <View style={styles.bufferSection}>
-          <Text style={styles.bufferLabel}>Pufferzeit zwischen Terminen</Text>
+          <Text style={styles.bufferLabel}>{t('availabilityBuffer')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bufferScroll}>
             {BUFFER_OPTIONS.map(mins => (
               <TouchableOpacity
@@ -236,7 +244,7 @@ export default function AvailabilityScreen() {
                 onPress={() => setBufferMinutes(mins)}
               >
                 <Text style={[styles.bufferChipText, bufferMinutes === mins && styles.bufferChipTextSelected]}>
-                  {mins} Min
+                  {mins} {t('appointmentsMinutes')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -249,6 +257,9 @@ export default function AvailabilityScreen() {
         visible={pickerState.visible}
         mode="time"
         value={getPickerValue()}
+        locale={locale}
+        cancelLabel={t('cancel')}
+        confirmLabel={t('done')}
         onConfirm={handlePickerConfirm}
         onCancel={() => setPickerState((prev) => ({ ...prev, visible: false }))}
       />
@@ -256,7 +267,7 @@ export default function AvailabilityScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Speichern" 
+          label={t('availabilitySave')} 
           onPress={handleSave}
           loading={saving}
         />
@@ -265,7 +276,7 @@ export default function AvailabilityScreen() {
       {showToast && (
         <View style={styles.toastContainer}>
           <View style={styles.toast}>
-            <Text style={styles.toastText}>Gespeichert ✓</Text>
+            <Text style={styles.toastText}>{t('availabilitySaved')}</Text>
           </View>
         </View>
       )}

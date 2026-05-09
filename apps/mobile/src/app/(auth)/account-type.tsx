@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { useRouter } from 'expo-router';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AccountTypeScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [selectedRole, setSelectedRole] = useState<'client' | 'provider' | null>(null);
 
   const handleContinue = () => {
@@ -19,17 +21,17 @@ export default function AccountTypeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Willkommen bei HairConnekt</Text>
+        <Text style={styles.heading}>{t('accountTypeTitle')}</Text>
 
         <TouchableOpacity 
           style={[styles.card, selectedRole === 'client' && styles.cardSelected]} 
           onPress={() => setSelectedRole('client')}
         >
           <Text style={[styles.cardTitle, selectedRole === 'client' && styles.cardTitleSelected]}>
-            Ich suche einen Friseur
+            {t('accountTypeClientTitle')}
           </Text>
           <Text style={[styles.cardSubtitle, selectedRole === 'client' && styles.cardTitleSelected]}>
-            Finde Braider, Salons & Stylisten in deiner Nähe
+            {t('accountTypeClientSubtitle')}
           </Text>
         </TouchableOpacity>
 
@@ -38,21 +40,21 @@ export default function AccountTypeScreen() {
           onPress={() => setSelectedRole('provider')}
         >
           <Text style={[styles.cardTitle, selectedRole === 'provider' && styles.cardTitleSelected]}>
-            Ich biete Friseur-Services an
+            {t('accountTypeProviderTitle')}
           </Text>
           <Text style={[styles.cardSubtitle, selectedRole === 'provider' && styles.cardTitleSelected]}>
-            Zeige deine Arbeit und gewinne neue Kunden
+            {t('accountTypeProviderSubtitle')}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <PrimaryButton 
-            label="Weiter" 
+            label={t('next')} 
             onPress={handleContinue} 
             disabled={!selectedRole} 
           />
           <TouchableOpacity style={styles.loginLink} onPress={() => router.push(`/(auth)/login?role=${selectedRole || 'client'}` as any)}>
-            <Text style={styles.loginText}>Bereits registriert? Anmelden</Text>
+            <Text style={styles.loginText}>{t('registerAlreadyHaveAccount')}</Text>
           </TouchableOpacity>
         </View>
       </View>

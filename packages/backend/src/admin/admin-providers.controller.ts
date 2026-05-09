@@ -13,6 +13,7 @@ import { User } from '../entities/user.entity';
 import { Service } from '../entities/service.entity';
 import { ProviderAdminDto } from './dto/provider-admin.dto';
 import { ProviderStatusReasonDto } from './dto/provider-status-reason.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -24,6 +25,7 @@ export class AdminProvidersController {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Service)
     private readonly serviceRepo: Repository<Service>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private isProtectedAddress(provider: Provider) {
@@ -155,8 +157,27 @@ export class AdminProvidersController {
   // PATCH /admin/providers/:id/approve — approve provider
   @Patch(':id/approve')
   async approve(@Param('id', ParseUUIDPipe) id: string) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'userId'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
     const res = await this.providerRepo.update(id, { status: ProviderStatus.APPROVED });
     if (!res.affected) throw new NotFoundException('Provider not found');
+
+    try {
+      await this.notificationsService.sendToUser({
+        userId: provider.userId,
+        type: 'provider_approved',
+        titleDe: 'Profil freigeschaltet! 🎉',
+        titleEn: 'Profile Approved! 🎉',
+        bodyDe: 'Dein HairConnekt-Profil wurde genehmigt. Du kannst jetzt Buchungen empfangen!',
+        bodyEn: 'Your HairConnekt profile has been approved. You can now receive bookings!',
+        data: { screen: '/(provider)/' },
+      });
+    } catch {}
+
     return { success: true };
   }
 

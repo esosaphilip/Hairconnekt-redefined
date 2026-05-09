@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Server, Socket } from 'socket.io';
+import { Repository } from 'typeorm';
+import { User } from '../entities/user.entity';
 import { ChatService } from './chat.service';
 import { ChatPresenceService } from './chat-presence.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type JoinConversationPayload = { conversationId: string };
 type SendMessagePayload = { conversationId: string; content: string };
@@ -25,6 +29,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly chatService: ChatService,
     private readonly presence: ChatPresenceService,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -111,6 +117,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const msg = await this.chatService.sendMessage(userId, conversationId, content);
     this.server.to(conversationId).emit('new_message', msg);
+
+    const recipientUserId = await this.chatService.getOtherParticipantId(userId, conversationId);
+    if (recipientUserId) {
+      const room = this.server.sockets.adapter.rooms.get(conversationId);
+      let recipientActiveInConversation = false;
+      if (room) {
+        for (const socketId of room) {
+          const s = this.server.sockets.sockets.get(socketId);
+          if ((s?.data?.userId as string | undefined) === recipientUserId) {
+            recipientActiveInConversation = true;
+            break;
+          }
+        }
+      }
+
+      if (!recipientActiveInConversation) {
+        const sender = await this.userRepo.findOne({
+          where: { id: userId, isActive: true },
+          select: ['id', 'firstName', 'lastName'],
+        });
+        const senderName = sender ? `${sender.firstName} ${sender.lastName}`.trim() : 'HairConnekt';
+        const preview = (msg.content ?? '').slice(0, 80);
+
+        try {
+          await this.notificationsService.sendToUser({
+            userId: recipientUserId,
+            type: 'message_received',
+            titleDe: senderName,
+            titleEn: senderName,
+            bodyDe: preview,
+            bodyEn: preview,
+            data: { screen: `/(shared)/chat/${conversationId}`, conversationId },
+          });
+        } catch {}
+      }
+    }
     return msg;
   }
 

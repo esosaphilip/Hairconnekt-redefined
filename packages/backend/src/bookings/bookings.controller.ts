@@ -47,7 +47,7 @@ export class BookingsController {
   }
 
   @Patch(':id/reschedule')
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async rescheduleBooking(
@@ -59,8 +59,8 @@ export class BookingsController {
   }
 
   @Patch(':id/cancel')
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
-  @Roles(UserRole.CLIENT)
+  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async cancelBooking(
     @Request() req,

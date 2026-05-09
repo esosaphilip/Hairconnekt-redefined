@@ -34,6 +34,7 @@ export default function SharedChatScreen() {
   const id = normalizeParam(params.id as any);
   const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
@@ -63,7 +64,7 @@ export default function SharedChatScreen() {
   const formatTime = (iso: string): string => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'de-DE', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDateLabel = (iso: string): string => {
@@ -74,7 +75,7 @@ export default function SharedChatScreen() {
     yesterday.setDate(yesterday.getDate() - 1);
     if (d.toDateString() === today.toDateString()) return t('notificationsToday');
     if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
-    return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
   const loadConversation = async () => {
@@ -355,7 +356,7 @@ export default function SharedChatScreen() {
               {otherUser ? `${otherUser.firstName} ${otherUser.lastName}`.trim() : ''}
             </Text>
             <Text style={styles.headerStatus}>
-              {otherUser?.isOnline ? 'Online' : 'Offline'}
+              {otherUser?.isOnline ? t('chatOnline') : t('chatOffline')}
             </Text>
           </View>
         </View>

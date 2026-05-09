@@ -10,9 +10,10 @@ import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { ChatPresenceService } from './chat-presence.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Conversation, Message, User, Provider, Booking]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Conversation, Message, User, Provider, Booking]), AuthModule, NotificationsModule],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway, ChatPresenceService],
 })

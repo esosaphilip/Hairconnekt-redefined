@@ -6,10 +6,12 @@ import Slider from '@react-native-community/slider';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterStep2Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
+  const { t } = useLanguage();
 
   const [businessName, setBusinessName] = useState(form.businessName || '');
   const [street, setStreet] = useState(form.street || '');
@@ -21,11 +23,11 @@ export default function RegisterStep2Screen() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!businessName.trim()) newErrors.businessName = 'Business-Name ist erforderlich';
-    if (!street.trim()) newErrors.street = 'Straße ist erforderlich';
-    if (!houseNumber.trim()) newErrors.houseNumber = 'Nr. ist erforderlich';
-    if (!postalCode.trim()) newErrors.postalCode = 'PLZ ist erforderlich';
-    if (!city.trim()) newErrors.city = 'Stadt ist erforderlich';
+    if (!businessName.trim()) newErrors.businessName = t('providerRegisterBusinessNameRequired');
+    if (!street.trim()) newErrors.street = t('providerRegisterStreetRequired');
+    if (!houseNumber.trim()) newErrors.houseNumber = t('providerRegisterHouseNumberRequired');
+    if (!postalCode.trim()) newErrors.postalCode = t('providerRegisterPostalCodeRequired');
+    if (!city.trim()) newErrors.city = t('providerRegisterCityRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -51,7 +53,7 @@ export default function RegisterStep2Screen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.progressText}>Schritt 2 / 5</Text>
+        <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '2').replace('{total}', '5')}</Text>
         <View style={{ width: 24 }} />
       </View>
       
@@ -64,33 +66,33 @@ export default function RegisterStep2Screen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Business Profil</Text>
-        <Text style={styles.subtitle}>Gib die Details deines Geschäfts ein</Text>
+        <Text style={styles.title}>{t('providerRegisterStep2Title')}</Text>
+        <Text style={styles.subtitle}>{t('providerRegisterStep2Subtitle')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Business-Name</Text>
+          <Text style={styles.label}>{t('providerEditName')}</Text>
           <TextInput
             style={[styles.input, errors.businessName && styles.inputError]}
             value={businessName}
             onChangeText={(t) => { setBusinessName(t); setErrors(prev => ({...prev, businessName: ''})); }}
-            placeholder="Mein Salon"
+            placeholder={t('providerRegisterBusinessNamePlaceholder')}
           />
           {errors.businessName && <Text style={styles.errorText}>{errors.businessName}</Text>}
         </View>
 
         <View style={styles.row}>
           <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.sm }]}>
-            <Text style={styles.label}>Straße</Text>
+            <Text style={styles.label}>{t('providerEditStreet')}</Text>
             <TextInput
               style={[styles.input, errors.street && styles.inputError]}
               value={street}
               onChangeText={(t) => { setStreet(t); setErrors(prev => ({...prev, street: ''})); }}
-              placeholder="Hauptstraße"
+              placeholder={t('providerRegisterStreetPlaceholder')}
             />
             {errors.street && <Text style={styles.errorText}>{errors.street}</Text>}
           </View>
           <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Hausnummer</Text>
+            <Text style={styles.label}>{t('providerEditHouseNumber')}</Text>
             <TextInput
               style={[styles.input, errors.houseNumber && styles.inputError]}
               value={houseNumber}
@@ -103,7 +105,7 @@ export default function RegisterStep2Screen() {
 
         <View style={styles.row}>
           <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.sm }]}>
-            <Text style={styles.label}>PLZ</Text>
+            <Text style={styles.label}>{t('providerEditPostalCode')}</Text>
             <TextInput
               style={[styles.input, errors.postalCode && styles.inputError]}
               value={postalCode}
@@ -114,7 +116,7 @@ export default function RegisterStep2Screen() {
             {errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
           </View>
           <View style={[styles.inputGroup, { flex: 2 }]}>
-            <Text style={styles.label}>Stadt</Text>
+            <Text style={styles.label}>{t('providerEditCity')}</Text>
             <TextInput
               style={[styles.input, errors.city && styles.inputError]}
               value={city}
@@ -126,8 +128,8 @@ export default function RegisterStep2Screen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Service-Radius</Text>
-          <Text style={styles.radiusText}>Radius: {serviceRadius} km</Text>
+          <Text style={styles.label}>{t('providerEditRadius')}</Text>
+          <Text style={styles.radiusText}>{t('providerRegisterRadiusLabel').replace('{km}', String(serviceRadius))}</Text>
           <Slider
             style={{ width: '100%', height: 40 }}
             minimumValue={1}
@@ -144,7 +146,7 @@ export default function RegisterStep2Screen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <PrimaryButton label="Weiter" onPress={handleNext} variant="filled" />
+        <PrimaryButton label={t('next')} onPress={handleNext} variant="filled" />
       </View>
     </SafeAreaView>
   );

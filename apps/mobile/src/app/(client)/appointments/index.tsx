@@ -15,6 +15,7 @@ type TabType = 'upcoming' | 'completed' | 'cancelled';
 export default function AppointmentsList() {
   const router = useRouter();
   const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [bookings, setBookings] = useState<any[]>([]);
@@ -63,23 +64,23 @@ export default function AppointmentsList() {
     const s = bookingStatus(status);
     switch (s) {
       case 'pending':
-        return { bg: colors.orange, text: bookingStatusLabel(status) };
+        return { bg: colors.orange, text: bookingStatusLabel(status, lang) };
       case 'confirmed':
-        return { bg: colors.green, text: bookingStatusLabel(status) };
+        return { bg: colors.green, text: bookingStatusLabel(status, lang) };
       case 'in_progress':
-        return { bg: colors.green, text: bookingStatusLabel(status) };
+        return { bg: colors.green, text: bookingStatusLabel(status, lang) };
       case 'completed':
-        return { bg: colors.textSecondary, text: bookingStatusLabel(status) };
+        return { bg: colors.textSecondary, text: bookingStatusLabel(status, lang) };
       case 'cancelled':
-        return { bg: colors.error, text: bookingStatusLabel(status) };
+        return { bg: colors.error, text: bookingStatusLabel(status, lang) };
       default:
-        return { bg: colors.border, text: bookingStatusLabel(status) };
+        return { bg: colors.border, text: bookingStatusLabel(status, lang) };
     }
   };
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+      return new Date(d).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return d;
     }

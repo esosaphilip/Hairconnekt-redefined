@@ -7,6 +7,8 @@ import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { TimeBlock } from '../entities/time-block.entity';
+import { User } from '../entities/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { TimeBlock } from '../entities/time-block.entity';
       Provider,
       AvailabilitySchedule,
       TimeBlock,
+      User,
     ]),
+    NotificationsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

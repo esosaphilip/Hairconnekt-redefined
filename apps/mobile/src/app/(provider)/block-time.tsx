@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Swi
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
-import { DateTimePickerModal } from '../../components/DateTimePickerModal';
+import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { tokenStorage } from '../../utils/token-storage';
@@ -12,16 +12,17 @@ import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const REASONS = [
-  { id: 'urlaub', label: 'Urlaub', icon: '🏖️' },
-  { id: 'krank', label: 'Krank', icon: '🤒' },
-  { id: 'termin', label: 'Persönlicher Termin', icon: '📅' },
-  { id: 'pause', label: 'Pause', icon: '☕' },
-  { id: 'sonstiges', label: 'Sonstiges', icon: '📝' },
+  { id: 'urlaub', labelKey: 'blockTimeReasonVacation', icon: '🏖️' },
+  { id: 'krank', labelKey: 'blockTimeReasonSick', icon: '🤒' },
+  { id: 'termin', labelKey: 'blockTimeReasonAppointment', icon: '📅' },
+  { id: 'pause', labelKey: 'blockTimeReasonBreak', icon: '☕' },
+  { id: 'sonstiges', labelKey: 'blockTimeReasonOther', icon: '📝' },
 ];
 
 export default function BlockTimeScreen() {
   const router = useRouter();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const locale = lang === 'en' ? 'en-US' : 'de-DE';
   
   // State
   const [reason, setReason] = useState<string | null>(null);
@@ -72,12 +73,12 @@ export default function BlockTimeScreen() {
 
   const formatDate = (date: Date | null) => {
     if (!date) return 'DD.MM.YYYY';
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const formatTime = (time: Date | null) => {
     if (!time) return 'HH:MM';
-    return time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   };
 
   // Convert local Date to YYYY-MM-DD format
@@ -102,9 +103,10 @@ export default function BlockTimeScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       const token = await tokenStorage.getAccessToken();
+      const selectedReason = REASONS.find(r => r.id === reason);
 
       const payload = {
-        reason: REASONS.find(r => r.id === reason)?.label,
+        reason: selectedReason ? t(selectedReason.labelKey) : undefined,
         startDate: toDateString(startDate),
         endDate: toDateString(endDate),
         isAllDay,
@@ -143,7 +145,7 @@ export default function BlockTimeScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Zeit blockieren</Text>
+        <Text style={styles.headerTitle}>{t('blockTimeTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -153,7 +155,7 @@ export default function BlockTimeScreen() {
         
         {/* Reason Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Grund</Text>
+          <Text style={styles.sectionLabel}>{t('blockTimeReason')}</Text>
           <View style={styles.reasonsGrid}>
             {REASONS.map((item) => (
               <TouchableOpacity
@@ -168,7 +170,7 @@ export default function BlockTimeScreen() {
                 <Text style={[
                   styles.reasonLabel,
                   reason === item.id && styles.reasonLabelSelected
-                ]}>{item.label}</Text>
+                ]}>{t(item.labelKey)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -176,10 +178,10 @@ export default function BlockTimeScreen() {
 
         {/* Zeitraum Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Zeitraum</Text>
+          <Text style={styles.sectionLabel}>{t('blockTimePeriod')}</Text>
           <View style={styles.dateInputsContainer}>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Startdatum</Text>
+              <Text style={styles.inputLabel}>{t('blockTimeStartDate')}</Text>
               <TouchableOpacity 
                 style={styles.dateInput} 
                 onPress={() => openPicker('startDate', 'date')}
@@ -192,7 +194,7 @@ export default function BlockTimeScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Enddatum</Text>
+              <Text style={styles.inputLabel}>{t('blockTimeEndDate')}</Text>
               <TouchableOpacity 
                 style={styles.dateInput} 
                 onPress={() => openPicker('endDate', 'date')}
@@ -208,7 +210,7 @@ export default function BlockTimeScreen() {
 
         {/* All Day Toggle */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Ganztägig</Text>
+          <Text style={styles.toggleLabel}>{t('blockTimeAllDay')}</Text>
           <Switch
             value={isAllDay}
             onValueChange={setIsAllDay}
@@ -220,10 +222,10 @@ export default function BlockTimeScreen() {
         {/* Uhrzeit Section */}
         {!isAllDay && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Uhrzeit</Text>
+            <Text style={styles.sectionLabel}>{t('blockTimeTime')}</Text>
             <View style={styles.dateInputsContainer}>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Von</Text>
+                <Text style={styles.inputLabel}>{t('blockTimeFrom')}</Text>
                 <TouchableOpacity 
                   style={styles.dateInput} 
                   onPress={() => openPicker('startTime', 'time')}
@@ -236,7 +238,7 @@ export default function BlockTimeScreen() {
               </View>
 
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Bis</Text>
+                <Text style={styles.inputLabel}>{t('blockTimeTo')}</Text>
                 <TouchableOpacity 
                   style={styles.dateInput} 
                   onPress={() => openPicker('endTime', 'time')}
@@ -254,8 +256,8 @@ export default function BlockTimeScreen() {
         {/* Wiederholen Section */}
         <View style={styles.repeatingCard}>
           <View style={styles.repeatingInfo}>
-            <Text style={styles.repeatingTitle}>Wiederholen</Text>
-            <Text style={styles.repeatingSub}>Zeit regelmäßig blockieren</Text>
+            <Text style={styles.repeatingTitle}>{t('blockTimeRepeat')}</Text>
+            <Text style={styles.repeatingSub}>{t('blockTimeRepeatSub')}</Text>
           </View>
           <Switch
             value={isRepeating}
@@ -277,6 +279,9 @@ export default function BlockTimeScreen() {
           : (endTime ?? new Date())
         }
         minimumDate={pickerState.mode === 'date' ? new Date() : undefined}
+        locale={locale}
+        cancelLabel={t('cancel')}
+        confirmLabel={t('done')}
         onConfirm={handlePickerConfirm}
         onCancel={() => setPickerState((prev) => ({ ...prev, visible: false }))}
       />
@@ -284,7 +289,7 @@ export default function BlockTimeScreen() {
       {/* Footer Button */}
       <View style={styles.footer}>
         <PrimaryButton 
-          label="Zeit blockieren" 
+          label={t('blockTimeSubmit')} 
           onPress={handleSubmit}
           disabled={!isFormValid()}
           loading={isLoading}
