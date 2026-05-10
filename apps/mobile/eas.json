@@ -35,6 +35,21 @@
         "buildType": "apk"
       }
     },
+    "preview-ios-sim": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_ENV": "preview",
+        "EXPO_PUBLIC_API_URL": "https://hairconnekt-api-staging.onrender.com/api/v1",
+        "EXPO_PUBLIC_WS_URL": "wss://hairconnekt-api-staging.onrender.com",
+        "EXPO_PUBLIC_R2_BASE_URL": "https://media.hairconnekt.de"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
     "staging": {
       "distribution": "internal",
       "channel": "staging",

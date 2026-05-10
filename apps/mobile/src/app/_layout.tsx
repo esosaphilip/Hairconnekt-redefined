@@ -116,9 +116,40 @@ function RootLayout() {
   useEffect(() => {
     if (!fontsLoaded) return;
 
-    registerForPushNotifications().catch(() => {});
+    let cancelled = false;
+
+    const attemptRegister = async () => {
+      if (cancelled) return;
+
+      const canRegisterPush = Device.isDevice;
+      if (!canRegisterPush) return;
+
+      try {
+        const accessToken = await tokenStorage.getAccessToken();
+        if (!accessToken) {
+          setTimeout(attemptRegister, 10_000);
+          return;
+        }
+
+        await registerForPushNotifications();
+      } catch {
+        setTimeout(attemptRegister, 20_000);
+      }
+    };
+
+    attemptRegister();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});
+
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (!response) return;
+        const data = response.notification.request.content.data as any;
+        if (data?.screen) {
+          router.push(data.screen as any);
+        }
+      })
+      .catch(() => {});
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as any;
@@ -128,6 +159,7 @@ function RootLayout() {
     });
 
     return () => {
+      cancelled = true;
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
