@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, TextInput, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -60,6 +60,7 @@ export default function PortfolioUploadScreen() {
   };
 
   const addCustomTag = () => {
+    Keyboard.dismiss();
     const trimmed = customTag.trim();
     if (trimmed && !styleTags.includes(trimmed)) {
       setStyleTags(prev => [...prev, trimmed]);
@@ -68,6 +69,7 @@ export default function PortfolioUploadScreen() {
   };
 
   const handleUpload = async () => {
+    Keyboard.dismiss();
     if (!imageUri) return;
 
     try {
@@ -131,115 +133,119 @@ export default function PortfolioUploadScreen() {
 
       <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage} actionLabel={t('appointmentsRetry')} onAction={handleUpload} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        
-        {/* Image Picker Zone */}
-        <TouchableOpacity 
-          style={[styles.imagePickerZone, !imageUri && styles.imagePickerZoneEmpty]} 
-          onPress={pickImage}
-          activeOpacity={0.8}
-        >
-          {imageUri ? (
-            <>
-              <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" onError={(e) => console.log('Preview error:', e.nativeEvent.error)} />
-              <View style={styles.changeImageOverlay}>
-                <Feather name="camera" size={24} color={colors.background} />
-                <Text style={styles.changeImageText}>{t('portfolioUploadChange')}</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity
+            style={[styles.imagePickerZone, !imageUri && styles.imagePickerZoneEmpty]}
+            onPress={pickImage}
+            activeOpacity={0.8}
+          >
+            {imageUri ? (
+              <>
+                <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" onError={(e) => console.log('Preview error:', e.nativeEvent.error)} />
+                <View style={styles.changeImageOverlay}>
+                  <Feather name="camera" size={24} color={colors.background} />
+                  <Text style={styles.changeImageText}>{t('portfolioUploadChange')}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.emptyPickerContent}>
+                <Feather name="camera" size={48} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
+                <Text style={styles.emptyPickerText}>{t('portfolioUploadPick')}</Text>
               </View>
-            </>
-          ) : (
-            <View style={styles.emptyPickerContent}>
-              <Feather name="camera" size={48} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
-              <Text style={styles.emptyPickerText}>{t('portfolioUploadPick')}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            )}
+          </TouchableOpacity>
 
-        {/* Caption Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('portfolioUploadCaptionOptional')}</Text>
-          <TextInput
-            style={styles.textArea}
-            value={caption}
-            onChangeText={setCaption}
-            placeholder={t('portfolioUploadCaptionPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-            multiline
-            maxLength={200}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCount}>{caption.length}/200</Text>
-        </View>
-
-        {/* Style Tags */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('portfolioUploadStyleTags')}</Text>
-          <View style={styles.tagsContainer}>
-            {PRESET_TAGS.map(tag => {
-              const isSelected = styleTags.includes(tag);
-              return (
-                <TouchableOpacity
-                  key={tag}
-                  style={[styles.tagChip, isSelected && styles.tagChipSelected]}
-                  onPress={() => toggleTag(tag)}
-                >
-                  <Text style={[styles.tagChipText, isSelected && styles.tagChipTextSelected]}>
-                    {tag}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Custom Tag Input */}
-          <View style={styles.customTagRow}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('portfolioUploadCaptionOptional')}</Text>
             <TextInput
-              style={styles.customTagInput}
-              value={customTag}
-              onChangeText={setCustomTag}
-              placeholder={t('portfolioUploadCustomTagPlaceholder')}
+              style={styles.textArea}
+              value={caption}
+              onChangeText={setCaption}
+              placeholder={t('portfolioUploadCaptionPlaceholder')}
               placeholderTextColor={colors.textTertiary}
-              onSubmitEditing={addCustomTag}
+              multiline
+              maxLength={200}
+              textAlignVertical="top"
               returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
-            <TouchableOpacity style={styles.addTagButton} onPress={addCustomTag}>
-              <Feather name="plus" size={20} color={colors.primary} />
-            </TouchableOpacity>
+            <Text style={styles.charCount}>{caption.length}/200</Text>
           </View>
 
-          {/* Custom Tags Display */}
-          {styleTags.filter(t => !PRESET_TAGS.includes(t)).length > 0 && (
-            <View style={[styles.tagsContainer, { marginTop: spacing.md }]}>
-              {styleTags.filter(t => !PRESET_TAGS.includes(t)).map(tag => (
-                <TouchableOpacity
-                  key={tag}
-                  style={[styles.tagChip, styles.tagChipSelected]}
-                  onPress={() => toggleTag(tag)}
-                >
-                  <Text style={styles.tagChipTextSelected}>{tag} <Feather name="x" size={12} /></Text>
-                </TouchableOpacity>
-              ))}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('portfolioUploadStyleTags')}</Text>
+            <View style={styles.tagsContainer}>
+              {PRESET_TAGS.map((tag) => {
+                const isSelected = styleTags.includes(tag);
+                return (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[styles.tagChip, isSelected && styles.tagChipSelected]}
+                    onPress={() => toggleTag(tag)}
+                  >
+                    <Text style={[styles.tagChipText, isSelected && styles.tagChipTextSelected]}>{tag}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-          )}
+
+            <View style={styles.customTagRow}>
+              <TextInput
+                style={styles.customTagInput}
+                value={customTag}
+                onChangeText={setCustomTag}
+                placeholder={t('portfolioUploadCustomTagPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                onSubmitEditing={addCustomTag}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.addTagButton} onPress={addCustomTag}>
+                <Feather name="plus" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {styleTags.filter((t) => !PRESET_TAGS.includes(t)).length > 0 && (
+              <View style={[styles.tagsContainer, { marginTop: spacing.md }]}>
+                {styleTags
+                  .filter((t) => !PRESET_TAGS.includes(t))
+                  .map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={[styles.tagChip, styles.tagChipSelected]}
+                      onPress={() => toggleTag(tag)}
+                    >
+                      <Text style={styles.tagChipTextSelected}>
+                        {tag} <Feather name="x" size={12} />
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <PrimaryButton
+            label={t('portfolioUploadButton')}
+            onPress={handleUpload}
+            disabled={!imageUri}
+            loading={isUploading}
+          />
         </View>
-
-      </ScrollView>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <PrimaryButton 
-          label={t('portfolioUploadButton')} 
-          onPress={handleUpload}
-          disabled={!imageUri}
-          loading={isUploading}
-        />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   
   header: {
     flexDirection: 'row',

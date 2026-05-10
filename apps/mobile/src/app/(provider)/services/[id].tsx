@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, ActivityIndicator } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, spacing, borderRadius } from '../../../theme';
@@ -34,6 +34,10 @@ export default function ProviderServiceEditScreen() {
   const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [errorAction, setErrorAction] = useState<'load' | 'save'>('load');
+  const nameRef = useRef<TextInput>(null);
+  const descriptionRef = useRef<TextInput>(null);
+  const durationRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadData();
@@ -87,6 +91,7 @@ export default function ProviderServiceEditScreen() {
   };
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     if (!validate()) return;
     setSaving(true);
     setErrorVisible(false);
@@ -142,122 +147,168 @@ export default function ProviderServiceEditScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <GermanErrorBanner
-          visible={errorVisible}
-          statusCode={errorStatus}
-          message={errorMessage}
-          actionLabel={t('appointmentsRetry')}
-          onAction={errorAction === 'save' ? handleSave : loadData}
-        />
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <GermanErrorBanner
+            visible={errorVisible}
+            statusCode={errorStatus}
+            message={errorMessage}
+            actionLabel={t('appointmentsRetry')}
+            onAction={errorAction === 'save' ? handleSave : loadData}
+          />
 
-        <Text style={styles.label}>{t('serviceCategory')} <Text style={styles.required}>*</Text></Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.sm }}>
-          {categories.map(c => (
-            <TouchableOpacity 
-              key={c.id} 
-              style={[styles.chip, form.categoryId === c.id && styles.chipActive]}
-              onPress={() => setForm(f => ({ ...f, categoryId: c.id }))}
+          <Text style={styles.label}>
+            {t('serviceCategory')} <Text style={styles.required}>*</Text>
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: spacing.sm }}
+          >
+            {categories.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                style={[styles.chip, form.categoryId === c.id && styles.chipActive]}
+                onPress={() => setForm((f) => ({ ...f, categoryId: c.id }))}
+              >
+                <Text style={[styles.chipText, form.categoryId === c.id && styles.chipTextActive]}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {errors.categoryId && <Text style={styles.errorText}>{errors.categoryId}</Text>}
+
+          <Text style={styles.label}>
+            {t('serviceName')} <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            ref={nameRef}
+            style={[styles.input, errors.name && styles.inputError]}
+            value={form.name}
+            onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+            maxLength={100}
+            placeholder={t('serviceNamePlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => descriptionRef.current?.focus()}
+          />
+          {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+          <Text style={styles.label}>{t('serviceDescriptionOptional')}</Text>
+          <TextInput
+            ref={descriptionRef}
+            style={[styles.input, styles.textArea]}
+            value={form.description}
+            onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+            maxLength={500}
+            multiline
+            numberOfLines={4}
+            placeholder={t('serviceDescriptionPlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            returnKeyType="done"
+            blurOnSubmit={true}
+            onSubmitEditing={() => durationRef.current?.focus()}
+          />
+
+          <Text style={styles.label}>
+            {t('serviceDurationMinutes')} <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            ref={durationRef}
+            style={[styles.input, errors.durationMin && styles.inputError]}
+            value={form.durationMin.toString()}
+            onChangeText={(v) => setForm((f) => ({ ...f, durationMin: parseInt(v) || 0 }))}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            placeholderTextColor={colors.textTertiary}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => priceRef.current?.focus()}
+          />
+          <Text style={styles.helperText}>
+            ≈ {Math.floor(form.durationMin / 60)} {t('hoursShort')}{' '}
+            {form.durationMin % 60 ? `${form.durationMin % 60} ${t('minutesShort')}` : ''}
+          </Text>
+
+          <Text style={styles.label}>
+            {t('servicePriceType')} <Text style={styles.required}>*</Text>
+          </Text>
+          <View style={styles.segmentedControl}>
+            <TouchableOpacity
+              style={[styles.segment, form.priceType === 'fixed' && styles.segmentActive]}
+              onPress={() => setForm((f) => ({ ...f, priceType: 'fixed' }))}
             >
-              <Text style={[styles.chipText, form.categoryId === c.id && styles.chipTextActive]}>{c.name}</Text>
+              <Text style={[styles.segmentText, form.priceType === 'fixed' && styles.segmentTextActive]}>
+                {t('servicePriceTypeFixed')}
+              </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {errors.categoryId && <Text style={styles.errorText}>{errors.categoryId}</Text>}
-
-        <Text style={styles.label}>{t('serviceName')} <Text style={styles.required}>*</Text></Text>
-        <TextInput
-          style={[styles.input, errors.name && styles.inputError]}
-          value={form.name}
-          onChangeText={(v) => setForm(f => ({ ...f, name: v }))}
-          maxLength={100}
-          placeholder={t('serviceNamePlaceholder')}
-        />
-        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-
-        <Text style={styles.label}>{t('serviceDescriptionOptional')}</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={form.description}
-          onChangeText={(v) => setForm(f => ({ ...f, description: v }))}
-          maxLength={500}
-          multiline
-          numberOfLines={4}
-          placeholder={t('serviceDescriptionPlaceholder')}
-        />
-
-        <Text style={styles.label}>{t('serviceDurationMinutes')} <Text style={styles.required}>*</Text></Text>
-        <TextInput
-          style={[styles.input, errors.durationMin && styles.inputError]}
-          value={form.durationMin.toString()}
-          onChangeText={(v) => setForm(f => ({ ...f, durationMin: parseInt(v) || 0 }))}
-          keyboardType="number-pad"
-        />
-        <Text style={styles.helperText}>
-          ≈ {Math.floor(form.durationMin / 60)} {t('hoursShort')}{' '}
-          {form.durationMin % 60 ? `${form.durationMin % 60} ${t('minutesShort')}` : ''}
-        </Text>
-
-        <Text style={styles.label}>{t('servicePriceType')} <Text style={styles.required}>*</Text></Text>
-        <View style={styles.segmentedControl}>
-          <TouchableOpacity 
-            style={[styles.segment, form.priceType === 'fixed' && styles.segmentActive]}
-            onPress={() => setForm(f => ({ ...f, priceType: 'fixed' }))}
-          ><Text style={[styles.segmentText, form.priceType === 'fixed' && styles.segmentTextActive]}>{t('servicePriceTypeFixed')}</Text></TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.segment, form.priceType === 'from' && styles.segmentActive]}
-            onPress={() => setForm(f => ({ ...f, priceType: 'from' }))}
-          ><Text style={[styles.segmentText, form.priceType === 'from' && styles.segmentTextActive]}>{t('servicePriceTypeFrom')}</Text></TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>{t('servicePriceEuro')} <Text style={styles.required}>*</Text></Text>
-        <TextInput
-          style={[styles.input, errors.price && styles.inputError]}
-          value={form.price}
-          onChangeText={(v) => setForm(f => ({ ...f, price: v.replace(/[^0-9.]/g, '') }))}
-          keyboardType="decimal-pad"
-          placeholder="0.00"
-        />
-        {errors.price && <Text style={styles.errorText}>{errors.price}</Text>}
-
-        <View style={styles.toggleRow}>
-          <View>
-            <Text style={styles.toggleLabel}>{t('active')}</Text>
-            <Text style={styles.toggleHelper}>{t('serviceActiveHelper')}</Text>
+            <TouchableOpacity
+              style={[styles.segment, form.priceType === 'from' && styles.segmentActive]}
+              onPress={() => setForm((f) => ({ ...f, priceType: 'from' }))}
+            >
+              <Text style={[styles.segmentText, form.priceType === 'from' && styles.segmentTextActive]}>
+                {t('servicePriceTypeFrom')}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Switch
-            value={form.isActive}
-            onValueChange={(v) => setForm(f => ({ ...f, isActive: v }))}
-            trackColor={{ false: colors.borderStrong, true: '#2E7D32' }}
-            thumbColor="#fff"
-          />
-        </View>
 
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={{ width: '100%' }}>
-          <PrimaryButton 
-            label={saving ? t('saving') : t('save')} 
-            onPress={handleSave} 
-            disabled={saving}
+          <Text style={styles.label}>
+            {t('servicePriceEuro')} <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            ref={priceRef}
+            style={[styles.input, errors.price && styles.inputError]}
+            value={form.price}
+            onChangeText={(v) => setForm((f) => ({ ...f, price: v.replace(/[^0-9.]/g, '') }))}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            placeholder="0.00"
+            placeholderTextColor={colors.textTertiary}
+            returnKeyType="done"
+            onSubmitEditing={handleSave}
           />
+          {errors.price && <Text style={styles.errorText}>{errors.price}</Text>}
+
+          <View style={styles.toggleRow}>
+            <View>
+              <Text style={styles.toggleLabel}>{t('active')}</Text>
+              <Text style={styles.toggleHelper}>{t('serviceActiveHelper')}</Text>
+            </View>
+            <Switch
+              value={form.isActive}
+              onValueChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
+              trackColor={{ false: colors.borderStrong, true: colors.green }}
+              thumbColor={colors.background}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={{ width: '100%' }}>
+            <PrimaryButton label={saving ? t('saving') : t('save')} onPress={handleSave} disabled={saving} />
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { padding: 8 },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: 18, color: colors.textPrimary },
   scrollContent: { padding: spacing.lg, paddingBottom: 100 },
   label: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textPrimary, marginBottom: 8, marginTop: spacing.md },
   required: { color: colors.error },
-  inputContainer: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, backgroundColor: '#FAFAFA' },
-  input: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, padding: spacing.md, backgroundColor: '#FAFAFA', fontFamily: fonts.body, fontSize: 16 },
+  inputContainer: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, backgroundColor: colors.surfaceCard },
+  input: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, padding: spacing.md, backgroundColor: colors.surfaceCard, fontFamily: fonts.body, fontSize: 16 },
   inputError: { borderColor: colors.error, backgroundColor: '#FFEBEE' },
   errorText: { color: colors.error, fontFamily: fonts.body, fontSize: 12, marginTop: 4 },
   textArea: { height: 100, textAlignVertical: 'top' },

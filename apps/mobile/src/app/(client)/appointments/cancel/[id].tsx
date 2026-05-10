@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
@@ -66,6 +66,7 @@ export default function CancelAppointment() {
   };
 
   const submitCancel = async () => {
+    Keyboard.dismiss();
     if (!selectedReason) return;
     try {
       setIsSubmitting(true);
@@ -129,108 +130,125 @@ export default function CancelAppointment() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
-
-        {/* Policy Card */}
-        <View style={[styles.policyCard, isShortNotice && styles.policyCardUrgent]}>
-          <View style={styles.policyHeader}>
-            <Feather name="alert-triangle" size={20} color={isShortNotice ? "#D32F2F" : "#E65100"} />
-            <Text style={[styles.policyTitle, isShortNotice && { color: "#D32F2F" }]}>{t('cancelPolicy')}</Text>
-          </View>
-          <Text style={[styles.policyText, isShortNotice && { color: "#D32F2F" }]}>
-            {isShortNotice 
-              ? t('cancelPolicyUrgent')
-              : t('cancelPolicyText')}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>{t('cancelReason')}</Text>
-
-        <View style={styles.reasonsList}>
-          {CANCEL_REASONS.map((item, idx) => {
-            const isSelected = selectedReason === item.apiValue;
-            return (
-              <TouchableOpacity
-                key={idx}
-                style={[styles.radioRow, isSelected && styles.radioRowActive]}
-                onPress={() => setSelectedReason(item.apiValue)}
-              >
-                <View style={[styles.radioCircle, isSelected && styles.radioCircleActive]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-                <Text style={styles.radioText}>{t(item.labelKey)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.notesSection}>
-          <Text style={styles.notesLabel}>{t('cancelNotes')}</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder={t('cancelNotesPlaceholder')}
-            placeholderTextColor="rgba(26,26,26,0.5)"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            maxLength={500}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.cancelButton, (!selectedReason || isSubmitting) && styles.cancelButtonDisabled]}
-          onPress={handleCancelClick}
-          disabled={!selectedReason || isSubmitting}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {isSubmitting ? (
-             <ActivityIndicator color="#FFF" />
-          ) : (
-             <Text style={styles.cancelButtonText}>{t('cancelConfirmBtn')}</Text>
-          )}
-        </TouchableOpacity>
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
 
-        <Text style={styles.footerText}>
-          {t('cancelProviderNotified')}
-        </Text>
+          <View style={[styles.policyCard, isShortNotice && styles.policyCardUrgent]}>
+            <View style={styles.policyHeader}>
+              <Feather
+                name="alert-triangle"
+                size={20}
+                color={isShortNotice ? colors.error : colors.orange}
+              />
+              <Text style={[styles.policyTitle, isShortNotice && styles.policyTitleUrgent]}>
+                {t('cancelPolicy')}
+              </Text>
+            </View>
+            <Text style={[styles.policyText, isShortNotice && styles.policyTextUrgent]}>
+              {isShortNotice ? t('cancelPolicyUrgent') : t('cancelPolicyText')}
+            </Text>
+          </View>
 
-      </ScrollView>
+          <Text style={styles.sectionTitle}>{t('cancelReason')}</Text>
+
+          <View style={styles.reasonsList}>
+            {CANCEL_REASONS.map((item, idx) => {
+              const isSelected = selectedReason === item.apiValue;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.radioRow, isSelected && styles.radioRowActive]}
+                  onPress={() => setSelectedReason(item.apiValue)}
+                >
+                  <View style={[styles.radioCircle, isSelected && styles.radioCircleActive]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>{t(item.labelKey)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.notesSection}>
+            <Text style={styles.notesLabel}>{t('cancelNotes')}</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder={t('cancelNotesPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.cancelButton, (!selectedReason || isSubmitting) && styles.cancelButtonDisabled]}
+            onPress={handleCancelClick}
+            disabled={!selectedReason || isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.cancelButtonText}>{t('cancelConfirmBtn')}</Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.footerText}>{t('cancelProviderNotified')}</Text>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
   backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: '#8B4513' },
+  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: colors.primary },
   
-  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: 60 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
-  policyCard: { backgroundColor: '#FFF3E0', padding: 20, borderBottomWidth: 1, borderBottomColor: '#FFE0B2', marginBottom: spacing.xl },
-  policyCardUrgent: { backgroundColor: '#FFEBEE', borderBottomColor: '#FFCDD2' },
+  policyCard: { backgroundColor: colors.orangeLight, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: spacing.xl },
+  policyCardUrgent: { backgroundColor: colors.errorLight, borderBottomColor: colors.border },
   policyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  policyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: '#E65100', marginLeft: 8 },
-  policyText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#E65100', lineHeight: 20 },
+  policyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.orange, marginLeft: spacing.xs },
+  policyTitleUrgent: { color: colors.error },
+  policyText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.orange, lineHeight: 20 },
+  policyTextUrgent: { color: colors.error },
   
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.textPrimary, marginBottom: spacing.lg },
   
   reasonsList: { gap: 12, marginBottom: spacing.xl },
-  radioRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', padding: 16, borderRadius: 16 },
-  radioRowActive: { backgroundColor: '#F0E6D8' },
-  radioCircle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#CCC', marginRight: 12, alignItems: 'center', justifyContent: 'center' },
-  radioCircleActive: { borderColor: '#8B4513' },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#8B4513' },
+  radioRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md },
+  radioRowActive: { backgroundColor: colors.primaryLight },
+  radioCircle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.borderStrong, marginRight: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  radioCircleActive: { borderColor: colors.primary },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary },
   radioText: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
   
   notesSection: { marginBottom: spacing.xl },
-  notesLabel: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#6B6B6B', marginBottom: 8 },
-  textInput: { backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, height: 128, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
+  notesLabel: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xs },
+  textInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: 128, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border },
   
-  cancelButton: { backgroundColor: '#C62828', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  cancelButtonDisabled: { backgroundColor: '#DDDDDD' },
-  cancelButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },
+  cancelButton: { backgroundColor: colors.error, height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  cancelButtonDisabled: { backgroundColor: colors.borderStrong },
+  cancelButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.background },
   
-  footerText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: '#6B6B6B', textAlign: 'center' }
+  footerText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary, textAlign: 'center' }
 });

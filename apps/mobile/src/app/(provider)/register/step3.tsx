@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -78,6 +78,7 @@ export default function RegisterStep3Screen() {
   };
 
   const handleNext = () => {
+    Keyboard.dismiss();
     if (languages.length === 0) return;
     update({ serviceIds: selectedIds, experienceYears, languages, cancellationPolicy, bio: bio.trim() });
     router.push('/(provider)/register/step4');
@@ -101,134 +102,139 @@ export default function RegisterStep3Screen() {
         <View style={styles.progressSegment} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        
-        {/* SECTION 1 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep3SpecialisationsTitle')}</Text>
-          <Text style={styles.sectionSubtitle}>{t('providerRegisterStep3SpecialisationsSubtitle')}</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           
-          {loadingServices ? (
-            <ActivityIndicator size="small" color={colors.coral} style={{ marginVertical: spacing.md }} />
-          ) : servicesError ? (
-            <View style={styles.errorBanner}>
-              <Feather name="alert-circle" size={20} color={colors.error} />
-              <Text style={styles.errorText}>{t('providerRegisterStep3ServicesLoadError')}</Text>
-            </View>
-          ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('providerRegisterStep3SpecialisationsTitle')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('providerRegisterStep3SpecialisationsSubtitle')}</Text>
+            
+            {loadingServices ? (
+              <ActivityIndicator size="small" color={colors.coral} style={{ marginVertical: spacing.md }} />
+            ) : servicesError ? (
+              <View style={styles.errorBanner}>
+                <Feather name="alert-circle" size={20} color={colors.error} />
+                <Text style={styles.errorText}>{t('providerRegisterStep3ServicesLoadError')}</Text>
+              </View>
+            ) : (
+              <View style={styles.chipsRow}>
+                {availableCategories.map((cat) => {
+                  const isSelected = selectedIds.includes(cat.id);
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => toggleService(cat.id)}
+                      style={[styles.chip, isSelected ? styles.chipSelected : styles.chipUnselected]}
+                    >
+                      <Text style={[styles.chipText, isSelected ? styles.chipTextSelected : styles.chipTextUnselected]}>
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('providerRegisterStep3ExperienceTitle')}</Text>
+            <Text style={styles.experienceLabel}>{t('providerRegisterStep3ExperienceYears').replace('{years}', String(experienceYears))}</Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={20}
+              step={1}
+              value={experienceYears}
+              onValueChange={setExperienceYears}
+              minimumTrackTintColor={colors.coral}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.coral}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('providerRegisterStep3LanguagesTitle')}</Text>
             <View style={styles.chipsRow}>
-              {availableCategories.map((cat) => {
-                const isSelected = selectedIds.includes(cat.id);
+              {availableLanguages.map((item) => {
+                const isSelected = languages.includes(item.value);
                 return (
                   <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => toggleService(cat.id)}
+                    key={item.value}
+                    onPress={() => toggleLanguage(item.value)}
                     style={[styles.chip, isSelected ? styles.chipSelected : styles.chipUnselected]}
                   >
                     <Text style={[styles.chipText, isSelected ? styles.chipTextSelected : styles.chipTextUnselected]}>
-                      {cat.name}
+                      {t(item.labelKey)}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          )}
-        </View>
+            {languages.length === 0 && (
+              <Text style={styles.languagesErrorText}>{t('providerRegisterStep3LanguagesRequired')}</Text>
+            )}
+          </View>
 
-        {/* SECTION 2 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep3ExperienceTitle')}</Text>
-          <Text style={styles.experienceLabel}>{t('providerRegisterStep3ExperienceYears').replace('{years}', String(experienceYears))}</Text>
-          <Slider
-            style={{ width: '100%', height: 40 }}
-            minimumValue={0}
-            maximumValue={20}
-            step={1}
-            value={experienceYears}
-            onValueChange={setExperienceYears}
-            minimumTrackTintColor={colors.coral}
-            maximumTrackTintColor={colors.borderStrong || '#EEEEEE'}
-            thumbTintColor={colors.coral}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('providerRegisterStep3CancellationTitle')}</Text>
+            <View style={styles.pillsRow}>
+              {policyValues.map((policy) => {
+                const isSelected = cancellationPolicy === policy;
+                return (
+                  <TouchableOpacity
+                    key={policy}
+                    onPress={() => setCancellationPolicy(policy)}
+                    style={[styles.pill, isSelected ? styles.pillSelected : styles.pillUnselected]}
+                  >
+                    <Text style={[styles.pillText, isSelected ? styles.pillTextSelected : styles.pillTextUnselected]}>
+                      {policy}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={[styles.section, { borderBottomWidth: 0 }]}>
+            <Text style={styles.sectionTitle}>{t('providerRegisterStep3AboutTitle')}</Text>
+            <TextInput
+              style={styles.textArea}
+              multiline
+              maxLength={500}
+              value={bio}
+              onChangeText={setBio}
+              placeholder={t('providerRegisterStep3BioPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            <Text style={styles.charCounter}>{bio.length}/500</Text>
+          </View>
+
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <PrimaryButton 
+            label={t('next')} 
+            onPress={handleNext} 
+            variant="filled" 
+            disabled={languages.length === 0}
           />
         </View>
-
-        {/* SECTION 3 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep3LanguagesTitle')}</Text>
-          <View style={styles.chipsRow}>
-            {availableLanguages.map((item) => {
-              const isSelected = languages.includes(item.value);
-              return (
-                <TouchableOpacity
-                  key={item.value}
-                  onPress={() => toggleLanguage(item.value)}
-                  style={[styles.chip, isSelected ? styles.chipSelected : styles.chipUnselected]}
-                >
-                  <Text style={[styles.chipText, isSelected ? styles.chipTextSelected : styles.chipTextUnselected]}>
-                    {t(item.labelKey)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {languages.length === 0 && (
-            <Text style={[styles.errorText, { marginTop: spacing.xs, marginLeft: 0 }]}>{t('providerRegisterStep3LanguagesRequired')}</Text>
-          )}
-        </View>
-
-        {/* SECTION 4 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep3CancellationTitle')}</Text>
-          <View style={styles.pillsRow}>
-            {policyValues.map((policy) => {
-              const isSelected = cancellationPolicy === policy;
-              return (
-                <TouchableOpacity
-                  key={policy}
-                  onPress={() => setCancellationPolicy(policy)}
-                  style={[styles.pill, isSelected ? styles.pillSelected : styles.pillUnselected]}
-                >
-                  <Text style={[styles.pillText, isSelected ? styles.pillTextSelected : styles.pillTextUnselected]}>
-                    {policy}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* SECTION 5 */}
-        <View style={[styles.section, { borderBottomWidth: 0 }]}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep3AboutTitle')}</Text>
-          <TextInput
-            style={styles.textArea}
-            multiline
-            numberOfLines={4}
-            maxLength={500}
-            value={bio}
-            onChangeText={setBio}
-            placeholder={t('providerRegisterStep3BioPlaceholder')}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCounter}>{bio.length}/500</Text>
-        </View>
-
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <PrimaryButton 
-          label={t('next')} 
-          onPress={handleNext} 
-          variant="filled" 
-          disabled={languages.length === 0}
-        />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm
@@ -251,34 +257,37 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xs },
   sectionSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.md },
   
-  errorBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFEBEE', padding: spacing.sm, borderRadius: borderRadius.sm, marginBottom: spacing.sm },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.errorLight, padding: spacing.sm, borderRadius: borderRadius.sm, marginBottom: spacing.sm },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginLeft: spacing.sm },
   
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20, borderWidth: 1 },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1 },
   chipSelected: { backgroundColor: colors.coral, borderColor: colors.coral },
-  chipUnselected: { backgroundColor: '#F5F5F5', borderColor: '#E0E0E0' },
+  chipUnselected: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm },
   chipTextSelected: { color: colors.background },
   chipTextUnselected: { color: colors.textPrimary },
   
   experienceLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary, marginBottom: spacing.sm, marginTop: spacing.sm },
+  slider: { width: '100%', height: layout.inputHeight },
   
   pillsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   pill: { flex: 1, paddingVertical: spacing.md, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   pillSelected: { backgroundColor: colors.coral },
-  pillUnselected: { backgroundColor: '#F5F5F5' },
+  pillUnselected: { backgroundColor: colors.surface },
   pillText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
   pillTextSelected: { color: colors.background },
   pillTextUnselected: { color: colors.textSecondary },
+
+  languagesErrorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginTop: spacing.xs },
   
   textArea: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderStrong || '#EEEEEE',
+    borderColor: colors.borderStrong,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    height: 120,
+    height: layout.avatarXl,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,

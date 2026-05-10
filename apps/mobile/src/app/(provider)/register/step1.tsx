@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -11,6 +11,13 @@ export default function RegisterStep1Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
   const { t } = useLanguage();
+
+  const firstNameRef = useRef<TextInput>(null);
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const [firstName, setFirstName] = useState(form.firstName || '');
   const [lastName, setLastName] = useState(form.lastName || '');
@@ -57,6 +64,7 @@ export default function RegisterStep1Screen() {
   };
 
   const handleNext = () => {
+    Keyboard.dismiss();
     if (validate()) {
       update({
         firstName: firstName.trim(),
@@ -88,117 +96,153 @@ export default function RegisterStep1Screen() {
         <View style={styles.progressSegment} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{t('providerRegisterStep1Title')}</Text>
-        <Text style={styles.subtitle}>{t('providerRegisterStep1Subtitle')}</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>{t('providerRegisterStep1Title')}</Text>
+          <Text style={styles.subtitle}>{t('providerRegisterStep1Subtitle')}</Text>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('firstName')}</Text>
-          <TextInput
-            style={[styles.input, errors.firstName && styles.inputError]}
-            value={firstName}
-            onChangeText={(t) => { setFirstName(t); setErrors(prev => ({...prev, firstName: ''})); }}
-            placeholder="Max"
-          />
-          {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('lastName')}</Text>
-          <TextInput
-            style={[styles.input, errors.lastName && styles.inputError]}
-            value={lastName}
-            onChangeText={(t) => { setLastName(t); setErrors(prev => ({...prev, lastName: ''})); }}
-            placeholder="Mustermann"
-          />
-          {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('email')}</Text>
-          <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-            value={email}
-            onChangeText={(t) => { setEmail(t); setErrors(prev => ({...prev, email: ''})); }}
-            placeholder="max@beispiel.de"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('providerRegisterPhoneLabel')}</Text>
-          <TextInput
-            style={[styles.input, errors.phone && styles.inputError]}
-            value={phone}
-            onChangeText={(t) => { setPhone(t); setErrors(prev => ({...prev, phone: ''})); }}
-            placeholder="+49 160 1234567"
-            keyboardType="phone-pad"
-          />
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('password')}</Text>
-          <View style={styles.passwordContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('firstName')}</Text>
             <TextInput
-              style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
-              value={password}
-              onChangeText={(t) => { setPassword(t); setErrors(prev => ({...prev, password: ''})); }}
-              placeholder={t('providerRegisterPasswordPlaceholder')}
-              secureTextEntry={!showPassword}
+              ref={firstNameRef}
+              style={[styles.input, errors.firstName && styles.inputError]}
+              value={firstName}
+              onChangeText={(t) => { setFirstName(t); setErrors(prev => ({...prev, firstName: ''})); }}
+              placeholder="Max"
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => lastNameRef.current?.focus()}
             />
-            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
-              <Feather name={showPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
           </View>
-          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('passwordConfirm')}</Text>
-          <View style={styles.passwordContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('lastName')}</Text>
             <TextInput
-              style={[styles.input, styles.passwordInput, errors.confirmPassword && styles.inputError]}
-              value={confirmPassword}
-              onChangeText={(t) => { setConfirmPassword(t); setErrors(prev => ({...prev, confirmPassword: ''})); }}
-              placeholder={t('providerRegisterPasswordConfirmPlaceholder')}
-              secureTextEntry={!showConfirmPassword}
+              ref={lastNameRef}
+              style={[styles.input, errors.lastName && styles.inputError]}
+              value={lastName}
+              onChangeText={(t) => { setLastName(t); setErrors(prev => ({...prev, lastName: ''})); }}
+              placeholder="Mustermann"
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => emailRef.current?.focus()}
             />
-            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-              <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
           </View>
-          {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('email')}</Text>
+            <TextInput
+              ref={emailRef}
+              style={[styles.input, errors.email && styles.inputError]}
+              value={email}
+              onChangeText={(t) => { setEmail(t); setErrors(prev => ({...prev, email: ''})); }}
+              placeholder="max@beispiel.de"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => phoneRef.current?.focus()}
+            />
+            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('providerRegisterPhoneLabel')}</Text>
+            <TextInput
+              ref={phoneRef}
+              style={[styles.input, errors.phone && styles.inputError]}
+              value={phone}
+              onChangeText={(t) => { setPhone(t); setErrors(prev => ({...prev, phone: ''})); }}
+              placeholder="+49 160 1234567"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="phone-pad"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('password')}</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                ref={passwordRef}
+                style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
+                value={password}
+                onChangeText={(t) => { setPassword(t); setErrors(prev => ({...prev, password: ''})); }}
+                placeholder={t('providerRegisterPasswordPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                secureTextEntry={!showPassword}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              />
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                <Feather name={showPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('passwordConfirm')}</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                ref={confirmPasswordRef}
+                style={[styles.input, styles.passwordInput, errors.confirmPassword && styles.inputError]}
+                value={confirmPassword}
+                onChangeText={(t) => { setConfirmPassword(t); setErrors(prev => ({...prev, confirmPassword: ''})); }}
+                placeholder={t('providerRegisterPasswordConfirmPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                secureTextEntry={!showConfirmPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleNext}
+              />
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+          </View>
+
+          <View style={styles.termsContainer}>
+            <Switch
+              value={acceptedTerms}
+              onValueChange={(val) => { setAcceptedTerms(val); setErrors(prev => ({...prev, acceptedTerms: ''})); }}
+              trackColor={{ true: colors.coral, false: colors.border }}
+            />
+            <Text style={styles.termsText}>
+              {t('providerRegisterTermsPrefix')}{' '}
+              <Text style={styles.linkText}>{t('providerRegisterTermsProviders')}</Text> {t('providerRegisterTermsAnd')}{' '}
+              <Text style={styles.linkText}>{t('providerRegisterTermsPrivacy')}</Text>
+            </Text>
+          </View>
+          {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}
+
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <PrimaryButton label={t('next')} onPress={handleNext} variant="filled" />
         </View>
-
-        <View style={styles.termsContainer}>
-          <Switch
-            value={acceptedTerms}
-            onValueChange={(val) => { setAcceptedTerms(val); setErrors(prev => ({...prev, acceptedTerms: ''})); }}
-            trackColor={{ true: colors.coral, false: colors.borderStrong || '#EEEEEE' }}
-          />
-          <Text style={styles.termsText}>
-            {t('providerRegisterTermsPrefix')}{' '}
-            <Text style={styles.linkText}>{t('providerRegisterTermsProviders')}</Text> {t('providerRegisterTermsAnd')}{' '}
-            <Text style={styles.linkText}>{t('providerRegisterTermsPrivacy')}</Text>
-          </Text>
-        </View>
-        {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}
-
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <PrimaryButton label={t('next')} onPress={handleNext} variant="filled" />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm
@@ -218,15 +262,15 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
     fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong || '#EEEEEE',
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: 14,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong,
+    borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md,
   },
   inputError: { borderColor: colors.error },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.error, marginTop: spacing.xs },
   
   passwordContainer: { position: 'relative', justifyContent: 'center' },
-  passwordInput: { paddingRight: 50 },
-  eyeIcon: { position: 'absolute', right: 0, padding: 15 },
+  passwordInput: { paddingRight: spacing.xxl },
+  eyeIcon: { position: 'absolute', right: 0, paddingHorizontal: spacing.md, height: '100%', justifyContent: 'center' },
   
   termsContainer: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.xs, paddingRight: spacing.xl },
   termsText: { flex: 1, marginLeft: spacing.md, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking, Alert, Modal, TextInput, Platform } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking, Alert, Modal, TextInput, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -24,6 +24,7 @@ export default function SharedSettingsScreen() {
   const [deleteError, setDeleteError] = useState('');
   const [versionTapCount, setVersionTapCount] = useState(0);
   const [diagnosticsEnabled, setDiagnosticsEnabled] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleNotificationSettings = async () => {
     await Notifications.getPermissionsAsync();
@@ -82,6 +83,7 @@ export default function SharedSettingsScreen() {
   };
 
   const handleConfirmDelete = async () => {
+    Keyboard.dismiss();
     if (!password) {
       setDeleteError(t('enterPassword'));
       return;
@@ -221,7 +223,11 @@ export default function SharedSettingsScreen() {
 
       {/* DELETE ACCOUNT MODAL */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
           <View style={styles.modalContent}>
             
             {deleteStep === 1 ? (
@@ -248,12 +254,16 @@ export default function SharedSettingsScreen() {
                 {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
                 
                 <TextInput
+                  ref={passwordRef}
                   style={styles.passwordInput}
                   value={password}
                   onChangeText={setPassword}
                   placeholder={t('password')}
+                  placeholderTextColor={colors.textTertiary}
                   secureTextEntry
                   autoCapitalize="none"
+                  returnKeyType="done"
+                  onSubmitEditing={handleConfirmDelete}
                 />
 
                 <View style={styles.modalButtons}>
@@ -272,7 +282,7 @@ export default function SharedSettingsScreen() {
             )}
 
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </SafeAreaView>
@@ -295,7 +305,7 @@ const styles = StyleSheet.create({
 
   scrollContent: { padding: spacing.lg, paddingBottom: 60 },
 
-  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: '#1A1A1A', marginBottom: spacing.md, marginTop: spacing.sm },
+  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: spacing.md, marginTop: spacing.sm },
   
   cardGroup: {
     backgroundColor: colors.surface,
@@ -353,23 +363,25 @@ const styles = StyleSheet.create({
   actionTextCoral: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
   actionTextSmallRed: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.error },
 
-  versionText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#AAAAAA', textAlign: 'center', marginTop: 40 },
+  versionText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'center', marginTop: 40 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.xl },
+  modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: spacing.xl },
   modalContent: { backgroundColor: colors.surface, borderRadius: 24, padding: spacing.xl, alignItems: 'center' },
-  modalIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFEBEE', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
+  modalIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.errorLight, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
   modalTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.md },
   modalBody: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 22 },
   
   passwordInput: {
     width: '100%',
     height: 50,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   errorText: { color: colors.error, fontFamily: fonts.body, fontSize: fontSizes.sm, marginBottom: spacing.md, textAlign: 'center' },
 

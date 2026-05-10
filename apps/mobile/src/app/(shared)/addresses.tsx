@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Alert, Switch } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Alert, Switch, ScrollView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
@@ -37,6 +37,11 @@ export default function AddressesScreen() {
   const [city, setCity] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const labelRef = useRef<TextInput>(null);
+  const streetRef = useRef<TextInput>(null);
+  const houseNumberRef = useRef<TextInput>(null);
+  const postalCodeRef = useRef<TextInput>(null);
+  const cityRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadAddresses();
@@ -128,6 +133,7 @@ export default function AddressesScreen() {
   };
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     if (!label || !street || !houseNumber || !postalCode || !city) {
       Alert.alert(t('error'), t('addressesFillAllFields'));
       return;
@@ -252,7 +258,11 @@ export default function AddressesScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowModal(false)}
       >
-        <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingId ? t('addressesEdit') : t('addressesAdd')}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -260,31 +270,50 @@ export default function AddressesScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.modalContent}>
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={styles.modalContentContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.inputLabel}>{t('addressesLabel')}</Text>
             <TextInput
+              ref={labelRef}
               style={styles.input}
               placeholder={t('addressesLabelPlaceholder')}
               value={label}
               onChangeText={setLabel}
               placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => streetRef.current?.focus()}
             />
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 2, marginRight: spacing.md }]}>
                 <Text style={styles.inputLabel}>{t('addressesStreet')}</Text>
                 <TextInput
+                  ref={streetRef}
                   style={styles.input}
                   value={street}
                   onChangeText={setStreet}
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => houseNumberRef.current?.focus()}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>{t('addressesHouseNumber')}</Text>
                 <TextInput
+                  ref={houseNumberRef}
                   style={styles.input}
                   value={houseNumber}
                   onChangeText={setHouseNumber}
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => postalCodeRef.current?.focus()}
                 />
               </View>
             </View>
@@ -293,19 +322,29 @@ export default function AddressesScreen() {
               <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.md }]}>
                 <Text style={styles.inputLabel}>{t('addressesPostalCode')}</Text>
                 <TextInput
+                  ref={postalCodeRef}
                   style={styles.input}
                   value={postalCode}
                   onChangeText={setPostalCode}
                   keyboardType="numeric"
+                  inputMode="numeric"
                   maxLength={5}
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => cityRef.current?.focus()}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 2 }]}>
                 <Text style={styles.inputLabel}>{t('addressesCity')}</Text>
                 <TextInput
+                  ref={cityRef}
                   style={styles.input}
                   value={city}
                   onChangeText={setCity}
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSave}
                 />
               </View>
             </View>
@@ -315,11 +354,11 @@ export default function AddressesScreen() {
               <Switch
                 value={isDefault}
                 onValueChange={setIsDefault}
-                trackColor={{ false: '#EEEEEE', true: colors.teal }}
+                trackColor={{ false: colors.border, true: colors.teal }}
                 thumbColor={colors.background}
               />
             </View>
-          </View>
+          </ScrollView>
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
@@ -407,7 +446,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   modalTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
-  modalContent: { flex: 1, padding: spacing.lg },
+  modalContent: { flex: 1 },
+  modalContentContainer: { padding: spacing.lg },
   
   row: { flexDirection: 'row', marginBottom: spacing.md },
   inputGroup: { flex: 1 },

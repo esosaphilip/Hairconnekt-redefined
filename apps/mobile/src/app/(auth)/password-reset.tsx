@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
@@ -27,6 +27,9 @@ export default function PasswordResetScreen() {
   const [errorVisible, setErrorVisible] = useState(false);
 
   const otpRefs = useRef<Array<TextInput | null>>([]);
+  const emailRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const showError = (message: string, status?: number) => {
     setErrorMessage(message);
@@ -49,6 +52,7 @@ export default function PasswordResetScreen() {
   };
 
   const handleSendCode = async () => {
+    Keyboard.dismiss();
     if (!email) {
       showError(mapHttpError(400, t('enterYourEmail'), lang));
       return;
@@ -69,6 +73,7 @@ export default function PasswordResetScreen() {
   };
 
   const handleVerifyOtp = async () => {
+    Keyboard.dismiss();
     const code = otp.join('');
     if (code.length < 6) {
       showError(t('otpEnter6Digits'));
@@ -96,6 +101,7 @@ export default function PasswordResetScreen() {
   };
 
   const handleResetPassword = async () => {
+    Keyboard.dismiss();
     if (!resetToken) {
       showError(t('resetVerificationFailed'));
       setStep(1);
@@ -171,7 +177,19 @@ export default function PasswordResetScreen() {
             <Text style={styles.heading}>{t('passwordResetTitle')}</Text>
             <Text style={styles.bodyText}>{t('passwordResetBody')}</Text>
             
-            <FormInput label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" />
+            <FormInput
+              ref={emailRef}
+              label={t('email')}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleSendCode}
+              textContentType="emailAddress"
+            />
             
             <View style={{ marginTop: spacing.md }}>
               <PrimaryButton label={t('passwordResetSendCode')} onPress={handleSendCode} loading={isLoading} />
@@ -212,8 +230,27 @@ export default function PasswordResetScreen() {
             <Text style={styles.heading}>{t('passwordResetNewPasswordTitle')}</Text>
             <Text style={styles.bodyText}>{t('passwordResetNewPasswordBody')}</Text>
             
-            <FormInput label={t('passwordResetNewPasswordLabel')} value={newPassword} onChangeText={setNewPassword} secureText />
-            <FormInput label={t('passwordConfirm')} value={confirmPassword} onChangeText={setConfirmPassword} secureText />
+            <FormInput
+              ref={newPasswordRef}
+              label={t('passwordResetNewPasswordLabel')}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureText
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              textContentType="newPassword"
+            />
+            <FormInput
+              ref={confirmPasswordRef}
+              label={t('passwordConfirm')}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureText
+              returnKeyType="done"
+              onSubmitEditing={handleResetPassword}
+              textContentType="newPassword"
+            />
 
             <View style={{ marginTop: spacing.md }}>
               <PrimaryButton label={t('passwordResetSavePassword')} onPress={handleResetPassword} loading={isLoading} />

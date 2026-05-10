@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Platform } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,6 +27,12 @@ type CancellationPolicy = '24h' | '48h' | '72h';
 export default function EditProfileScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
+  const businessNameRef = useRef<TextInput>(null);
+  const bioRef = useRef<TextInput>(null);
+  const streetRef = useRef<TextInput>(null);
+  const houseNumberRef = useRef<TextInput>(null);
+  const postalCodeRef = useRef<TextInput>(null);
+  const cityRef = useRef<TextInput>(null);
 
   const [form, setForm] = useState({
     businessName: '',
@@ -88,6 +94,7 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     try {
       setIsSaving(true);
       setErrorVisible(false);
@@ -222,197 +229,212 @@ export default function EditProfileScreen() {
         onAction={handleRetry}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        
-        {/* Avatar Section */}
-        <View style={styles.avatarSection}>
-          <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar} activeOpacity={0.8}>
-            {avatarUri ? (
-              <Image key={`avatar-${avatarVersion}`} source={{ uri: avatarUri }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Feather name="user" size={48} color={colors.primaryLight} />
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={styles.avatarSection}>
+            <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar} activeOpacity={0.8}>
+              {avatarUri ? (
+                <Image key={`avatar-${avatarVersion}`} source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Feather name="user" size={48} color={colors.primaryLight} />
+                </View>
+              )}
+              
+              {isUploadingAvatar && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="small" color={colors.background} />
+                </View>
+              )}
+
+              <View style={styles.cameraIconContainer}>
+                <Feather name="camera" size={16} color={colors.primary} />
               </View>
-            )}
-            
-            {isUploadingAvatar && (
-              <View style={styles.avatarLoadingOverlay}>
-                <ActivityIndicator size="small" color={colors.background} />
-              </View>
-            )}
+            </TouchableOpacity>
+          </View>
 
-            <View style={styles.cameraIconContainer}>
-              <Feather name="camera" size={16} color={colors.primary} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Basic Info */}
-        <FormInput 
-          label={t('providerEditName')} 
-          value={form.businessName} 
-          onChangeText={(val) => setForm({ ...form, businessName: val })} 
-          placeholder={t('providerEditDisplayNamePlaceholder')}
-          maxLength={100}
-        />
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('providerEditBio')}</Text>
-          <TextInput
-            style={styles.bioInput}
-            value={form.bio}
-            onChangeText={(val) => setForm({ ...form, bio: val })}
-            placeholder={t('providerEditBioPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-            multiline
-            maxLength={500}
-            textAlignVertical="top"
+          <FormInput
+            ref={businessNameRef}
+            label={t('providerEditName')}
+            value={form.businessName}
+            onChangeText={(val) => setForm({ ...form, businessName: val })}
+            placeholder={t('providerEditDisplayNamePlaceholder')}
+            maxLength={100}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => bioRef.current?.focus()}
           />
-          <Text style={styles.charCount}>{form.bio.length}/500</Text>
-        </View>
 
-        {/* Address */}
-        <View style={styles.rowInputs}>
-          <View style={{ flex: 2, marginRight: spacing.md }}>
-            <FormInput 
-              label={t('providerEditStreet')} 
-              value={form.street} 
-              onChangeText={(val) => setForm({ ...form, street: val })} 
-              placeholder="Musterstr."
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('providerEditBio')}</Text>
+            <TextInput
+              ref={bioRef}
+              style={styles.bioInput}
+              value={form.bio}
+              onChangeText={(val) => setForm({ ...form, bio: val })}
+              placeholder={t('providerEditBioPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => streetRef.current?.focus()}
             />
+            <Text style={styles.charCount}>{form.bio.length}/500</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <FormInput 
-              label={t('providerEditHouseNumber')} 
-              value={form.houseNumber} 
-              onChangeText={(val) => setForm({ ...form, houseNumber: val })} 
-              placeholder="12a"
-            />
-          </View>
-        </View>
 
-        <View style={styles.rowInputs}>
-          <View style={{ flex: 1, marginRight: spacing.md }}>
-            <FormInput 
-              label={t('providerEditPostalCode')} 
-              value={form.postalCode} 
-              onChangeText={(val) => setForm({ ...form, postalCode: val })} 
-              placeholder="10115"
-              keyboardType="number-pad"
-            />
-          </View>
-          <View style={{ flex: 2 }}>
-            <FormInput 
-              label={t('providerEditCity')} 
-              value={form.city} 
-              onChangeText={(val) => setForm({ ...form, city: val })} 
-              placeholder="Berlin"
-            />
-          </View>
-        </View>
-
-        {/* Radius */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-            {t('providerEditRadius')}: {form.serviceRadius} km
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={5}
-            maximumValue={50}
-            step={5}
-            value={form.serviceRadius}
-            onValueChange={(val) => setForm({ ...form, serviceRadius: val })}
-            minimumTrackTintColor={colors.coral}
-            maximumTrackTintColor={colors.borderStrong}
-            thumbTintColor={colors.coral}
-          />
-        </View>
-
-        {/* Languages */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.sectionTitle}>{t('providerEditLanguages')}</Text>
-          <View style={styles.chipContainer}>
-            {AVAILABLE_LANGUAGES.map((item) => {
-              const isSelected = form.languages.includes(item.value);
-              return (
-                <TouchableOpacity
-                  key={item.value}
-                  style={[styles.chip, isSelected && styles.chipSelected]}
-                  onPress={() => toggleLanguage(item.value)}
-                >
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                    {t(item.labelKey)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Cancellation Policy */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.sectionTitle}>{t('providerEditCancellation')}</Text>
-          
-          <TouchableOpacity 
-            style={[styles.radioCard, form.cancellationPolicy === '24h' && styles.radioCardSelected]}
-            onPress={() => setForm({ ...form, cancellationPolicy: '24h' })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '24h' && styles.radioTitleSelected]}>
-                {t('providerEditCancel24')}
-              </Text>
-              <View style={[styles.radioCircle, form.cancellationPolicy === '24h' && styles.radioCircleSelected]}>
-                {form.cancellationPolicy === '24h' && <View style={styles.radioInnerCircle} />}
-              </View>
+          <View style={styles.rowInputs}>
+            <View style={{ flex: 2, marginRight: spacing.md }}>
+              <FormInput
+                ref={streetRef}
+                label={t('providerEditStreet')}
+                value={form.street}
+                onChangeText={(val) => setForm({ ...form, street: val })}
+                placeholder="Musterstr."
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => houseNumberRef.current?.focus()}
+              />
             </View>
-            <Text style={styles.radioDesc}>{t('providerEditCancel24Desc')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.radioCard, form.cancellationPolicy === '48h' && styles.radioCardSelected]}
-            onPress={() => setForm({ ...form, cancellationPolicy: '48h' })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '48h' && styles.radioTitleSelected]}>
-                {t('providerEditCancel48')}
-              </Text>
-              <View style={[styles.radioCircle, form.cancellationPolicy === '48h' && styles.radioCircleSelected]}>
-                {form.cancellationPolicy === '48h' && <View style={styles.radioInnerCircle} />}
-              </View>
+            <View style={{ flex: 1 }}>
+              <FormInput
+                ref={houseNumberRef}
+                label={t('providerEditHouseNumber')}
+                value={form.houseNumber}
+                onChangeText={(val) => setForm({ ...form, houseNumber: val })}
+                placeholder="12a"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => postalCodeRef.current?.focus()}
+              />
             </View>
-            <Text style={styles.radioDesc}>{t('providerEditCancel48Desc')}</Text>
-          </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity 
-            style={[styles.radioCard, form.cancellationPolicy === '72h' && styles.radioCardSelected]}
-            onPress={() => setForm({ ...form, cancellationPolicy: '72h' })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.radioHeader}>
-              <Text style={[styles.radioTitle, form.cancellationPolicy === '72h' && styles.radioTitleSelected]}>
-                {t('providerEditCancel72')}
-              </Text>
-              <View style={[styles.radioCircle, form.cancellationPolicy === '72h' && styles.radioCircleSelected]}>
-                {form.cancellationPolicy === '72h' && <View style={styles.radioInnerCircle} />}
-              </View>
+          <View style={styles.rowInputs}>
+            <View style={{ flex: 1, marginRight: spacing.md }}>
+              <FormInput
+                ref={postalCodeRef}
+                label={t('providerEditPostalCode')}
+                value={form.postalCode}
+                onChangeText={(val) => setForm({ ...form, postalCode: val })}
+                placeholder="10115"
+                keyboardType="number-pad"
+                inputMode="numeric"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => cityRef.current?.focus()}
+              />
             </View>
-            <Text style={styles.radioDesc}>{t('providerEditCancel72Desc')}</Text>
-          </TouchableOpacity>
+            <View style={{ flex: 2 }}>
+              <FormInput
+                ref={cityRef}
+                label={t('providerEditCity')}
+                value={form.city}
+                onChangeText={(val) => setForm({ ...form, city: val })}
+                placeholder="Berlin"
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {t('providerEditRadius')}: {form.serviceRadius} km
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={5}
+              maximumValue={50}
+              step={5}
+              value={form.serviceRadius}
+              onValueChange={(val) => setForm({ ...form, serviceRadius: val })}
+              minimumTrackTintColor={colors.coral}
+              maximumTrackTintColor={colors.borderStrong}
+              thumbTintColor={colors.coral}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.sectionTitle}>{t('providerEditLanguages')}</Text>
+            <View style={styles.chipContainer}>
+              {AVAILABLE_LANGUAGES.map((item) => {
+                const isSelected = form.languages.includes(item.value);
+                return (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={[styles.chip, isSelected && styles.chipSelected]}
+                    onPress={() => toggleLanguage(item.value)}
+                  >
+                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{t(item.labelKey)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.sectionTitle}>{t('providerEditCancellation')}</Text>
+
+            <TouchableOpacity
+              style={[styles.radioCard, form.cancellationPolicy === '24h' && styles.radioCardSelected]}
+              onPress={() => setForm({ ...form, cancellationPolicy: '24h' })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.radioHeader}>
+                <Text style={[styles.radioTitle, form.cancellationPolicy === '24h' && styles.radioTitleSelected]}>
+                  {t('providerEditCancel24')}
+                </Text>
+                <View style={[styles.radioCircle, form.cancellationPolicy === '24h' && styles.radioCircleSelected]}>
+                  {form.cancellationPolicy === '24h' && <View style={styles.radioInnerCircle} />}
+                </View>
+              </View>
+              <Text style={styles.radioDesc}>{t('providerEditCancel24Desc')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.radioCard, form.cancellationPolicy === '48h' && styles.radioCardSelected]}
+              onPress={() => setForm({ ...form, cancellationPolicy: '48h' })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.radioHeader}>
+                <Text style={[styles.radioTitle, form.cancellationPolicy === '48h' && styles.radioTitleSelected]}>
+                  {t('providerEditCancel48')}
+                </Text>
+                <View style={[styles.radioCircle, form.cancellationPolicy === '48h' && styles.radioCircleSelected]}>
+                  {form.cancellationPolicy === '48h' && <View style={styles.radioInnerCircle} />}
+                </View>
+              </View>
+              <Text style={styles.radioDesc}>{t('providerEditCancel48Desc')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.radioCard, form.cancellationPolicy === '72h' && styles.radioCardSelected]}
+              onPress={() => setForm({ ...form, cancellationPolicy: '72h' })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.radioHeader}>
+                <Text style={[styles.radioTitle, form.cancellationPolicy === '72h' && styles.radioTitleSelected]}>
+                  {t('providerEditCancel72')}
+                </Text>
+                <View style={[styles.radioCircle, form.cancellationPolicy === '72h' && styles.radioCircleSelected]}>
+                  {form.cancellationPolicy === '72h' && <View style={styles.radioInnerCircle} />}
+                </View>
+              </View>
+              <Text style={styles.radioDesc}>{t('providerEditCancel72Desc')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <PrimaryButton label={t('providerEditSave')} onPress={handleSave} loading={isSaving} />
         </View>
-
-      </ScrollView>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <PrimaryButton 
-          label={t('providerEditSave')} 
-          onPress={handleSave}
-          loading={isSaving}
-        />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -420,6 +442,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   
   header: {
     flexDirection: 'row',

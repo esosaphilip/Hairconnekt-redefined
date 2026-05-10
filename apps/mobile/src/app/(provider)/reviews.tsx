@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { borderRadius, colors, fonts, fontSizes, layout, spacing, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
@@ -134,6 +134,7 @@ export default function ReviewsScreen() {
     if (!respondingToId || !responseText.trim()) return;
 
     try {
+      Keyboard.dismiss();
       setIsSubmittingResponse(true);
       const token = await tokenStorage.getAccessToken();
       const review = reviews.find(r => r.id === respondingToId);
@@ -310,47 +311,55 @@ export default function ReviewsScreen() {
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       />
 
       {/* REPLY MODAL */}
       <Modal visible={!!respondingToId} transparent animationType="slide" onRequestClose={closeReplyModal}>
         <View style={styles.modalOverlay}>
-          <View style={styles.bottomSheet}>
-            <Text style={styles.sheetTitle}>{t('providerReviewsReplyTitle')}</Text>
-            
-            {targetReview && (
-              <View style={styles.sheetReviewQuote}>
-                <Text style={styles.sheetReviewText} numberOfLines={3}>"{targetReview.comment}"</Text>
-              </View>
-            )}
+          <KeyboardAvoidingView
+            style={styles.bottomSheet}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.sheetTitle}>{t('providerReviewsReplyTitle')}</Text>
+              
+              {targetReview && (
+                <View style={styles.sheetReviewQuote}>
+                  <Text style={styles.sheetReviewText} numberOfLines={3}>"{targetReview.comment}"</Text>
+                </View>
+              )}
 
-            <TextInput
-              style={styles.replyInput}
-              value={responseText}
-              onChangeText={setResponseText}
-              placeholder={t('providerReviewsReplyPlaceholder')}
-              placeholderTextColor={colors.textTertiary}
-              multiline
-              maxLength={1000}
-              textAlignVertical="top"
-              autoFocus
-            />
-            <Text style={styles.charCount}>{responseText.length}/1000</Text>
+              <TextInput
+                style={styles.replyInput}
+                value={responseText}
+                onChangeText={setResponseText}
+                placeholder={t('providerReviewsReplyPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                maxLength={1000}
+                textAlignVertical="top"
+                autoFocus
+                returnKeyType="default"
+              />
+              <Text style={styles.charCount}>{responseText.length}/1000</Text>
 
-            <View style={styles.sheetActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closeReplyModal}>
-                <Text style={styles.cancelBtnText}>{t('providerReviewsCancel')}</Text>
-              </TouchableOpacity>
-              <View style={{ flex: 1, marginLeft: spacing.md }}>
-                <PrimaryButton 
-                  label={t('providerReviewsSubmit')} 
-                  onPress={submitResponse}
-                  loading={isSubmittingResponse}
-                  disabled={!responseText.trim()}
-                />
+              <View style={styles.sheetActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={closeReplyModal}>
+                  <Text style={styles.cancelBtnText}>{t('providerReviewsCancel')}</Text>
+                </TouchableOpacity>
+                <View style={styles.submitBtnWrapper}>
+                  <PrimaryButton 
+                    label={t('providerReviewsSubmit')} 
+                    onPress={submitResponse}
+                    loading={isSubmittingResponse}
+                    disabled={!responseText.trim()}
+                  />
+                </View>
               </View>
-            </View>
-          </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -368,70 +377,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.avatarSm, height: layout.avatarSm, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  listContent: { paddingBottom: 40 },
+  listContent: { paddingBottom: spacing.xxl },
 
   overviewCard: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginHorizontal: spacing.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     ...shadows.card,
   },
   overviewLeft: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: colors.border, paddingRight: spacing.md },
-  avgRatingText: { fontFamily: fonts.heading, fontSize: 48, color: colors.primary, lineHeight: 56 },
-  starsRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
+  avgRatingText: { fontFamily: fonts.heading, fontSize: spacing.xxl, color: colors.primary, lineHeight: layout.buttonHeight },
+  starsRow: { flexDirection: 'row', gap: spacing.xxs, marginBottom: spacing.xxs },
   totalReviewsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
   overviewRight: { flex: 1.5, paddingLeft: spacing.md, justifyContent: 'center' },
-  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  barLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.gold, width: 30 },
-  barBg: { flex: 1, height: 8, backgroundColor: '#F0F0F0', borderRadius: 4, marginHorizontal: spacing.sm, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: colors.gold, borderRadius: 4 },
-  barCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, width: 24, textAlign: 'right' },
+  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xxs },
+  barLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.gold, width: spacing.xl },
+  barBg: { flex: 1, height: spacing.xs, backgroundColor: colors.border, borderRadius: spacing.xxs, marginHorizontal: spacing.sm, overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: colors.gold, borderRadius: spacing.xxs },
+  barCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, width: spacing.lg, textAlign: 'right' },
 
   filterScrollContainer: { marginBottom: spacing.lg },
   filterScroll: { paddingHorizontal: spacing.lg, gap: spacing.sm },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F5F5F5' },
+  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: colors.surface },
   filterChipActive: { backgroundColor: colors.primary },
-  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: '#555' },
+  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   filterTextActive: { color: colors.background },
 
   reviewCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
     padding: spacing.lg,
     ...shadows.card,
   },
-  reviewRow1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  reviewRow1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xxs },
   clientInfo: { flexDirection: 'row', alignItems: 'center' },
-  clientAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: spacing.sm },
-  clientAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm },
+  clientAvatar: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, marginRight: spacing.sm },
+  clientAvatarPlaceholder: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm },
   clientName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
-  ratingChip: { backgroundColor: '#FFF9E6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  ratingChip: { backgroundColor: colors.orangeLight, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.full },
   ratingChipText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.gold },
   
-  dateText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#AAAAAA', marginBottom: 2 },
+  dateText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, marginBottom: spacing.xxs },
   serviceText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginBottom: spacing.sm },
   commentText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: 22, marginBottom: spacing.md },
 
-  responseBox: { backgroundColor: '#F5F5F5', borderRadius: 12, padding: spacing.md },
+  responseBox: { backgroundColor: colors.surface, borderRadius: spacing.sm, padding: spacing.md },
   responseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.primary },
   editLink: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.teal },
-  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: '#555', lineHeight: 20 },
+  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
 
   replyButton: {
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 8,
-    height: 36,
+    borderRadius: borderRadius.sm,
+    height: layout.buttonHeightSm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -441,28 +450,29 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: 4 },
   emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   bottomSheet: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
     padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 40 : spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing.md + spacing.lg : spacing.lg,
   },
   sheetTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.md },
-  sheetReviewQuote: { backgroundColor: '#F5F5F5', padding: spacing.md, borderRadius: 8, marginBottom: spacing.md },
+  sheetReviewQuote: { backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.sm, marginBottom: spacing.md },
   sheetReviewText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, fontStyle: 'italic' },
   replyInput: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.sm,
     padding: spacing.md,
-    minHeight: 120,
+    minHeight: layout.avatarXl,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
   charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: 4, marginBottom: spacing.lg },
   sheetActions: { flexDirection: 'row', alignItems: 'center' },
-  cancelBtn: { flex: 1, height: 56, borderRadius: 12, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: { flex: 1, height: layout.buttonHeight, borderRadius: spacing.sm, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
   cancelBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
+  submitBtnWrapper: { flex: 1, marginLeft: spacing.md },
 });

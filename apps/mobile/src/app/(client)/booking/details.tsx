@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
@@ -88,6 +88,7 @@ export default function BookingDetails() {
   };
 
   const handleBookNow = async () => {
+    Keyboard.dismiss();
     try {
       setIsLoading(true);
       setErrorVisible(false);
@@ -159,94 +160,97 @@ export default function BookingDetails() {
 
       <GermanErrorBanner visible={errorVisible} message={errorMessage} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
-        {/* Booking Summary Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardProviderTitle}>{providerName || t('loading')}</Text>
-          <Text style={styles.cardServicesText}>{serviceNames || t('loading')}</Text>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.summaryRow}>
-            <Feather name="calendar" size={18} color={colors.textSecondary} />
-            <Text style={styles.summaryText}>{formatDate(dateValue)}</Text>
-          </View>
-          
-          <View style={styles.summaryRow}>
-            <Feather name="clock" size={18} color={colors.textSecondary} />
-            <Text style={styles.summaryText}>{timeValue}{t('timeSuffix')}</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
-            <Text style={styles.totalLabel}>{t('bookingTotal')}</Text>
-            <Text style={styles.totalValue}>€{formatAmount(totalPriceValue, lang)}</Text>
-          </View>
-        </View>
-
-        {/* Mobile Service Toggle Row */}
-        <View style={styles.card}>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
-              <Text style={styles.toggleSubtitle}>{t('bookingMobileSub')}</Text>
-            </View>
-            <Switch
-              value={isMobile}
-              onValueChange={setIsMobile}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.surface}
-            />
-          </View>
-        </View>
-
-        {/* Notes Section */}
-        <View style={styles.notesContainer}>
-          <Text style={styles.inputLabel}>{t('bookingNotes')}</Text>
-          <TextInput
-            style={styles.textArea}
-            multiline
-            numberOfLines={4}
-            placeholder={t('bookingNotesPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-            value={clientNotes}
-            onChangeText={setClientNotes}
-            maxLength={500}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCounter}>{clientNotes.length}/500</Text>
-        </View>
-
-        {/* Payment Card */}
-        <View style={styles.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-            <Feather name="lock" size={18} color={colors.textPrimary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.cardProviderTitle}>{t('bookingPayment')}</Text>
-          </View>
-          <Text style={styles.paymentText}>{t('bookingPaymentMethod')}</Text>
-          <Text style={styles.toggleSubtitle}>{t('bookingPaymentSub')}</Text>
-        </View>
-        
-        {/* Extra Bottom Padding */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Sticky Bottom Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={handleBookNow}
-          disabled={isLoading}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {isLoading ? (
-            <ActivityIndicator color={colors.surface} />
-          ) : (
-            <Text style={styles.primaryButtonText}>{t('bookingBookNow')}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <View style={styles.card}>
+            <Text style={styles.cardProviderTitle}>{providerName || t('loading')}</Text>
+            <Text style={styles.cardServicesText}>{serviceNames || t('loading')}</Text>
+
+            <View style={styles.divider} />
+
+            <View style={styles.summaryRow}>
+              <Feather name="calendar" size={18} color={colors.textSecondary} />
+              <Text style={styles.summaryText}>{formatDate(dateValue)}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Feather name="clock" size={18} color={colors.textSecondary} />
+              <Text style={styles.summaryText}>
+                {timeValue}
+                {t('timeSuffix')}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
+              <Text style={styles.totalLabel}>{t('bookingTotal')}</Text>
+              <Text style={styles.totalValue}>€{formatAmount(totalPriceValue, lang)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
+                <Text style={styles.toggleSubtitle}>{t('bookingMobileSub')}</Text>
+              </View>
+              <Switch
+                value={isMobile}
+                onValueChange={setIsMobile}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.surface}
+              />
+            </View>
+          </View>
+
+          <View style={styles.notesContainer}>
+            <Text style={styles.inputLabel}>{t('bookingNotes')}</Text>
+            <TextInput
+              style={styles.textArea}
+              multiline
+              numberOfLines={4}
+              placeholder={t('bookingNotesPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              value={clientNotes}
+              onChangeText={setClientNotes}
+              maxLength={500}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            <Text style={styles.charCounter}>{clientNotes.length}/500</Text>
+          </View>
+
+          <View style={styles.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+              <Feather name="lock" size={18} color={colors.textPrimary} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.cardProviderTitle}>{t('bookingPayment')}</Text>
+            </View>
+            <Text style={styles.paymentText}>{t('bookingPaymentMethod')}</Text>
+            <Text style={styles.toggleSubtitle}>{t('bookingPaymentSub')}</Text>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleBookNow} disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={colors.surface} />
+            ) : (
+              <Text style={styles.primaryButtonText}>{t('bookingBookNow')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -262,7 +266,8 @@ const styles = StyleSheet.create({
   stepBar: { flex: 1, height: 4, backgroundColor: colors.border, borderRadius: 2 },
   stepActive: { backgroundColor: colors.coral },
   
-  content: { padding: spacing.lg },
+  keyboardContainer: { flex: 1 },
+  content: { padding: spacing.lg, paddingBottom: spacing.xl },
   
   card: {
     backgroundColor: colors.surface,
@@ -301,19 +306,10 @@ const styles = StyleSheet.create({
   
   paymentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
+  footer: { padding: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg },
   primaryButton: {
     backgroundColor: colors.coral,
-    height: 56,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',

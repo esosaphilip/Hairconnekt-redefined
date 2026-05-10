@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../../theme';
@@ -27,6 +27,9 @@ export default function ClientProfileEditScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarVersion, setAvatarVersion] = useState(Date.now());
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const firstNameRef = useRef<TextInput>(null);
+  const lastNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadProfile();
@@ -56,6 +59,7 @@ export default function ClientProfileEditScreen() {
   };
 
   const handleSave = async () => {
+    Keyboard.dismiss();
     if (!firstName.trim() || !lastName.trim()) {
       setErrorMessage(t('personalInfoNameRequired'));
       setErrorVisible(true);
@@ -156,7 +160,11 @@ export default function ClientProfileEditScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
@@ -173,7 +181,12 @@ export default function ClientProfileEditScreen() {
 
         <GermanErrorBanner visible={errorVisible} message={errorMessage} onDismiss={() => setErrorVisible(false)} />
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
@@ -209,12 +222,32 @@ export default function ClientProfileEditScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>{t('personalInfoFirstName')}</Text>
-            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder={t('personalInfoFirstName')} />
+            <TextInput
+              ref={firstNameRef}
+              style={styles.input}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder={t('personalInfoFirstName')}
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => lastNameRef.current?.focus()}
+            />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>{t('personalInfoLastName')}</Text>
-            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder={t('personalInfoLastName')} />
+            <TextInput
+              ref={lastNameRef}
+              style={styles.input}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder={t('personalInfoLastName')}
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => phoneRef.current?.focus()}
+            />
           </View>
 
           <View style={styles.inputGroup}>
@@ -225,7 +258,18 @@ export default function ClientProfileEditScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>{t('personalInfoPhone')}</Text>
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+49 ..." keyboardType="phone-pad" />
+            <TextInput
+              ref={phoneRef}
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+49 ..."
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="phone-pad"
+              inputMode="tel"
+              returnKeyType="done"
+              onSubmitEditing={handleSave}
+            />
           </View>
         </ScrollView>
 
@@ -319,15 +363,17 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: spacing.lg },
   inputLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  inputDisabled: { opacity: 0.5, backgroundColor: '#EBEBEB' },
+  inputDisabled: { opacity: 0.5, backgroundColor: colors.surface, borderColor: colors.border },
   hintText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 4 },
 
   footer: {

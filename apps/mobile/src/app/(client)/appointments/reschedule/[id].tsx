@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
@@ -121,6 +121,7 @@ export default function RescheduleAppointment() {
   }, [selectedDate, booking]);
 
   const submitReschedule = async () => {
+    Keyboard.dismiss();
     if (!selectedDate || !selectedTime) return;
 
     // Validate formats before sending
@@ -259,112 +260,128 @@ export default function RescheduleAppointment() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Current Booking Info */}
-        <View style={styles.currentBookingCard}>
-          <Text style={styles.currentBookingTitle}>{t('rescheduleCurrentBooking')}</Text>
-          <Text style={styles.currentBookingProvider}>{providerName}</Text>
-          <Text style={styles.currentBookingServices}>{serviceNames}</Text>
-          <View style={styles.currentBookingDateTime}>
-            <Feather name="calendar" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
-            <Text style={styles.currentBookingDot}> • </Text>
-            <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={styles.currentBookingText}>{booking?.scheduledTime}{timeSuffix}</Text>
-          </View>
-        </View>
-
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
-
-        {/* Native Calendar Card */}
-        <View style={styles.calendarCard}>
-          <View style={styles.monthHeader}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-              <Feather name="chevron-left" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <Text style={styles.monthTitle}>{monthLabel} {year}</Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-              <Feather name="chevron-right" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.weekDaysRow}>
-            {dayNames.map(d => <Text key={d} style={styles.weekDayText}>{d}</Text>)}
-          </View>
-          
-          {renderCalendarDays()}
-        </View>
-
-        {/* Dynamic Time Slots Block */}
-        {selectedDate ? (
-          <View style={styles.slotsSection}>
-            <Text style={styles.slotsHeader}>{t('bookingAvailableTimes')}</Text>
-            
-            {isSlotsLoading ? (
-              <ActivityIndicator size="large" color={colors.coral} style={{ marginVertical: spacing.xl }} />
-            ) : slots.length === 0 ? (
-              <Text style={styles.emptySlotsText}>{t('bookingNoSlots')}</Text>
-            ) : (
-              <View style={styles.slotsGrid}>
-                {slots.map((slot, idx) => {
-                  const slotTime = slot.time ?? slot.startTime;
-                  const active = selectedTime === slotTime;
-                  return (
-                    <TouchableOpacity 
-                      key={idx} 
-                      style={[styles.slotButton, active && styles.slotButtonActive]}
-                      onPress={() => setSelectedTime(slotTime)}
-                    >
-                      <Text style={[styles.slotText, active && styles.slotTextActive]}>
-                        {slotTime}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        ) : null}
-
-        {/* Reason Block */}
-        <View style={styles.reasonSection}>
-          <Text style={styles.reasonLabel}>{t('rescheduleReason')}</Text>
-          <TextInput
-            style={styles.reasonInput}
-            placeholder={t('rescheduleReasonPlaceholder')}
-            value={reason}
-            onChangeText={setReason}
-            multiline
-            maxLength={300}
-            textAlignVertical="top"
-          />
-        </View>
-
-      </ScrollView>
-
-      {/* Sticky Bottom Footer */}
-      <View style={styles.footer}>
-        <View style={styles.footerRow}>
-          <Text style={styles.footerDateText}>
-            {selectedDate ? `${t('rescheduleNewDate')}: ${formatOutputDate(selectedDate)}` : t('bookingChooseDate')}
-          </Text>
-          <Text style={styles.footerTimeText}>
-            {selectedTime ? `${selectedTime}${lang === 'de' ? ' UHR' : ''}` : ''}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          style={[styles.nextButton, (!selectedDate || !selectedTime || isSubmitting) && styles.nextButtonDisabled]} 
-          onPress={submitReschedule}
-          disabled={!selectedDate || !selectedTime || isSubmitting}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {isSubmitting ? (
-             <ActivityIndicator color={colors.surface} />
-          ) : (
-             <Text style={styles.nextButtonText}>{t('rescheduleConfirm')}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <View style={styles.currentBookingCard}>
+            <Text style={styles.currentBookingTitle}>{t('rescheduleCurrentBooking')}</Text>
+            <Text style={styles.currentBookingProvider}>{providerName}</Text>
+            <Text style={styles.currentBookingServices}>{serviceNames}</Text>
+            <View style={styles.currentBookingDateTime}>
+              <Feather name="calendar" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
+              <Text style={styles.currentBookingDot}> • </Text>
+              <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={styles.currentBookingText}>
+                {booking?.scheduledTime}
+                {timeSuffix}
+              </Text>
+            </View>
+          </View>
+
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+
+          <View style={styles.calendarCard}>
+            <View style={styles.monthHeader}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
+                <Feather name="chevron-left" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.monthTitle}>
+                {monthLabel} {year}
+              </Text>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
+                <Feather name="chevron-right" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.weekDaysRow}>
+              {dayNames.map((d) => (
+                <Text key={d} style={styles.weekDayText}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+
+            {renderCalendarDays()}
+          </View>
+
+          {selectedDate ? (
+            <View style={styles.slotsSection}>
+              <Text style={styles.slotsHeader}>{t('bookingAvailableTimes')}</Text>
+
+              {isSlotsLoading ? (
+                <ActivityIndicator size="large" color={colors.coral} style={{ marginVertical: spacing.xl }} />
+              ) : slots.length === 0 ? (
+                <Text style={styles.emptySlotsText}>{t('bookingNoSlots')}</Text>
+              ) : (
+                <View style={styles.slotsGrid}>
+                  {slots.map((slot, idx) => {
+                    const slotTime = slot.time ?? slot.startTime;
+                    const active = selectedTime === slotTime;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[styles.slotButton, active && styles.slotButtonActive]}
+                        onPress={() => setSelectedTime(slotTime)}
+                      >
+                        <Text style={[styles.slotText, active && styles.slotTextActive]}>{slotTime}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          <View style={styles.reasonSection}>
+            <Text style={styles.reasonLabel}>{t('rescheduleReason')}</Text>
+            <TextInput
+              style={styles.reasonInput}
+              placeholder={t('rescheduleReasonPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              maxLength={300}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerDateText}>
+              {selectedDate
+                ? `${t('rescheduleNewDate')}: ${formatOutputDate(selectedDate)}`
+                : t('bookingChooseDate')}
+            </Text>
+            <Text style={styles.footerTimeText}>
+              {selectedTime ? `${selectedTime}${lang === 'de' ? ' UHR' : ''}` : ''}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.nextButton, (!selectedDate || !selectedTime || isSubmitting) && styles.nextButtonDisabled]}
+            onPress={submitReschedule}
+            disabled={!selectedDate || !selectedTime || isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={colors.surface} />
+            ) : (
+              <Text style={styles.nextButtonText}>{t('rescheduleConfirm')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -376,10 +393,11 @@ const styles = StyleSheet.create({
   backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
   
-  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: 150 },
+  keyboardContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
   // Current Booking
-  currentBookingCard: { backgroundColor: '#FAFAFA', borderRadius: 12, padding: spacing.md, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  currentBookingCard: { backgroundColor: colors.surfaceCard, borderRadius: 12, padding: spacing.md, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
   currentBookingTitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.sm },
   currentBookingProvider: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: 2 },
   currentBookingServices: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textPrimary, marginBottom: spacing.sm },
@@ -406,7 +424,7 @@ const styles = StyleSheet.create({
   slotsHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   slotButton: { width: '31%', paddingVertical: 12, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  slotButtonActive: { backgroundColor: '#FFEBEA', borderColor: colors.coral },
+  slotButtonActive: { backgroundColor: colors.coralLight, borderColor: colors.coral },
   slotText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   slotTextActive: { color: colors.coral },
   emptySlotsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, fontStyle: 'italic' },
@@ -414,14 +432,14 @@ const styles = StyleSheet.create({
   // Reason
   reasonSection: { marginBottom: spacing.xl },
   reasonLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: spacing.sm },
-  reasonInput: { backgroundColor: '#FAFAFA', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.md, minHeight: 100, fontFamily: fonts.body, fontSize: 16, color: colors.textPrimary },
+  reasonInput: { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.md, minHeight: 100, fontFamily: fonts.body, fontSize: 16, color: colors.textPrimary },
 
   // Footer
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: 30, ...shadows.card },
+  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, ...shadows.card },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   footerDateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   footerTimeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  nextButton: { backgroundColor: colors.coral, height: 48, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
+  nextButton: { backgroundColor: colors.coral, height: layout.inputHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   nextButtonDisabled: { backgroundColor: colors.border },
   nextButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
 });

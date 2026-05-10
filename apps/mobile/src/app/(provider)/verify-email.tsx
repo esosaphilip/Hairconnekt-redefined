@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
@@ -70,6 +74,7 @@ export default function VerifyEmailScreen() {
   };
 
   const handleVerify = async () => {
+    Keyboard.dismiss();
     const code = otp.join('');
     if (code.length < 6) {
       setErrorMessage('Bitte gib den vollständigen 6-stelligen Code ein.');
@@ -105,6 +110,7 @@ export default function VerifyEmailScreen() {
   };
 
   const handleResend = async () => {
+    Keyboard.dismiss();
     if (resendCountdown > 0) return;
     try {
       setIsResending(true);
@@ -141,71 +147,83 @@ export default function VerifyEmailScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <View style={styles.header}>
-        <Feather name="mail" size={48} color={colors.coral} />
-        <Text style={styles.title}>E-Mail bestätigen</Text>
-        <Text style={styles.subtitle}>
-          Wir haben einen 6-stelligen Code an{'\n'}
-          <Text style={styles.emailText}>{String(email ?? '')}</Text>
-          {'\n'}gesendet. Bitte prüfe auch deinen Spam-Ordner.
-        </Text>
-      </View>
-
-      <GermanErrorBanner
-        visible={errorVisible}
-        message={errorMessage}
-        onDismiss={() => setErrorVisible(false)}
-      />
-
-      <View style={styles.otpContainer}>
-        {otp.map((digit, index) => (
-          <TextInput
-            key={index}
-            ref={(ref) => {
-              otpRefs.current[index] = ref;
-            }}
-            style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
-            value={digit}
-            onChangeText={(text) => handleOtpChange(text, index)}
-            onKeyPress={(e) => handleOtpKeyPress(e, index)}
-            keyboardType="number-pad"
-            maxLength={6}
-            selectTextOnFocus
-          />
-        ))}
-      </View>
-
-      <TouchableOpacity
-        style={[
-          styles.verifyButton,
-          otp.join('').length < 6 && styles.verifyButtonDisabled,
-        ]}
-        onPress={handleVerify}
-        disabled={isLoading || otp.join('').length < 6}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {isLoading ? (
-          <ActivityIndicator color={colors.background} />
-        ) : (
-          <Text style={styles.verifyButtonText}>E-Mail bestätigen</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.resendButton}
-        onPress={handleResend}
-        disabled={resendCountdown > 0 || isResending}
-      >
-        <Text
-          style={[
-            styles.resendText,
-            resendCountdown > 0 && styles.resendTextDisabled,
-          ]}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {resendCountdown > 0
-            ? `Code erneut senden (${resendCountdown}s)`
-            : 'Code erneut senden'}
-        </Text>
-      </TouchableOpacity>
+          <View style={styles.header}>
+            <Feather name="mail" size={layout.inputHeight} color={colors.coral} />
+            <Text style={styles.title}>E-Mail bestätigen</Text>
+            <Text style={styles.subtitle}>
+              Wir haben einen 6-stelligen Code an{'\n'}
+              <Text style={styles.emailText}>{String(email ?? '')}</Text>
+              {'\n'}gesendet. Bitte prüfe auch deinen Spam-Ordner.
+            </Text>
+          </View>
+
+          <GermanErrorBanner
+            visible={errorVisible}
+            message={errorMessage}
+            onDismiss={() => setErrorVisible(false)}
+          />
+
+          <View style={styles.otpContainer}>
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => {
+                  otpRefs.current[index] = ref;
+                }}
+                style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
+                value={digit}
+                onChangeText={(text) => handleOtpChange(text, index)}
+                onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                keyboardType="number-pad"
+                maxLength={6}
+                selectTextOnFocus
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.verifyButton,
+              otp.join('').length < 6 && styles.verifyButtonDisabled,
+            ]}
+            onPress={handleVerify}
+            disabled={isLoading || otp.join('').length < 6}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.verifyButtonText}>E-Mail bestätigen</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resendButton}
+            onPress={handleResend}
+            disabled={resendCountdown > 0 || isResending}
+          >
+            <Text
+              style={[
+                styles.resendText,
+                resendCountdown > 0 && styles.resendTextDisabled,
+              ]}
+            >
+              {resendCountdown > 0
+                ? `Code erneut senden (${resendCountdown}s)`
+                : 'Code erneut senden'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -216,6 +234,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
   },
+  keyboardContainer: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   header: {
     alignItems: 'center',
     paddingTop: spacing.xxl,
@@ -234,7 +254,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: spacing.lg,
   },
   emailText: {
     fontFamily: fonts.bodyBold,
@@ -246,8 +266,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   otpInput: {
-    width: 48,
-    height: 56,
+    width: layout.inputHeight,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.md,
     borderWidth: 1.5,
     borderColor: colors.borderStrong,
@@ -263,7 +283,7 @@ const styles = StyleSheet.create({
   },
   verifyButton: {
     backgroundColor: colors.coral,
-    height: 56,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -292,4 +312,3 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
   },
 });
-

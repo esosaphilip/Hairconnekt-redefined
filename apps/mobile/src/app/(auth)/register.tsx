@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, SafeAreaView, Keyboard, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
@@ -22,6 +22,12 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const firstNameRef = useRef<TextInput>(null);
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
@@ -35,6 +41,7 @@ export default function RegisterScreen() {
   }
 
   const handleRegister = async () => {
+    Keyboard.dismiss();
     if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
       showError(mapHttpError(422, undefined, lang));
       return;
@@ -72,48 +79,122 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Image
-          source={require('../../../assets/logo-full.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.heading}>{t('registerClientTitle')}</Text>
-        
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Image
+            source={require('../../../assets/logo-full.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.heading}>{t('registerClientTitle')}</Text>
 
-        <FormInput label={t('firstName')} value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
-        <FormInput label={t('lastName')} value={lastName} onChangeText={setLastName} autoCapitalize="words" />
-        <FormInput label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <FormInput label={t('phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <FormInput label={t('password')} value={password} onChangeText={setPassword} secureText />
-        <FormInput label={t('passwordConfirm')} value={confirmPassword} onChangeText={setConfirmPassword} secureText />
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
 
-        <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedTerms(!acceptedTerms)}>
-          <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]} />
-          <Text style={styles.checkboxText}>{t('acceptTerms')}</Text>
-        </TouchableOpacity>
+          <FormInput
+            ref={firstNameRef}
+            label={t('firstName')}
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => lastNameRef.current?.focus()}
+          />
+          <FormInput
+            ref={lastNameRef}
+            label={t('lastName')}
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
+          <FormInput
+            ref={emailRef}
+            label={t('email')}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            inputMode="email"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => phoneRef.current?.focus()}
+            textContentType="emailAddress"
+          />
+          <FormInput
+            ref={phoneRef}
+            label={t('phone')}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            inputMode="tel"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            textContentType="telephoneNumber"
+          />
+          <FormInput
+            ref={passwordRef}
+            label={t('password')}
+            value={password}
+            onChangeText={setPassword}
+            secureText
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            textContentType="newPassword"
+          />
+          <FormInput
+            ref={confirmPasswordRef}
+            label={t('passwordConfirm')}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureText
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
+            textContentType="newPassword"
+          />
 
-        <PrimaryButton label={t('registerCreateAccount')} onPress={handleRegister} loading={isLoading} />
+          <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedTerms(!acceptedTerms)}>
+            <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]} />
+            <Text style={styles.checkboxText}>{t('acceptTerms')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
-        <TouchableOpacity style={styles.footer} onPress={() => router.push('/(auth)/login?role=client' as any)}>
-          <Text style={styles.footerText}>{t('registerAlreadyHaveAccount')}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <View style={styles.footer}>
+          <PrimaryButton label={t('registerCreateAccount')} onPress={handleRegister} loading={isLoading} />
+          <TouchableOpacity style={styles.footerLink} onPress={() => router.push('/(auth)/login?role=client' as any)}>
+            <Text style={styles.footerText}>{t('registerAlreadyHaveAccount')}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl },
+  keyboardContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xl },
   logo: { width: spacing.xxl * 4 + spacing.xs, height: layout.avatarMd, alignSelf: 'center', marginBottom: spacing.xl },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xl, textAlign: 'center' },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.sm },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },
   checkboxChecked: { backgroundColor: colors.coral, borderColor: colors.coral },
   checkboxText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
-  footer: { alignItems: 'center', marginTop: spacing.xl },
+  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+  footerLink: { alignItems: 'center', marginTop: spacing.md },
   footerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
 });

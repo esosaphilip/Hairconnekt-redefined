@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
@@ -170,9 +170,30 @@ export default function ClientHome() {
     router.push(`/(client)/provider/${id}` as any);
   };
 
+  const handleApplyCity = async () => {
+    Keyboard.dismiss();
+    if (cityInput.trim()) {
+      const city = cityInput.trim();
+      setUserCity(city);
+      try {
+        const results = await Location.geocodeAsync(city);
+        const first = Array.isArray(results) ? results[0] : null;
+        const lat = first?.latitude;
+        const lng = first?.longitude;
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          await setDiscoveryOverride({ city, lat, lng });
+          const coords = { lat, lng };
+          setDiscoveryLocation(coords);
+          await fetchProviders(coords);
+        }
+      } catch {}
+    }
+    setShowLocationModal(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.avatarContainer}>
@@ -334,63 +355,56 @@ export default function ClientHome() {
         onRequestClose={() => setShowLocationModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.locationModal}>
-            <Text style={styles.locationModalTitle}>{t('homeLocationModal')}</Text>
+          <KeyboardAvoidingView
+            style={styles.locationModal}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.locationModalTitle}>{t('homeLocationModal')}</Text>
 
-            <TextInput
-              style={styles.locationInput}
-              value={cityInput}
-              onChangeText={setCityInput}
-              placeholder={t('homeLocationPlaceholder')}
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-              returnKeyType="done"
-            />
+              <TextInput
+                style={styles.locationInput}
+                value={cityInput}
+                onChangeText={setCityInput}
+                placeholder={t('homeLocationPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleApplyCity}
+              />
 
-            <TouchableOpacity
-              style={styles.locationApplyBtn}
-              onPress={async () => {
-                if (cityInput.trim()) {
-                  const city = cityInput.trim();
-                  setUserCity(city);
-                  try {
-                    const results = await Location.geocodeAsync(city);
-                    const first = Array.isArray(results) ? results[0] : null;
-                    const lat = first?.latitude;
-                    const lng = first?.longitude;
-                    if (typeof lat === 'number' && typeof lng === 'number') {
-                      await setDiscoveryOverride({ city, lat, lng });
-                      const coords = { lat, lng };
-                      setDiscoveryLocation(coords);
-                      await fetchProviders(coords);
-                    }
-                  } catch {}
-                }
+              <TouchableOpacity
+                style={styles.locationApplyBtn}
+                onPress={handleApplyCity}
+              >
+                <Text style={styles.locationApplyText}>{t('homeLocationApply')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.locationGpsBtn}
+                onPress={async () => {
+                  Keyboard.dismiss();
+                  setShowLocationModal(false);
+                  await setDiscoveryOverride(null);
+                  const coords = await getDiscoveryCoordinates(true);
+                  setDiscoveryLocation(coords);
+                  await fetchProviders(coords);
+                  setUserCity(t('countryDefault'));
+                }}
+              >
+                <Feather name="navigation" size={16} color={colors.teal} />
+                <Text style={styles.locationGpsText}>{t('homeLocationGps')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.locationCancelBtn} onPress={() => {
+                Keyboard.dismiss();
                 setShowLocationModal(false);
-              }}
-            >
-              <Text style={styles.locationApplyText}>{t('homeLocationApply')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.locationGpsBtn}
-              onPress={async () => {
-                setShowLocationModal(false);
-                await setDiscoveryOverride(null);
-                const coords = await getDiscoveryCoordinates(true);
-                setDiscoveryLocation(coords);
-                await fetchProviders(coords);
-                setUserCity(t('countryDefault'));
-              }}
-            >
-              <Feather name="navigation" size={16} color={colors.teal} />
-              <Text style={styles.locationGpsText}>{t('homeLocationGps')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.locationCancelBtn} onPress={() => setShowLocationModal(false)}>
-              <Text style={styles.locationCancelText}>{t('cancel')}</Text>
-            </TouchableOpacity>
-          </View>
+              }}>
+                <Text style={styles.locationCancelText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>

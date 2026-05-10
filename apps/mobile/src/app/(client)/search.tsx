@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
@@ -174,7 +174,13 @@ export default function ClientSearch() {
   };
 
   const renderFilterChips = () => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsContent}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.chipsScroll}
+      contentContainerStyle={styles.chipsContent}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* "Alle" chip — always first */}
       <TouchableOpacity
         style={[
@@ -230,130 +236,144 @@ export default function ClientSearch() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.searchInputContainer}>
-          <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={`${t('search')}...`}
-            placeholderTextColor={colors.textTertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearchSubmit}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => {
-              Keyboard.dismiss();
-              setSearchQuery('');
-              setPage(1);
-              setHasMore(true);
-              setTotalResults(0);
-              setProviders([]);
-              fetchProviders(1, true, '');
-            }}>
-              <Feather name="x" size={20} color={colors.textSecondary} />
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Feather name="arrow-left" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {renderFilterChips()}
-
-      <View style={styles.toolsRow}>
-        <Text style={styles.resultCount}>
-          {isLoading || isLocating ? t('loading') : `${totalResults} ${t('searchResults')}`}
-        </Text>
-        
-        <View style={{ position: 'relative', zIndex: 10 }}>
-          <TouchableOpacity 
-            style={styles.sortButton} 
-            onPress={() => setShowSortDropdown(!showSortDropdown)}
-          >
-            <Text style={styles.sortButtonText}>{sortMap[sortOption]}</Text>
-            <Feather name="chevron-down" size={16} color={colors.textPrimary} />
-          </TouchableOpacity>
-
-          {showSortDropdown && (
-            <View style={styles.dropdownModal}>
-              {(Object.keys(sortMap) as SortOption[]).map((key) => (
-                <TouchableOpacity 
-                  key={key} 
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    handleSelectSort(key);
-                  }}
-                >
-                  <Text style={[styles.dropdownItemText, sortOption === key && styles.dropdownItemActive]}>
-                    {sortMap[key]}
-                  </Text>
+            <View style={styles.searchInputContainer}>
+              <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={`${t('search')}...`}
+                placeholderTextColor={colors.textTertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearchSubmit}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => {
+                  Keyboard.dismiss();
+                  setSearchQuery('');
+                  setPage(1);
+                  setHasMore(true);
+                  setTotalResults(0);
+                  setProviders([]);
+                  fetchProviders(1, true, '');
+                }}>
+                  <Feather name="x" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
-          )}
-        </View>
-      </View>
+          </View>
 
-      <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+          {renderFilterChips()}
 
-      {isLoading ? (
-        <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
-      ) : providers.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Feather name="frown" size={48} color={colors.textTertiary} style={{marginBottom: spacing.md}} />
-          <Text style={styles.emptyStateText}>{t('searchEmpty')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={providers}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <ProviderCard
-              provider={{
-                ...item,
-                isFavourited: isFavourite(item.id)
-              }}
-              onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
-              onFavourite={() => toggleFavourite(item.id)}
+          <View style={styles.toolsRow}>
+            <Text style={styles.resultCount}>
+              {isLoading || isLocating ? t('loading') : `${totalResults} ${t('searchResults')}`}
+            </Text>
+            
+            <View style={styles.sortWrapper}>
+              <TouchableOpacity 
+                style={styles.sortButton} 
+                onPress={() => setShowSortDropdown(!showSortDropdown)}
+              >
+                <Text style={styles.sortButtonText}>{sortMap[sortOption]}</Text>
+                <Feather name="chevron-down" size={16} color={colors.textPrimary} />
+              </TouchableOpacity>
+
+              {showSortDropdown && (
+                <View style={styles.dropdownModal}>
+                  {(Object.keys(sortMap) as SortOption[]).map((key) => (
+                    <TouchableOpacity 
+                      key={key} 
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        handleSelectSort(key);
+                      }}
+                    >
+                      <Text style={[styles.dropdownItemText, sortOption === key && styles.dropdownItemActive]}>
+                        {sortMap[key]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+
+          {isLoading ? (
+            <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
+          ) : providers.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Feather name="frown" size={layout.inputHeight} color={colors.textTertiary} style={styles.emptyIcon} />
+              <Text style={styles.emptyStateText}>{t('searchEmpty')}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={providers}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <ProviderCard
+                  provider={{
+                    ...item,
+                    isFavourited: isFavourite(item.id)
+                  }}
+                  onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
+                  onFavourite={() => toggleFavourite(item.id)}
+                />
+              )}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color={colors.coral} style={styles.loadMoreLoader} /> : null}
+              keyboardShouldPersistTaps="handled"
             />
           )}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color={colors.coral} style={{ margin: spacing.lg }} /> : null}
-        />
-      )}
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
+  content: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   backButton: { marginRight: spacing.md },
-  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: 48, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border },
+  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border },
   searchIcon: { marginRight: spacing.sm },
   searchInput: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, height: '100%' },
-  chipsScroll: { maxHeight: 50, flexGrow: 0, marginTop: spacing.xs, marginBottom: spacing.md },
+  chipsScroll: { maxHeight: layout.inputHeight, flexGrow: 0, marginTop: spacing.xs, marginBottom: spacing.md },
   chipsContent: { paddingHorizontal: spacing.lg, alignItems: 'center' },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginRight: spacing.sm },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginRight: spacing.sm },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   chipTextActive: { color: colors.surface },
   toolsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, zIndex: 10, paddingBottom: spacing.sm },
   resultCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
+  sortWrapper: { position: 'relative', zIndex: 10 },
   sortButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: spacing.sm },
   sortButtonText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
-  dropdownModal: { position: 'absolute', top: 38, right: 0, backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.sm, ...shadows.card, elevation: 5, minWidth: 150 },
+  dropdownModal: { position: 'absolute', top: layout.buttonHeightSm + spacing.xxs, right: 0, backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.sm, ...shadows.card, elevation: 5, minWidth: spacing.xxl * 3 },
   dropdownItem: { paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
   dropdownItemText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   dropdownItemActive: { fontFamily: fonts.bodyBold, color: colors.primary },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: layout.tabBarHeight + spacing.lg },
   loader: { marginTop: spacing.xxl },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: layout.tabBarHeight + spacing.lg },
+  emptyIcon: { marginBottom: spacing.md },
   emptyStateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textSecondary },
+  loadMoreLoader: { margin: spacing.lg },
 });

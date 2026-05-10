@@ -512,6 +512,7 @@ export default function SharedChatScreen() {
             renderItem={renderItem}
             inverted
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContent}
             onContentSizeChange={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: false })}
           />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
@@ -52,6 +52,7 @@ export default function WriteReviewScreen() {
   }, [bookingId]);
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (rating === 0 || comment.trim().length < 10) return;
     try {
       setIsSubmitting(true);
@@ -113,96 +114,112 @@ export default function WriteReviewScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
-
-        <View style={styles.providerCard}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{providerName.charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={styles.providerInfo}>
-            <Text style={styles.providerName}>{providerName}</Text>
-            <Text style={styles.serviceNames} numberOfLines={2}>{serviceNames}</Text>
-          </View>
-        </View>
-
-        <View style={styles.ratingSection}>
-          <Text style={styles.questionTitle}>{t('reviewQuestion')}</Text>
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((starValue) => {
-              const isFilled = starValue <= rating;
-              return (
-                <TouchableOpacity 
-                  key={starValue} 
-                  onPress={() => setRating(starValue)}
-                  style={styles.starButton}
-                >
-                  <FontAwesome 
-                    name={isFilled ? "star" : "star-o"} 
-                    size={40} 
-                    color={isFilled ? "#C8860A" : "#CCCCCC"} 
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <View style={styles.labelContainer}>
-            <Text style={styles.ratingLabel}>{ratingLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.commentSection}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder={t('reviewPlaceholder')}
-            placeholderTextColor="rgba(26,26,26,0.5)"
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            maxLength={500}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCounter}>{comment.length}/500</Text>
-        </View>
-
-      </ScrollView>
-
-      {/* Sticky Bottom Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.submitButton, isButtonDisabled && styles.submitButtonDisabled]} 
-          onPress={handleSubmit}
-          disabled={isButtonDisabled}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {isSubmitting ? (
-             <ActivityIndicator color={colors.surface} />
-          ) : (
-             <Text style={styles.submitButtonText}>{t('reviewSubmit')}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+
+          <View style={styles.providerCard}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {providerName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.providerInfo}>
+              <Text style={styles.providerName}>{providerName}</Text>
+              <Text style={styles.serviceNames} numberOfLines={2}>
+                {serviceNames}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.ratingSection}>
+            <Text style={styles.questionTitle}>{t('reviewQuestion')}</Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((starValue) => {
+                const isFilled = starValue <= rating;
+                return (
+                  <TouchableOpacity
+                    key={starValue}
+                    onPress={() => setRating(starValue)}
+                    style={styles.starButton}
+                  >
+                    <FontAwesome
+                      name={isFilled ? 'star' : 'star-o'}
+                      size={40}
+                      color={isFilled ? colors.gold : colors.borderStrong}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.labelContainer}>
+              <Text style={styles.ratingLabel}>{ratingLabel}</Text>
+            </View>
+          </View>
+
+          <View style={styles.commentSection}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder={t('reviewPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            <Text style={styles.charCounter}>{comment.length}/500</Text>
+          </View>
+
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.submitButton, isButtonDisabled && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={isButtonDisabled}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={colors.surface} />
+            ) : (
+              <Text style={styles.submitButtonText}>{t('reviewSubmit')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  keyboardContainer: { flex: 1 },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
   backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: '#8B4513' },
+  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: colors.primary },
   
-  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: 100 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
   providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.xl },
-  avatarImage: { width: 64, height: 64, borderRadius: 32, marginRight: spacing.md },
-  avatarPlaceholder: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
-  avatarText: { fontFamily: fonts.bodyBold, fontSize: 24, color: '#666' },
+  avatarImage: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.avatarMd / 2, marginRight: spacing.md },
+  avatarPlaceholder: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.avatarMd / 2, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  avatarText: { fontFamily: fonts.bodyBold, fontSize: 24, color: colors.textSecondary },
   providerInfo: { flex: 1 },
   providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: 4 },
   serviceNames: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
@@ -212,14 +229,14 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: spacing.md },
   starButton: { padding: 4 },
   labelContainer: { height: 24, justifyContent: 'center', alignItems: 'center' },
-  ratingLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#C8860A' },
+  ratingLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.gold },
   
   commentSection: { marginBottom: spacing.lg },
-  commentInput: { backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, height: 160, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border },
+  commentInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: 160, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border },
   charCounter: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textTertiary, textAlign: 'right', marginTop: 8 },
 
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: 30, ...shadows.card },
-  submitButton: { backgroundColor: colors.coral, height: 56, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
+  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, ...shadows.card },
+  submitButton: { backgroundColor: colors.coral, height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   submitButtonDisabled: { backgroundColor: colors.border },
   submitButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
 });
