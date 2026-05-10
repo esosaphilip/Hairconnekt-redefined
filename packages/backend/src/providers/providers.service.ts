@@ -679,6 +679,19 @@ export class ProvidersService {
     }
 
     const dateParam = dateStr;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const requestedDate = new Date(dateParam);
+    requestedDate.setHours(0, 0, 0, 0);
+
+    if (requestedDate < today) {
+      return { date: dateParam, providerId, slots: [] };
+    }
+
+    const isToday = requestedDate.getTime() === today.getTime();
+
     const provider = await this.providerRepo.findOne({
       where: { id: providerId }
     });
@@ -777,11 +790,15 @@ export class ProvidersService {
     const isSlotOccupied = (slotMinute: number) =>
       occupiedRanges.some((range) => slotMinute >= range.start && slotMinute < range.end);
 
+    const now = new Date();
+    const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
+
     const slots = allSlotMinutes.map((slotMinute) => {
       const hours = Math.floor(slotMinute / 60).toString().padStart(2, '0');
       const mins = (slotMinute % 60).toString().padStart(2, '0');
       const timeStr = `${hours}:${mins}`;
-      const available = !isSlotOccupied(slotMinute);
+      const isPastTime = isToday && slotMinute < nowMinutes;
+      const available = !isPastTime && !isSlotOccupied(slotMinute);
       return {
         time: timeStr,
         startTime: timeStr,

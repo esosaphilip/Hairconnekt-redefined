@@ -54,6 +54,17 @@ export default function ClientBookingDateTime() {
   }, [selectedDate, providerId]);
 
   const fetchSlots = async (dateStr: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const requested = new Date(dateStr);
+    requested.setHours(0, 0, 0, 0);
+
+    if (requested < today) {
+      setSlots([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setErrorVisible(false);

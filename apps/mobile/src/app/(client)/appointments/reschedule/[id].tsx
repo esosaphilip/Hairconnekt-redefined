@@ -87,6 +87,16 @@ export default function RescheduleAppointment() {
   useEffect(() => {
     const fetchSlots = async () => {
       if (!selectedDate || !booking?.provider?.id) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const requested = new Date(selectedDate);
+      requested.setHours(0, 0, 0, 0);
+      if (requested < today) {
+        setSlots([]);
+        setIsSlotsLoading(false);
+        return;
+      }
       try {
         setIsSlotsLoading(true);
         setErrorVisible(false);
