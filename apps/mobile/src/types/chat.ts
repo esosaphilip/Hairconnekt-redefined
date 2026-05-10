@@ -21,6 +21,9 @@ export interface Message {
   senderId: string;
   createdAt: string;
   isRead: boolean;
+  mediaUrl: string | null;
+  mediaType: 'image' | 'document' | null;
+  mediaFilename: string | null;
 }
 
 export interface Conversation {
@@ -33,4 +36,3 @@ export interface Conversation {
   unreadCount: number;
   bookingReference?: string;
 }
-

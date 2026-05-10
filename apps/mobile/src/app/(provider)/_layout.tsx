@@ -77,6 +77,7 @@ export default function ProviderLayout() {
           ═══════════════════════════════════════════════ */}
       <Tabs.Screen name="chat/[id]"              options={{ href: null }} />
       <Tabs.Screen name="pending"                options={{ href: null }} />
+      <Tabs.Screen name="verify-email"           options={{ href: null }} />
       <Tabs.Screen name="block-time"             options={{ href: null }} />
       <Tabs.Screen name="availability"           options={{ href: null }} />
       <Tabs.Screen name="reviews"                options={{ href: null }} />

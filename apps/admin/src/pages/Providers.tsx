@@ -121,6 +121,44 @@ export default function Providers() {
                     <div>
                       <div style={{ fontWeight: 600 }}>{p.user?.firstName} {p.user?.lastName}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.user?.email}</div>
+                      {(() => {
+                        const verified = (p.isEmailVerified ?? p.user?.isEmailVerified);
+                        if (verified === false) {
+                          return (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                marginTop: 6,
+                                backgroundColor: '#FFF3E0',
+                                color: '#E65100',
+                                fontSize: 11,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              ✉ Nicht verifiziert
+                            </span>
+                          );
+                        }
+                        if (verified === true) {
+                          return (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                marginTop: 6,
+                                backgroundColor: '#E8F5E9',
+                                color: '#2E7D32',
+                                fontSize: 11,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              ✓ Verifiziert
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </td>

@@ -12,6 +12,8 @@ import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { MediaPickerActionSheet } from '@/components/MediaPickerActionSheet';
+import { pickChatDocument, pickChatImage } from '@/utils/chat-media-picker';
 
 type ConversationDetailResponse = {
   id: string;
@@ -48,6 +50,8 @@ export default function SharedChatScreen() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList<any>>(null);
@@ -226,6 +230,9 @@ export default function SharedChatScreen() {
       senderId: myUserId,
       createdAt: new Date().toISOString(),
       isRead: false,
+      mediaUrl: null,
+      mediaType: null,
+      mediaFilename: null,
     };
 
     setMessages((prev) => [tempMsg, ...prev]);
@@ -318,9 +325,50 @@ export default function SharedChatScreen() {
     return (
       <View style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}>
         <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-          <Text style={[styles.bubbleText, isOwn ? styles.textOwn : styles.textOther]}>
-            {msg.content}
-          </Text>
+          {msg.content ? (
+            <Text style={[styles.bubbleText, isOwn ? styles.textOwn : styles.textOther]}>
+              {msg.content}
+            </Text>
+          ) : null}
+
+          {msg.mediaType === 'image' && msg.mediaUrl ? (
+            <TouchableOpacity onPress={() => Linking.openURL(msg.mediaUrl!).catch(() => {})}>
+              <Image
+                source={{ uri: msg.mediaUrl }}
+                style={styles.mediaBubbleImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ) : null}
+
+          {msg.mediaType === 'document' && msg.mediaUrl ? (
+            <TouchableOpacity
+              style={styles.mediaBubbleDoc}
+              onPress={() => Linking.openURL(msg.mediaUrl!).catch(() => {})}
+            >
+              <Feather
+                name="file-text"
+                size={20}
+                color={isOwn ? colors.background : colors.teal}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={[
+                  styles.mediaBubbleDocName,
+                  isOwn && { color: colors.background },
+                ]}
+                numberOfLines={1}
+              >
+                {msg.mediaFilename ?? 'Dokument'}
+              </Text>
+              <Feather
+                name="download"
+                size={16}
+                color={isOwn ? colors.background : colors.teal}
+                style={{ marginLeft: 4 }}
+              />
+            </TouchableOpacity>
+          ) : null}
         </View>
         <View style={[styles.metaRow, isOwn ? styles.metaRowOwn : styles.metaRowOther]}>
           <Text style={styles.timestamp}>{formatTime(msg.createdAt)}</Text>
@@ -335,6 +383,64 @@ export default function SharedChatScreen() {
   };
 
   const canSend = input.trim().length > 0 && !isSending;
+
+  const sendMedia = async (
+    uri: string,
+    mimeType: string,
+    filename: string,
+  ) => {
+    setIsUploadingMedia(true);
+    try {
+      const formData = new FormData();
+      formData.append('chatMedia', {
+        uri,
+        type: mimeType,
+        name: filename,
+      } as any);
+
+      const res = await apiFetch(`/chat/conversations/${id}/messages/media`, {
+        auth: true,
+        method: 'POST',
+        body: formData as any,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload fehlgeschlagen');
+      }
+
+      const body = await res.json().catch(() => null);
+      const msg: Message | null = (body as any)?.data ?? body;
+      if (msg && typeof msg === 'object' && 'id' in (msg as any)) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === (msg as any).id)) return prev;
+          return [msg as any, ...prev];
+        });
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      } else {
+        loadConversation();
+      }
+    } catch {
+      console.log('Media upload failed');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    setShowMediaPicker(false);
+    const result = await pickChatImage();
+    if (result.type === 'image') {
+      await sendMedia(result.uri, result.mimeType, result.filename);
+    }
+  };
+
+  const handlePickDocument = async () => {
+    setShowMediaPicker(false);
+    const result = await pickChatDocument();
+    if (result.type === 'document') {
+      await sendMedia(result.uri, result.mimeType, result.filename);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -412,8 +518,16 @@ export default function SharedChatScreen() {
         )}
 
         <View style={[styles.inputBar, { paddingBottom: spacing.sm + (insets.bottom || 0) }]}>
-          <TouchableOpacity style={styles.attachButton} disabled>
-            <Feather name="plus" size={fontSizes.xl} color={colors.primary} />
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={() => setShowMediaPicker(true)}
+            disabled={isUploadingMedia}
+          >
+            {isUploadingMedia ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Feather name="plus" size={fontSizes.xl} color={colors.primary} />
+            )}
           </TouchableOpacity>
 
           <TextInput
@@ -434,6 +548,13 @@ export default function SharedChatScreen() {
             <Feather name="send" size={fontSizes.sm} color={colors.background} />
           </TouchableOpacity>
         </View>
+
+        <MediaPickerActionSheet
+          visible={showMediaPicker}
+          onPickImage={handlePickImage}
+          onPickDocument={handlePickDocument}
+          onCancel={() => setShowMediaPicker(false)}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -549,4 +670,26 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   sendButtonDisabled: { backgroundColor: colors.borderStrong },
+
+  mediaBubbleImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  mediaBubbleDoc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 4,
+    maxWidth: 220,
+  },
+  mediaBubbleDocName: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    flex: 1,
+  },
 });

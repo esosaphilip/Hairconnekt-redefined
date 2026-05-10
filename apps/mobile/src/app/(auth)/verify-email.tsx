@@ -88,16 +88,11 @@ export default function VerifyEmailScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const headers = await getAuthHeaders();
-      if (!headers) {
-        const role = await tokenStorage.getUserRole();
-        router.replace((role ? `/(auth)/login?role=${role}` : '/(auth)/login') as any);
-        return;
-      }
-
-      await axios.post(`${API}/auth/verify-email`, { otp: code }, { headers });
+      await axios.post(`${API}/auth/verify-email`, { email: String(email ?? ''), code });
 
       try {
+        const headers = await getAuthHeaders();
+        if (!headers) throw new Error('no-auth');
         const res = await fetch(`${API}/users/me`, { headers });
         if (res.ok) {
           const me = await res.json();
@@ -108,6 +103,8 @@ export default function VerifyEmailScreen() {
       const role = await tokenStorage.getUserRole();
       if (role === 'provider') {
         try {
+          const headers = await getAuthHeaders();
+          if (!headers) throw new Error('no-auth');
           const res = await fetch(`${API}/providers/me`, { headers });
           if (res.ok) {
             const provider = await res.json();
@@ -129,10 +126,9 @@ export default function VerifyEmailScreen() {
       }
     } catch (err: any) {
       const status = err.response?.status;
-      if (status === 400 || status === 401) {
-        showError(t('verifyEmailInvalidCode'), status);
-      } else if (status === 410) {
-        showError(t('verifyEmailExpiredCode'), status);
+      const msg = err.response?.data?.message;
+      if (typeof msg === 'string') {
+        showError(msg, status);
       } else if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
       } else {
@@ -149,14 +145,7 @@ export default function VerifyEmailScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const headers = await getAuthHeaders();
-      if (!headers) {
-        const role = await tokenStorage.getUserRole();
-        router.replace((role ? `/(auth)/login?role=${role}` : '/(auth)/login') as any);
-        return;
-      }
-
-      await axios.post(`${API}/auth/resend-verification`, {}, { headers });
+      await axios.post(`${API}/auth/resend-verification`, { email: String(email ?? '') });
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 429) {

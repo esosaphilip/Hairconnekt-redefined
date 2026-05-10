@@ -138,7 +138,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           select: ['id', 'firstName', 'lastName'],
         });
         const senderName = sender ? `${sender.firstName} ${sender.lastName}`.trim() : 'HairConnekt';
-        const preview = (msg.content ?? '').slice(0, 80);
+        const preview =
+          msg.mediaType === 'image'
+            ? '📷 Bild'
+            : msg.mediaType === 'document'
+              ? '📎 Dokument'
+              : (msg.content ?? '').slice(0, 80);
 
         try {
           await this.notificationsService.sendToUser({

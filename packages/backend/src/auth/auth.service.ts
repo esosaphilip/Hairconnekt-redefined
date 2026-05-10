@@ -19,7 +19,6 @@ import * as disposableEmailDomains from 'disposable-email-domains';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
-import { EmailVerification } from './entities/email-verification.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -54,9 +53,6 @@ export class AuthService {
 
     @InjectRepository(PasswordResetRequest)
     private readonly passwordResetRepo: Repository<PasswordResetRequest>,
-
-    @InjectRepository(EmailVerification)
-    private readonly emailVerificationRepo: Repository<EmailVerification>,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -104,21 +100,14 @@ export class AuthService {
       role: dto.role,
     });
 
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedCode = await bcrypt.hash(verificationCode, 10);
+    user.emailVerificationCode = hashedCode;
+    user.emailVerificationExpires = new Date(Date.now() + 30 * 60 * 1000);
+
     await this.userRepo.save(user);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const otpHash = await bcrypt.hash(otp, rounds);
-
-    const verification = this.emailVerificationRepo.create({
-      userId: user.id,
-      otpHash,
-      expiresAt,
-      usedAt: null,
-    });
-    await this.emailVerificationRepo.save(verification);
-
-    await this.sendEmailVerificationOtpEmail(user.email, otp).catch((err) => {
+    await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
       this.logger.error('SendGrid email verification send failed', err);
     });
 
@@ -348,77 +337,96 @@ export class AuthService {
     return { message: 'Passwort wurde erfolgreich geändert.' };
   }
 
-  // ─── VERIFY EMAIL ──────────────────────────────────────────────────────────
-  async verifyEmail(userId: string, otp: string): Promise<{ message: string }> {
-    const user = await this.userRepo.findOne({ where: { id: userId, isActive: true } });
-    if (!user) throw new UnauthorizedException('Nicht autorisiert.');
+  async verifyEmail(
+    emailRaw: string,
+    code: string,
+  ): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+    const email = String(emailRaw ?? '').toLowerCase();
 
-    if (user.isEmailVerified) {
-      return { message: 'E-Mail erfolgreich verifiziert' };
-    }
-
-    const req = await this.emailVerificationRepo
-      .createQueryBuilder('e')
-      .where('e.userId = :userId', { userId })
-      .andWhere('e.usedAt IS NULL')
-      .orderBy('e.createdAt', 'DESC')
+    const user = await this.userRepo
+      .createQueryBuilder('u')
+      .addSelect(['u.emailVerificationCode', 'u.emailVerificationExpires'])
+      .where('u.email = :email', { email })
+      .andWhere('u.isActive = true')
+      .andWhere('u.deletedAt IS NULL')
       .getOne();
 
-    if (!req) {
-      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+    if (!user) {
+      throw new UnauthorizedException('Ungültiger Code.');
     }
 
-    if (req.expiresAt < new Date()) {
-      throw new GoneException('Code abgelaufen. Bitte fordere einen neuen an.');
+    if (!user.emailVerificationCode || !user.emailVerificationExpires) {
+      return { success: true, alreadyVerified: true };
     }
 
-    const ok = await bcrypt.compare(otp, req.otpHash);
+    if (user.emailVerificationExpires < new Date()) {
+      throw new UnauthorizedException('Code abgelaufen. Bitte fordere einen neuen an.');
+    }
+
+    const ok = await bcrypt.compare(code, user.emailVerificationCode);
     if (!ok) {
-      throw new BadRequestException('Ungültiger Code. Bitte versuche es erneut.');
+      throw new UnauthorizedException('Ungültiger Code.');
     }
 
-    await this.userRepo.update({ id: userId }, { isEmailVerified: true });
-    req.usedAt = new Date();
-    await this.emailVerificationRepo.save(req);
+    await this.userRepo.update(
+      { id: user.id },
+      {
+        isEmailVerified: true,
+        emailVerificationCode: null,
+        emailVerificationExpires: null,
+      },
+    );
 
-    return { message: 'E-Mail erfolgreich verifiziert' };
+    return { success: true };
   }
 
-  // ─── RESEND EMAIL VERIFICATION ─────────────────────────────────────────────
-  async resendEmailVerification(userId: string): Promise<{ message: string }> {
-    const user = await this.userRepo.findOne({ where: { id: userId, isActive: true } });
-    if (!user) throw new UnauthorizedException('Nicht autorisiert.');
+  async resendEmailVerification(
+    emailRaw: string,
+  ): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+    const email = String(emailRaw ?? '').toLowerCase();
+    const user = await this.userRepo
+      .createQueryBuilder('u')
+      .addSelect(['u.emailVerificationCode', 'u.emailVerificationExpires'])
+      .where('u.email = :email', { email })
+      .andWhere('u.isActive = true')
+      .andWhere('u.deletedAt IS NULL')
+      .getOne();
 
-    if (user.isEmailVerified) {
-      return { message: 'E-Mail ist bereits verifiziert.' };
+    if (!user) {
+      return { success: true };
     }
 
-    await this.emailVerificationRepo
-      .createQueryBuilder()
-      .update(EmailVerification)
-      .set({ usedAt: new Date() })
-      .where('"userId" = :userId', { userId })
-      .andWhere('"usedAt" IS NULL')
-      .execute();
+    if (user.isEmailVerified) {
+      return { success: true, alreadyVerified: true };
+    }
 
-    const rounds = this.intEnv('BCRYPT_ROUNDS', 12, 10, 14);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const otpHash = await bcrypt.hash(otp, rounds);
+    if (user.emailVerificationExpires && user.emailVerificationCode) {
+      const lastSentAt = new Date(user.emailVerificationExpires.getTime() - 30 * 60 * 1000);
+      const diffMs = Date.now() - lastSentAt.getTime();
+      if (diffMs < 2 * 60 * 1000) {
+        throw new HttpException(
+          { message: 'Bitte warte 2 Minuten vor dem erneuten Senden.' },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
 
-    const verification = this.emailVerificationRepo.create({
-      userId,
-      otpHash,
-      expiresAt,
-      usedAt: null,
-    });
-    await this.emailVerificationRepo.save(verification);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedCode = await bcrypt.hash(verificationCode, 10);
 
-    await this.sendEmailVerificationOtpEmail(user.email, otp).catch((err) => {
+    await this.userRepo.update(
+      { id: user.id },
+      {
+        emailVerificationCode: hashedCode,
+        emailVerificationExpires: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    );
+
+    await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
       this.logger.error('SendGrid email verification resend failed', err);
     });
 
-    return { message: 'Bestätigungscode wurde erneut gesendet.' };
+    return { success: true };
   }
 
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────
@@ -430,7 +438,7 @@ export class AuthService {
     sendgridInitialized = true;
   }
 
-  private async sendEmailVerificationOtpEmail(to: string, otp: string): Promise<void> {
+  private async sendVerificationEmail(to: string, firstName: string, code: string): Promise<void> {
     const apiKey = process.env.SENDGRID_API_KEY;
     const from = process.env.SENDGRID_FROM_EMAIL;
     if (!apiKey || !from) return;
@@ -440,9 +448,18 @@ export class AuthService {
     await sgMail.send({
       to,
       from,
-      subject: 'Dein HairConnekt Bestätigungscode',
-      text: `Dein Code lautet: ${otp}. Gültig für 15 Minuten.`,
-      html: `<p>Dein Code lautet: <strong>${otp}</strong>. Gültig für 15 Minuten.</p>`,
+      subject: 'HairConnekt – E-Mail bestätigen',
+      html: `
+        <h2>Hallo ${firstName},</h2>
+        <p>Bitte bestätige deine E-Mail-Adresse mit diesem Code:</p>
+        <h1 style="letter-spacing:8px;font-size:36px;">${code}</h1>
+        <p>Der Code ist 30 Minuten gültig.</p>
+        <p>Falls du dich nicht bei HairConnekt registriert hast, ignoriere diese E-Mail.</p>
+      `,
+      text:
+        `Hallo ${firstName},\n\n` +
+        `Dein HairConnekt Bestätigungscode: ${code}\n\n` +
+        `Gültig für 30 Minuten.`,
     });
   }
 

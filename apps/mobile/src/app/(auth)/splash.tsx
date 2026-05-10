@@ -70,9 +70,15 @@ export default function SplashScreen() {
             const me = await apiJson<any>('/users/me', { auth: true });
             await tokenStorage.setUser(me);
             if (me?.isEmailVerified === false) {
-              router.replace(
-                `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
-              );
+              if (role === 'provider') {
+                router.replace(
+                  `/(provider)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
+                );
+              } else {
+                router.replace(
+                  `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}` as any,
+                );
+              }
               return;
             }
           } catch {}

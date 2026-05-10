@@ -154,12 +154,15 @@ export interface PaginatedResponse<T> {
 // ─── Chat ─────────────────────────────────────────────────────────────────
 export interface MessageDto {
   id: string;
-  conversationId: string;
+  conversationId?: string;
   senderId: string;
   content: string;
   isRead: boolean;
   readAt?: string;
   createdAt: string;
+  mediaUrl?: string | null;
+  mediaType?: 'image' | 'document' | null;
+  mediaFilename?: string | null;
 }
 
 export interface ConversationDto {

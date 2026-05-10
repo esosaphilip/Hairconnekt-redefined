@@ -1,4 +1,21 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -48,5 +65,34 @@ export class ChatController {
   @HttpCode(HttpStatus.CREATED)
   async sendMessage(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.chatService.sendMessage(user.id, id, dto.content);
+  }
+
+  @Post('conversations/:id/messages/media')
+  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @Throttle({ default: { limit: 30, ttl: 60 } })
+  @UseInterceptors(
+    FileInterceptor('chatMedia', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  @HttpCode(HttpStatus.CREATED)
+  async sendMedia(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
+          new FileTypeValidator({
+            fileType: /^(image\/(jpeg|png|webp)|application\/pdf)$/,
+          }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Keine Datei hochgeladen.');
+    return this.chatService.sendMediaMessage(user.id, id, file);
   }
 }

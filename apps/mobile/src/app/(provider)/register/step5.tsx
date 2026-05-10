@@ -130,7 +130,7 @@ export default function RegisterStep5Screen() {
       await tokenStorage.save(token, authData.refreshToken, 'provider');
       await AsyncStorage.removeItem('registrationForm');
       reset();
-      router.replace('/(provider)/pending');
+      router.replace(`/(provider)/verify-email?email=${encodeURIComponent(form.email)}` as any);
 
     } catch (err: any) {
       setError(err.message ?? t('errorUnknown'));

@@ -7,6 +7,8 @@ import { Message } from '../entities/message.entity';
 import { Provider } from '../entities/provider.entity';
 import { User } from '../entities/user.entity';
 import { ChatPresenceService } from './chat-presence.service';
+import { R2Service } from '../common/storage/r2.service';
+import { v4 as uuidv4 } from 'uuid';
 
 type ConversationListItem = {
   id: string;
@@ -49,6 +51,9 @@ type ConversationDetail = {
     senderId: string;
     createdAt: string;
     isRead: boolean;
+    mediaUrl: string | null;
+    mediaType: 'image' | 'document' | null;
+    mediaFilename: string | null;
   }>;
   myUserId: string;
 };
@@ -67,6 +72,7 @@ export class ChatService {
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
     private readonly presence: ChatPresenceService,
+    private readonly r2Service: R2Service,
   ) {}
 
   private getOtherUserId(conversation: Conversation, userId: string): string {
@@ -214,6 +220,9 @@ export class ChatService {
         senderId: m.senderId,
         createdAt: m.createdAt.toISOString(),
         isRead: m.isRead,
+        mediaUrl: m.mediaUrl ?? null,
+        mediaType: (m.mediaType as any) ?? null,
+        mediaFilename: m.mediaFilename ?? null,
       })),
       myUserId: userId,
     };
@@ -290,6 +299,66 @@ export class ChatService {
       senderId: saved.senderId,
       createdAt: saved.createdAt.toISOString(),
       isRead: saved.isRead,
+      mediaUrl: saved.mediaUrl ?? null,
+      mediaType: (saved.mediaType as any) ?? null,
+      mediaFilename: saved.mediaFilename ?? null,
+    };
+  }
+
+  async sendMediaMessage(
+    userId: string,
+    conversationId: string,
+    file: Express.Multer.File,
+  ): Promise<ConversationDetail['messages'][number]> {
+    if (!file) throw new BadRequestException('Keine Datei hochgeladen.');
+
+    const mimeType = String(file.mimetype ?? '').toLowerCase();
+    const isPdf = mimeType === 'application/pdf';
+    const isImage = /^image\/(jpeg|png|webp)$/.test(mimeType);
+    if (!isPdf && !isImage) throw new BadRequestException('Ungültiger Dateityp.');
+
+    const convo = await this.getConversationForUserOrThrow(userId, conversationId);
+
+    const mediaType: 'image' | 'document' = isPdf ? 'document' : 'image';
+    const ext = isPdf
+      ? 'pdf'
+      : mimeType === 'image/png'
+        ? 'png'
+        : mimeType === 'image/webp'
+          ? 'webp'
+          : 'jpg';
+
+    const messageId = uuidv4();
+    const key = `chat/${convo.id}/${messageId}-${Date.now()}.${ext}`;
+    const url = await this.r2Service.uploadFileWithKey(file.buffer, mimeType, key);
+
+    const msg = this.messageRepo.create({
+      id: messageId,
+      conversationId: convo.id,
+      senderId: userId,
+      content: '',
+      isRead: false,
+      readAt: null,
+      mediaUrl: url,
+      mediaType,
+      mediaFilename: mediaType === 'document' ? file.originalname ?? null : null,
+      mediaKey: key,
+    });
+    const saved = await this.messageRepo.save(msg);
+
+    convo.lastMessageAt = saved.createdAt;
+    convo.lastMessagePreview = mediaType === 'image' ? '📷 Bild' : '📎 Dokument';
+    await this.conversationRepo.save(convo);
+
+    return {
+      id: saved.id,
+      content: saved.content,
+      senderId: saved.senderId,
+      createdAt: saved.createdAt.toISOString(),
+      isRead: saved.isRead,
+      mediaUrl: saved.mediaUrl ?? null,
+      mediaType: (saved.mediaType as any) ?? null,
+      mediaFilename: saved.mediaFilename ?? null,
     };
   }
 

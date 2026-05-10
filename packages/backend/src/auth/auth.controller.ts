@@ -10,6 +10,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
@@ -139,21 +140,18 @@ export class AuthController {
   }
 
   @Post('verify-email')
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 15 * 60 } })
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
-  verifyEmail(
-    @CurrentUser() user: User,
-    @Body() dto: VerifyEmailDto,
-  ): Promise<{ message: string }> {
-    return this.authService.verifyEmail(user.id, dto.otp);
+  verifyEmail(@Body() dto: VerifyEmailDto): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+    return this.authService.verifyEmail(dto.email, dto.code);
   }
 
   @Post('resend-verification')
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
-  @Throttle({ default: { limit: 3, ttl: 60 * 60 } })
+  @UseGuards(IpThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
-  resendVerification(@CurrentUser() user: User): Promise<{ message: string }> {
-    return this.authService.resendEmailVerification(user.id);
+  resendVerification(@Body() dto: ResendVerificationDto): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+    return this.authService.resendEmailVerification(dto.email);
   }
 }

@@ -26,6 +26,18 @@ export class Message {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'text', nullable: true })
+  mediaUrl: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  mediaType: 'image' | 'document' | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  mediaFilename: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  mediaKey: string | null;
+
   @Column({ type: 'boolean', default: false })
   isRead: boolean;
 

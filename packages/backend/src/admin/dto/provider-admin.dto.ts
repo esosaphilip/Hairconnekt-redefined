@@ -51,6 +51,9 @@ export class ProviderAdminDto {
   @IsString()
   avatarUrl: string | null;
 
+  @IsBoolean()
+  isEmailVerified: boolean;
+
   user: ProviderAdminUserDto;
 
   @IsInt()
@@ -69,6 +72,7 @@ export class ProviderAdminDto {
     dto.city = row.city;
     dto.idDocumentUrl = row.idDocumentUrl ?? null;
     dto.avatarUrl = row.avatarUrl ?? null;
+    dto.isEmailVerified = Boolean(row.userIsEmailVerified);
     dto.servicesCount = Number(row.servicesCount ?? 0);
     dto.createdAt = new Date(row.createdAt).toISOString();
 
@@ -83,4 +87,3 @@ export class ProviderAdminDto {
     return dto;
   }
 }
-

@@ -38,11 +38,13 @@ export type AdminUserSummary = {
   email: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  isEmailVerified?: boolean;
 };
 
 export type AdminProvider = {
   id: string;
   status: ProviderStatus;
+  isEmailVerified?: boolean;
   createdAt: string;
   city?: string | null;
   providerType?: string | null;
