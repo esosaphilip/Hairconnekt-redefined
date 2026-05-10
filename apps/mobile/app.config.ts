@@ -42,6 +42,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...base.ios,
       bundleIdentifier: iosBundleIdentifier,
+      infoPlist: {
+        ...(base.ios as any)?.infoPlist,
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     extra: {
       ...base.extra,
