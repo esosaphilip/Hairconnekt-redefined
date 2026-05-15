@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Providers from './pages/Providers';
+import Users from './pages/Users';
 import Categories from './pages/Categories';
 import PopularStyles from './pages/PopularStyles';
 import './index.css';
@@ -30,6 +31,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="providers" element={<Providers />} />
+          <Route path="users" element={<Users />} />
           <Route path="popular-styles" element={<PopularStyles />} />
           <Route path="categories" element={<Categories />} />
         </Route>

@@ -41,6 +41,18 @@ export type AdminUserSummary = {
   isEmailVerified?: boolean;
 };
 
+export type AdminUser = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'client' | 'provider' | 'admin';
+  isEmailVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  deletedAt: string | null;
+};
+
 export type AdminProvider = {
   id: string;
   status: ProviderStatus;
@@ -127,6 +139,15 @@ export async function getProviders(
   const url = status ? `/admin/providers?status=${status}` : '/admin/providers';
   const res = await api.get(url);
   return res.data as AdminProvider[];
+}
+
+export async function getUsers(): Promise<AdminUser[]> {
+  const res = await api.get('/admin/users');
+  return res.data as AdminUser[];
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await api.delete(`/admin/users/${id}`);
 }
 
 export async function getProviderById(id: string): Promise<AdminProvider> {
