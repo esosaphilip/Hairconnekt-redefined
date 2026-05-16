@@ -16,6 +16,7 @@ export default function PortfolioUploadScreen() {
   const { t } = useLanguage();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [styleTags, setStyleTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
@@ -32,6 +33,7 @@ export default function PortfolioUploadScreen() {
         allowsEditing: true,
         quality: 0.7,
         exif: false,
+        base64: Platform.OS === 'android',
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -42,6 +44,11 @@ export default function PortfolioUploadScreen() {
           uri = `file://${uri}`;
         }
         setImageUri(uri);
+        setPreviewUri(
+          Platform.OS === 'android' && asset.base64
+            ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`
+            : uri,
+        );
         setErrorVisible(false);
       }
     } catch (error) {
@@ -146,7 +153,13 @@ export default function PortfolioUploadScreen() {
           >
             {imageUri ? (
               <>
-                <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" onError={(e) => console.log('Preview error:', e.nativeEvent.error)} />
+                <Image
+                  key={previewUri ?? imageUri}
+                  source={{ uri: previewUri ?? imageUri }}
+                  style={styles.previewImage}
+                  resizeMode="cover"
+                  onError={(e) => console.log('Preview error:', e.nativeEvent.error)}
+                />
                 <View style={styles.changeImageOverlay}>
                   <Feather name="camera" size={24} color={colors.background} />
                   <Text style={styles.changeImageText}>{t('portfolioUploadChange')}</Text>

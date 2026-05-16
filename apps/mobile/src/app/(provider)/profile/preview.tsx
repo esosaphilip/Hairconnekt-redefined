@@ -5,7 +5,7 @@ import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { apiFetch, apiJson } from '@/services/apiClient';
+import { apiJson } from '@/services/apiClient';
 const { width } = Dimensions.get('window');
 
 const safeDistance = (val: any): string =>
@@ -22,7 +22,6 @@ export default function ProfilePreviewScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
-  const [isFavourite, setIsFavourite] = useState(false);
 
   const [provider, setProvider] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
@@ -51,23 +50,12 @@ export default function ProfilePreviewScreen() {
       
       // Use provider data directly from /providers/me response
       setProvider(meData);
-      
-      // Check if this provider is in user's favorites
-      try {
-        const favRes = await apiJson<any>('/favourites', { auth: true, timeoutMs: 20000, retryCount: 1 });
-        const favs = favRes.data || favRes;
-        if (Array.isArray(favs) && favs.some((f: any) => f.providerId === meData.id || f.provider?.id === meData.id)) {
-          setIsFavourite(true);
-        }
-      } catch {
-        // Keep default false if favorites check fails
-      }
-      
-      // Fetch additional data
+
+      // Provider preview should mirror the public customer-facing profile.
       const [servRes, portRes, revRes] = await Promise.all([
-        apiJson<any>('/providers/me/services', { auth: true, timeoutMs: 20000, retryCount: 1 }),
-        apiJson<any>('/providers/me/portfolio', { auth: true, timeoutMs: 20000, retryCount: 1 }),
-        apiJson<any>('/providers/me/reviews', { auth: true, timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>(`/providers/${meData.id}/services`, { timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>(`/providers/${meData.id}/portfolio`, { timeoutMs: 20000, retryCount: 1 }),
+        apiJson<any>(`/providers/${meData.id}/reviews`, { timeoutMs: 20000, retryCount: 1 }),
       ]);
 
       const servArr = servRes?.data ?? servRes ?? [];
@@ -90,28 +78,6 @@ export default function ProfilePreviewScreen() {
   };
 
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl || portfolio[0].url : null;
-
-  const toggleFavourite = async () => {
-    try {
-      const prev = isFavourite;
-      setIsFavourite(!prev);
-
-      if (prev) {
-        await apiFetch(`/favourites/${provider.id}`, { auth: true, method: 'DELETE', timeoutMs: 20000 });
-      } else {
-        await apiFetch(`/favourites`, {
-          auth: true,
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ providerId: provider.id }),
-          timeoutMs: 20000,
-        });
-      }
-    } catch (err) {
-      // Revert on error
-      setIsFavourite((v) => !v);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -152,17 +118,14 @@ export default function ProfilePreviewScreen() {
         <Text style={styles.bannerText}>
           {t('previewBanner')} {(provider.businessName?.charAt(0) ?? 'P')}
         </Text>
-        <TouchableOpacity onPress={toggleFavourite} style={styles.bannerAction}>
+        <View style={styles.bannerIcon}>
           <FontAwesome5 
             name="heart" 
-            solid={isFavourite} 
+            solid={false}
             size={16} 
-            color={isFavourite ? colors.coral : colors.background}
-            style={{
-              transform: [{ scale: isFavourite ? 1.1 : 1.0 }],
-            }}
+            color={colors.background}
           />
-        </TouchableOpacity>
+        </View>
         <TouchableOpacity onPress={() => router.push('/(provider)/profile/edit')}>
           <Text style={styles.bannerAction}>{t('previewEdit')}</Text>
         </TouchableOpacity>
@@ -353,6 +316,7 @@ const styles = StyleSheet.create({
   bannerBackButton: { padding: spacing.xs },
   bannerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.background, flex: 1, textAlign: 'center' },
   bannerAction: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.background, padding: spacing.xs },
+  bannerIcon: { padding: spacing.xs },
 
   heroContainer: { height: 220, position: 'relative', marginBottom: 50 },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
