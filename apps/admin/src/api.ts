@@ -53,6 +53,20 @@ export type AdminUser = {
   deletedAt: string | null;
 };
 
+export type AdminUsersListResponse = {
+  data: AdminUser[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminUsersBulkDeleteResponse = {
+  deleted: number;
+  skippedAdmin: number;
+  notFound: number;
+  alreadyDeleted: number;
+};
+
 export type AdminProvider = {
   id: string;
   status: ProviderStatus;
@@ -141,13 +155,25 @@ export async function getProviders(
   return res.data as AdminProvider[];
 }
 
-export async function getUsers(): Promise<AdminUser[]> {
-  const res = await api.get('/admin/users');
-  return res.data as AdminUser[];
+export async function getUsers(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AdminUsersListResponse> {
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  const res = await api.get(`/admin/users?limit=${limit}&offset=${offset}`);
+  return res.data as AdminUsersListResponse;
 }
 
 export async function deleteUser(id: string): Promise<void> {
   await api.delete(`/admin/users/${id}`);
+}
+
+export async function bulkDeleteUsers(
+  ids: string[],
+): Promise<AdminUsersBulkDeleteResponse> {
+  const res = await api.post('/admin/users/bulk-delete', { ids });
+  return res.data as AdminUsersBulkDeleteResponse;
 }
 
 export async function getProviderById(id: string): Promise<AdminProvider> {
