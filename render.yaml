@@ -5,7 +5,7 @@ services:
     branch: develop
     region: frankfurt
     rootDir: packages/backend
-    buildCommand: npm ci && npm run build && npm run migration:run
+    buildCommand: npm ci && npm run build && npm run typeorm -- schema:sync && npm run typeorm -- migration:run --fake
     startCommand: npm run start
     healthCheckPath: /api/v1/health
     autoDeploy: true
