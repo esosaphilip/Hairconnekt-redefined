@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -25,6 +25,7 @@ export default function ProviderDashboardScreen() {
     avgRating: 0.0,
   });
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -61,6 +62,22 @@ export default function ProviderDashboardScreen() {
 
     return () => { active = false; };
   }, []);
+
+  const refreshUnreadNotifications = async () => {
+    try {
+      const res: any = await apiJson('/notifications?page=1&limit=20', { auth: true });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
+    } catch {
+      setUnreadNotificationsCount(0);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnreadNotifications();
+    }, []),
+  );
 
   const loadData = async () => {
     try {
@@ -168,14 +185,15 @@ export default function ProviderDashboardScreen() {
           <Pressable
             onPress={() => router.push('/(shared)/notifications')}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            style={{ padding: 8 }}
+            style={styles.iconButton}
           >
             <Feather name="bell" size={22} color={colors.textPrimary} />
+            {unreadNotificationsCount > 0 && <View style={styles.badge} />}
           </Pressable>
           <Pressable
             onPress={() => router.push('/(shared)/settings')}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            style={{ padding: 8 }}
+            style={styles.iconButton}
           >
             <Feather name="settings" size={22} color={colors.textPrimary} />
           </Pressable>
