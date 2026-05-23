@@ -158,10 +158,14 @@ export async function getProviders(
 export async function getUsers(params?: {
   limit?: number;
   offset?: number;
+  includeDeleted?: boolean;
 }): Promise<AdminUsersListResponse> {
   const limit = params?.limit ?? 20;
   const offset = params?.offset ?? 0;
-  const res = await api.get(`/admin/users?limit=${limit}&offset=${offset}`);
+  const includeDeleted = params?.includeDeleted ?? false;
+  const res = await api.get(
+    `/admin/users?limit=${limit}&offset=${offset}&includeDeleted=${includeDeleted ? 1 : 0}`,
+  );
   return res.data as AdminUsersListResponse;
 }
 

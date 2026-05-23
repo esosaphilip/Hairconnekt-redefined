@@ -1,7 +1,5 @@
 import { Logger } from '@nestjs/common';
-import * as sgMail from '@sendgrid/mail';
-
-let sendgridInitialized = false;
+import { sendEmail } from '../email/mailer';
 
 type ErrorReport = {
   status: number;
@@ -20,17 +18,20 @@ export class ErrorReporter {
 
   private isEnabled(): boolean {
     const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
-    const apiKey = process.env.SENDGRID_API_KEY?.trim();
-    const from = process.env.SENDGRID_FROM_EMAIL?.trim();
-    return isProd && Boolean(apiKey) && Boolean(from);
-  }
-
-  private initSendgrid(): void {
-    if (sendgridInitialized) return;
-    const apiKey = process.env.SENDGRID_API_KEY?.trim();
-    if (!apiKey) return;
-    sgMail.setApiKey(apiKey);
-    sendgridInitialized = true;
+    const from = (process.env.EMAIL_FROM ?? process.env.SENDGRID_FROM_EMAIL)?.trim();
+    const host = process.env.SMTP_HOST?.trim();
+    const user = process.env.SMTP_USER?.trim();
+    const pass = process.env.SMTP_PASS?.trim();
+    const portRaw = process.env.SMTP_PORT?.trim();
+    const port = portRaw ? parseInt(portRaw, 10) : NaN;
+    return (
+      isProd &&
+      Boolean(from) &&
+      Boolean(host) &&
+      Boolean(user) &&
+      Boolean(pass) &&
+      Number.isFinite(port)
+    );
   }
 
   private canSendNow(): boolean {
@@ -50,12 +51,10 @@ export class ErrorReporter {
     if (!this.isEnabled()) return;
     if (!this.canSendNow()) return;
 
-    const from = process.env.SENDGRID_FROM_EMAIL?.trim();
+    const from = (process.env.EMAIL_FROM ?? process.env.SENDGRID_FROM_EMAIL)?.trim();
     if (!from) return;
 
     try {
-      this.initSendgrid();
-
       const lines = [
         `Time: ${new Date().toISOString()}`,
         `Status: ${report.status}`,
@@ -68,7 +67,7 @@ export class ErrorReporter {
         report.stack ?? '',
       ];
 
-      await sgMail.send({
+      await sendEmail({
         to: from,
         from,
         subject: `HairConnekt API error ${report.status} (${report.requestId ?? 'no-request-id'})`,
@@ -79,4 +78,3 @@ export class ErrorReporter {
     }
   }
 }
-

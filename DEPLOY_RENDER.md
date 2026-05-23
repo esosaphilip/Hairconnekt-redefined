@@ -14,8 +14,11 @@ The backend will refuse to start in `NODE_ENV=production` if any are missing:
 - `R2_BUCKET_NAME`
 - `R2_PUBLIC_URL`
 - `R2_ENDPOINT`
-- `SENDGRID_API_KEY`
-- `SENDGRID_FROM_EMAIL`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `EMAIL_FROM`
 
 ## Render service config (backend)
 
