@@ -62,12 +62,17 @@ export class AdminUsersController {
   async findAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('includeDeleted') includeDeleted?: string,
   ) {
     const parsedLimit = Math.max(1, Math.min(100, Number(limit ?? 20) || 20));
     const parsedOffset = Math.max(0, Number(offset ?? 0) || 0);
+    const parsedIncludeDeleted =
+      String(includeDeleted ?? '')
+        .trim()
+        .toLowerCase() === 'true' || String(includeDeleted ?? '').trim() === '1';
 
     const [data, total] = await this.userRepo.findAndCount({
-      where: { isActive: true },
+      where: parsedIncludeDeleted ? {} : { isActive: true },
       select: {
         id: true,
         firstName: true,
@@ -82,6 +87,7 @@ export class AdminUsersController {
       order: { createdAt: 'DESC' },
       take: parsedLimit,
       skip: parsedOffset,
+      withDeleted: parsedIncludeDeleted,
     });
 
     return {

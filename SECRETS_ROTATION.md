@@ -67,16 +67,21 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
   - portfolio upload works
   - popular style image upload works
 
-## 4) SendGrid
+## 4) Amazon SES (SMTP)
 
 ### Goal
 
-- Rotate SendGrid API key used for OTP/password reset emails.
+- Rotate Amazon SES SMTP credentials used for OTP/password reset emails.
 
 ### Steps
 
-- Create a new SendGrid API key (restricted scopes).
-- Update Render env var `SENDGRID_API_KEY`.
+- Create new SES SMTP credentials (in the same region as the backend, e.g. eu-central-1).
+- Update Render env vars:
+  - `SMTP_HOST`
+  - `SMTP_PORT`
+  - `SMTP_USER`
+  - `SMTP_PASS`
+  - `EMAIL_FROM`
 - Redeploy.
 - Verify forgot-password flow sends email (production and staging as needed).
 

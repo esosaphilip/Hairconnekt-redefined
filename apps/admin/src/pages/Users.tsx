@@ -9,12 +9,13 @@ export default function Users() {
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const loadUsers = async (nextPage = page) => {
     try {
       setIsLoading(true);
       const offset = (nextPage - 1) * limit;
-      const res = await getUsers({ limit, offset });
+      const res = await getUsers({ limit, offset, includeDeleted: showDeleted });
       setUsers(Array.isArray(res.data) ? res.data : []);
       setTotal(typeof res.total === 'number' ? res.total : 0);
     } catch (err) {
@@ -26,7 +27,7 @@ export default function Users() {
 
   useEffect(() => {
     loadUsers(page);
-  }, [page]);
+  }, [page, showDeleted]);
 
   const onDelete = async (user: AdminUser) => {
     if (user.role === 'admin') return;
@@ -138,6 +139,20 @@ export default function Users() {
         <h1 style={{ margin: 0, color: 'var(--primary)' }}>Benutzer</h1>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => {
+                setSelectedIds(new Set());
+                setPage(1);
+                setShowDeleted(e.target.checked);
+              }}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              Gelöschte anzeigen
+            </span>
+          </label>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             {total} Benutzer
           </span>

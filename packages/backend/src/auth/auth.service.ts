@@ -13,9 +13,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import * as sgMail from '@sendgrid/mail';
 import { createHash, randomBytes } from 'crypto';
 import * as disposableEmailDomains from 'disposable-email-domains';
+import { sendEmail } from '../common/email/mailer';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
@@ -28,8 +28,6 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
-
-let sendgridInitialized = false;
 
 @Injectable()
 export class AuthService {
@@ -423,31 +421,16 @@ export class AuthService {
     );
 
     await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
-      this.logger.error('SendGrid email verification resend failed', err);
+      this.logger.error('Email verification resend failed', err);
     });
 
     return { success: true };
   }
 
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────
-  private initSendgrid() {
-    if (sendgridInitialized) return;
-    const apiKey = process.env.SENDGRID_API_KEY;
-    if (!apiKey) return;
-    sgMail.setApiKey(apiKey);
-    sendgridInitialized = true;
-  }
-
   private async sendVerificationEmail(to: string, firstName: string, code: string): Promise<void> {
-    const apiKey = process.env.SENDGRID_API_KEY;
-    const from = process.env.SENDGRID_FROM_EMAIL;
-    if (!apiKey || !from) return;
-
-    this.initSendgrid();
-
-    await sgMail.send({
+    await sendEmail({
       to,
-      from,
       subject: 'HairConnekt – E-Mail bestätigen',
       html: `
         <h2>Hallo ${firstName},</h2>
@@ -464,12 +447,6 @@ export class AuthService {
   }
 
   private async sendOtpEmail(to: string, otp: string): Promise<void> {
-    const apiKey = process.env.SENDGRID_API_KEY;
-    const from = process.env.SENDGRID_FROM_EMAIL;
-    if (!apiKey || !from) return;
-
-    this.initSendgrid();
-
     const subject = 'Dein HairConnekt Sicherheitscode';
     const text = [
       'Hallo,',
@@ -486,9 +463,8 @@ export class AuthService {
       'Dein HairConnekt Team',
     ].join('\n');
 
-    await sgMail.send({
+    await sendEmail({
       to,
-      from,
       subject,
       text,
       html: `<!doctype html>
@@ -564,6 +540,8 @@ export class AuthService {
     // Persist refresh token for rotation
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
+
+    await this.refreshTokenRepo.delete({ userId: user.id });
 
     const refreshTokenEntity = this.refreshTokenRepo.create({
       userId: user.id,

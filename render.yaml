@@ -5,7 +5,7 @@ services:
     branch: develop
     region: frankfurt
     rootDir: packages/backend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && npm run build && npm run typeorm -- schema:sync && npm run typeorm -- migration:run --fake
     startCommand: npm run start
     healthCheckPath: /api/v1/health
     autoDeploy: true
@@ -27,9 +27,15 @@ services:
         sync: false
       - key: JWT_REFRESH_EXPIRES
         sync: false
-      - key: SENDGRID_API_KEY
+      - key: SMTP_HOST
         sync: false
-      - key: SENDGRID_FROM_EMAIL
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
         sync: false
       - key: OTP_EXPIRES_MINUTES
         sync: false

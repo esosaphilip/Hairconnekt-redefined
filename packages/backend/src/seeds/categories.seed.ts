@@ -13,21 +13,64 @@ export class CategoriesSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const categories = [
-      { name: 'Flechten', nameEn: 'Braiding' },
-      { name: 'Pflege', nameEn: 'Care & Treatment' },
-      { name: 'Styling', nameEn: 'Styling' },
-      { name: 'Goddess', nameEn: 'Goddess Styles' },
-      { name: 'Locs', nameEn: 'Locs & Dreadlocks' },
-      { name: 'Twists', nameEn: 'Twists' },
-    ];
-
-    for (const cat of categories) {
-      const exists = await this.categoryRepo.findOne({ where: { name: cat.name } });
-      if (!exists) {
-        await this.categoryRepo.save(this.categoryRepo.create(cat));
-        this.logger.log(`Seeded category: ${cat.name}`);
+    try {
+      const existingCount = await this.categoryRepo.count();
+      if (existingCount > 0) {
+        this.logger.log(`Skipping categories seed (existing: ${existingCount})`);
+        return;
       }
+
+      const categories: Array<Partial<ServiceCategory>> = [
+        {
+          name: 'Flechten',
+          iconName: 'braids',
+          description: 'Braids, Cornrows, Knotless, Feed-in',
+          sortOrder: 1,
+          isActive: true,
+        },
+        {
+          name: 'Locs',
+          iconName: 'locs',
+          description: 'Locs & Dreadlocks, Retwist',
+          sortOrder: 2,
+          isActive: true,
+        },
+        {
+          name: 'Twists',
+          iconName: 'twists',
+          description: 'Passion Twists, Senegalese Twists',
+          sortOrder: 3,
+          isActive: true,
+        },
+        {
+          name: 'Goddess',
+          iconName: 'goddess',
+          description: 'Goddess Styles',
+          sortOrder: 4,
+          isActive: true,
+        },
+        {
+          name: 'Styling',
+          iconName: 'styling',
+          description: 'Styling & Finish',
+          sortOrder: 5,
+          isActive: true,
+        },
+        {
+          name: 'Pflege',
+          iconName: 'care',
+          description: 'Care & Treatment',
+          sortOrder: 6,
+          isActive: true,
+        },
+      ];
+
+      await this.categoryRepo.insert(categories);
+      this.logger.log(`Seeded categories: inserted ${categories.length}`);
+    } catch (err: any) {
+      this.logger.warn(
+        `Could not seed categories: ${err?.message ?? String(err)}`,
+      );
     }
   }
 }
