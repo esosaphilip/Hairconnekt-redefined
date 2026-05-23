@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { apiJson } from '@/services/apiClient';
+import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 
 export default function BookingConfirmation() {
   const router = useRouter();
   const { booking: bookingParam } = useLocalSearchParams();
   const { t, lang } = useLanguage();
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   let booking: any = null;
   try {
@@ -39,6 +43,36 @@ export default function BookingConfirmation() {
   const dateStr = booking?.scheduledDate || new Date().toISOString().split('T')[0];
   const timeStr = booking?.scheduledTime || '12:00';
   const totalPrice = booking?.totalPrice || 0;
+
+  const openChat = async () => {
+    const recipientUserId = provider?.userId || provider?.user?.id;
+    if (!recipientUserId) {
+      setErrorMessage(t('errorUnknown'));
+      setErrorVisible(true);
+      return;
+    }
+
+    try {
+      setErrorVisible(false);
+      const data = await apiJson<any>('/chat/conversations', {
+        auth: true,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: recipientUserId }),
+      });
+      const conversationId = data?.data?.id ?? data?.id;
+      if (!conversationId) {
+        setErrorMessage(t('errorUnknown'));
+        setErrorVisible(true);
+        return;
+      }
+
+      router.push(`/(shared)/chat/${conversationId}` as any);
+    } catch {
+      setErrorMessage(t('errorUnknown'));
+      setErrorVisible(true);
+    }
+  };
 
   const formatDate = (d: string) => {
     try {
@@ -141,16 +175,14 @@ export default function BookingConfirmation() {
           </View>
         </View>
 
+        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
       </ScrollView>
 
       {/* Footer Buttons */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.outlineButton}
-          onPress={() => {
-            const pid = provider?.id || 'unknown';
-            router.push({ pathname: '/(client)/chat/[id]' as any, params: { id: pid }});
-          }}
+          onPress={openChat}
         >
           <Text style={styles.outlineButtonText}>{t('bookingSendMessage')}</Text>
         </TouchableOpacity>
