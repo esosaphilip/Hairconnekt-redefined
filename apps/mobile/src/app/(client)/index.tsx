@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
@@ -93,6 +93,7 @@ export default function ClientHome() {
   const [radiusKm, setRadiusKm] = useState(100);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [cityInput, setCityInput] = useState('');
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   const filteredProviders = providers.filter((p) => {
     const name = (p.businessName ?? '').toLowerCase();
@@ -191,6 +192,22 @@ export default function ClientHome() {
     setShowLocationModal(false);
   };
 
+  const refreshUnreadNotifications = async () => {
+    try {
+      const res: any = await apiJson('/notifications?page=1&limit=20', { auth: true });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
+    } catch {
+      setUnreadNotificationsCount(0);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnreadNotifications();
+    }, []),
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -228,7 +245,7 @@ export default function ClientHome() {
           </View>
           <TouchableOpacity style={styles.bellButton} onPress={() => router.push('/(shared)/notifications')}>
             <Feather name="bell" size={24} color={colors.primary} />
-            <View style={styles.bellBadge} />
+            {unreadNotificationsCount > 0 && <View style={styles.bellBadge} />}
           </TouchableOpacity>
         </View>
 
