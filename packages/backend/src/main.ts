@@ -7,6 +7,10 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ErrorReporter } from './common/error-reporting/error-reporter';
+import {
+  isAdminCsrfProtectedRequest,
+  validateAdminCsrfRequest,
+} from './auth/admin-csrf';
 
 async function bootstrap() {
   const setEnvAlias = (target: string, sources: string[]) => {
@@ -76,6 +80,19 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
+  app.use((req, res, next) => {
+    if (!isAdminCsrfProtectedRequest(req as any)) {
+      return next();
+    }
+
+    if (!validateAdminCsrfRequest(req as any)) {
+      return res.status(403).json({
+        message: 'CSRF validation failed.',
+      });
+    }
+
+    return next();
+  });
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 

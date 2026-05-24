@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   Res,
+  Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -15,8 +16,10 @@ import { Service } from '../entities/service.entity';
 import { ProviderAdminDto } from './dto/provider-admin.dto';
 import { ProviderStatusReasonDto } from './dto/provider-status-reason.dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { R2Service } from '../common/storage/r2.service';
+import { AuditService } from '../audit/audit.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -24,12 +27,9 @@ export class AdminProvidersController {
   constructor(
     @InjectRepository(Provider)
     private readonly providerRepo: Repository<Provider>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
-    @InjectRepository(Service)
-    private readonly serviceRepo: Repository<Service>,
     private readonly notificationsService: NotificationsService,
     private readonly r2Service: R2Service,
+    private readonly auditService: AuditService,
   ) {}
 
   private isProtectedAddress(provider: Provider) {
@@ -161,6 +161,8 @@ export class AdminProvidersController {
   @Get(':id/id-document')
   async getIdDocument(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     const provider = await this.providerRepo.findOne({
@@ -175,15 +177,31 @@ export class AdminProvidersController {
       provider.idDocumentUrl,
       60,
     );
+    await this.auditService.record({
+      actorUserId: admin.id,
+      actorRole: admin.role,
+      action: 'provider.id_document.accessed',
+      targetType: 'provider',
+      targetId: provider.id,
+      request: req,
+      metadata: {
+        documentKey: provider.idDocumentUrl,
+        expiresInSeconds: 60,
+      },
+    });
     return res.redirect(signedUrl);
   }
 
   // PATCH /admin/providers/:id/approve — approve provider
   @Patch(':id/approve')
-  async approve(@Param('id', ParseUUIDPipe) id: string) {
+  async approve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: Request,
+  ) {
     const provider = await this.providerRepo.findOne({
       where: { id },
-      select: ['id', 'userId'],
+      select: ['id', 'userId', 'status'],
     });
     if (!provider) throw new NotFoundException('Provider not found');
 
@@ -202,6 +220,24 @@ export class AdminProvidersController {
       });
     } catch {}
 
+    await this.auditService.record({
+      actorUserId: admin.id,
+      actorRole: admin.role,
+      action: 'provider.status.changed',
+      targetType: 'provider',
+      targetId: provider.id,
+      request: req,
+      beforeState: {
+        status: provider.status,
+      },
+      afterState: {
+        status: ProviderStatus.APPROVED,
+      },
+      metadata: {
+        notificationType: 'provider_approved',
+      },
+    });
+
     return { success: true };
   }
 
@@ -209,10 +245,33 @@ export class AdminProvidersController {
   @Patch(':id/reject')
   async reject(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() _body: ProviderStatusReasonDto,
+    @CurrentUser() admin: User,
+    @Req() req: Request,
+    @Body() body: ProviderStatusReasonDto,
   ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'status'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
     const res = await this.providerRepo.update(id, { status: ProviderStatus.REJECTED });
     if (!res.affected) throw new NotFoundException('Provider not found');
+    await this.auditService.record({
+      actorUserId: admin.id,
+      actorRole: admin.role,
+      action: 'provider.status.changed',
+      targetType: 'provider',
+      targetId: provider.id,
+      request: req,
+      reason: body.reason ?? null,
+      beforeState: {
+        status: provider.status,
+      },
+      afterState: {
+        status: ProviderStatus.REJECTED,
+      },
+    });
     return { success: true };
   }
 
@@ -220,10 +279,33 @@ export class AdminProvidersController {
   @Patch(':id/suspend')
   async suspend(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() _body: ProviderStatusReasonDto,
+    @CurrentUser() admin: User,
+    @Req() req: Request,
+    @Body() body: ProviderStatusReasonDto,
   ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'status'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
     const res = await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
     if (!res.affected) throw new NotFoundException('Provider not found');
+    await this.auditService.record({
+      actorUserId: admin.id,
+      actorRole: admin.role,
+      action: 'provider.status.changed',
+      targetType: 'provider',
+      targetId: provider.id,
+      request: req,
+      reason: body.reason ?? null,
+      beforeState: {
+        status: provider.status,
+      },
+      afterState: {
+        status: ProviderStatus.SUSPENDED,
+      },
+    });
     return { success: true };
   }
 

@@ -20,16 +20,21 @@ import { UserThrottlerGuard } from './guards/user-throttler.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import {
   clearAdminSessionCookie,
   setAdminSessionCookie,
 } from './admin-session';
 import { AdminGuard } from './guards/admin.guard';
+import { AuditService } from '../audit/audit.service';
+import { clearAdminCsrfCookie, issueAdminCsrfToken } from './admin-csrf';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly auditService: AuditService,
+  ) {}
 
   /**
    * POST /auth/register
@@ -66,11 +71,33 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async adminLogin(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ user: AuthResponseDto['user'] }> {
     const auth = await this.authService.adminLogin(dto);
     setAdminSessionCookie(res, auth.accessToken);
+    await this.auditService.record({
+      actorUserId: auth.user.id,
+      actorRole: auth.user.role,
+      action: 'auth.admin.login',
+      targetType: 'session',
+      targetId: auth.user.id,
+      request: req,
+      metadata: {
+        identifier: dto.identifier,
+      },
+    });
     return { user: auth.user };
+  }
+
+  @Get('admin-csrf')
+  @HttpCode(HttpStatus.OK)
+  getAdminCsrf(
+    @Res({ passthrough: true }) res: Response,
+  ): { csrfToken: string } {
+    return {
+      csrfToken: issueAdminCsrfToken(res),
+    };
   }
 
   @Get('admin-session')
@@ -119,12 +146,22 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
     @CurrentUser() user: User,
+    @Req() req: Request,
     @Body() body: LogoutDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
     await this.authService.logout(user.id, body.refreshToken);
     if (user.role === 'admin') {
+      clearAdminCsrfCookie(res);
       clearAdminSessionCookie(res);
+      await this.auditService.record({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'auth.admin.logout',
+        targetType: 'session',
+        targetId: user.id,
+        request: req,
+      });
     }
   }
 
@@ -133,10 +170,20 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async adminLogout(
     @CurrentUser() user: User,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
+    clearAdminCsrfCookie(res);
     clearAdminSessionCookie(res);
     await this.authService.logout(user.id);
+    await this.auditService.record({
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: 'auth.admin.logout',
+      targetType: 'session',
+      targetId: user.id,
+      request: req,
+    });
   }
 
   /**

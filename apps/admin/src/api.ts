@@ -19,10 +19,98 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const csrfClient = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
+
+let adminCsrfToken: string | null = null;
+let adminCsrfPromise: Promise<string> | null = null;
+
+const isUnsafeMethod = (method?: string): boolean =>
+  ['post', 'put', 'patch', 'delete'].includes((method ?? 'get').toLowerCase());
+
+const isAdminCsrfBootstrapRequest = (url?: string): boolean =>
+  (url ?? '').includes('/auth/admin-csrf');
+
+const setHeaderValue = (
+  headers: unknown,
+  key: string,
+  value: string,
+): void => {
+  if (headers && typeof headers === 'object' && 'set' in headers && typeof (headers as any).set === 'function') {
+    (headers as any).set(key, value);
+    return;
+  }
+
+  if (headers && typeof headers === 'object') {
+    (headers as Record<string, string>)[key] = value;
+  }
+};
+
+async function fetchAdminCsrfToken(forceRefresh = false): Promise<string> {
+  if (!forceRefresh && adminCsrfToken) {
+    return adminCsrfToken;
+  }
+
+  if (!forceRefresh && adminCsrfPromise) {
+    return adminCsrfPromise;
+  }
+
+  adminCsrfPromise = csrfClient
+    .get('/auth/admin-csrf')
+    .then((res) => {
+      const token = String(res.data?.csrfToken ?? '');
+      if (!token) {
+        throw new Error('Missing admin CSRF token');
+      }
+      adminCsrfToken = token;
+      return token;
+    })
+    .finally(() => {
+      adminCsrfPromise = null;
+    });
+
+  return adminCsrfPromise;
+}
+
+api.interceptors.request.use(async (config) => {
+  if (!isUnsafeMethod(config.method) || isAdminCsrfBootstrapRequest(config.url)) {
+    return config;
+  }
+
+  const token = await fetchAdminCsrfToken();
+  config.headers = config.headers ?? {};
+  setHeaderValue(config.headers, 'X-CSRF-Token', token);
+  return config;
+});
+
 // Response interceptor to handle 401s globally
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  async (error) => {
+    const config = error?.config as any;
+    const csrfFailed =
+      error?.response?.status === 403 &&
+      typeof error?.response?.data?.message === 'string' &&
+      error.response.data.message.toLowerCase().includes('csrf');
+
+    if (
+      csrfFailed &&
+      config &&
+      !config.__csrfRetried &&
+      isUnsafeMethod(config.method) &&
+      !isAdminCsrfBootstrapRequest(config.url)
+    ) {
+      config.__csrfRetried = true;
+      const token = await fetchAdminCsrfToken(true);
+      config.headers = config.headers ?? {};
+      setHeaderValue(config.headers, 'X-CSRF-Token', token);
+      return api.request(config);
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;
@@ -242,6 +330,7 @@ export async function getAdminSession(): Promise<AdminSessionResponse> {
 
 export async function adminLogout(): Promise<void> {
   await api.post('/auth/admin-logout');
+  adminCsrfToken = null;
 }
 
 export function getAdminProviderIdDocumentUrl(providerId: string): string {

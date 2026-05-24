@@ -11,6 +11,7 @@ import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { User } from '../entities/user.entity';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserThrottlerGuard } from './guards/user-throttler.guard';
       signOptions: { expiresIn: (process.env.JWT_ACCESS_EXPIRES ?? '15m') as any },
     }),
     TypeOrmModule.forFeature([User, RefreshToken, PasswordResetRequest]),
+    AuditModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RefreshJwtStrategy, IpThrottlerGuard, UserThrottlerGuard],

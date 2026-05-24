@@ -11,6 +11,7 @@ import { Service } from '../entities/service.entity';
 import { PopularStyle } from '../entities/popular-style.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RefreshToken } from '../auth/entities/refresh-token.entity';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RefreshToken } from '../auth/entities/refresh-token.entity';
       RefreshToken,
     ]),
     NotificationsModule,
+    AuditModule,
   ],
   controllers: [
     AdminCategoriesController,
