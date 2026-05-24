@@ -11,6 +11,7 @@ import { API } from '../../../utils/api';
 import { bookingStatus } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError, debugLog } from '@/utils/logger';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -141,18 +142,18 @@ export default function AppointmentDetails() {
         body: JSON.stringify({ recipientId: providerUserId }),
       });
       if (!res.ok) {
-        console.log('Could not open chat, status:', res.status);
+        debugLog(`Client appointment chat open failed status=${res.status}`);
         return;
       }
       const data = await res.json();
       const conversationId = data?.data?.id ?? data?.id;
       if (!conversationId) {
-        console.log('No conversation ID returned');
+        debugLog('Client appointment chat open returned no conversation ID');
         return;
       }
       router.push(`/(shared)/chat/${conversationId}` as any);
     } catch (err) {
-      console.log('openChat error:', err);
+      debugError('Client appointment chat open failed', err);
     }
   };
 
@@ -209,11 +210,11 @@ export default function AppointmentDetails() {
                 if (!providerPhone) return;
                 if (Platform.OS === 'android') {
                   Linking.openURL(`tel:${providerPhone}`).catch((err) => {
-                    console.log('[BUG-011] Android tel: link failed:', err);
+                    debugError('Client appointment Android tel link failed', err);
                   });
                 } else {
                   Linking.openURL(`tel:${providerPhone}`).catch((err) => {
-                    console.log('[BUG-011] iOS tel: link failed:', err);
+                    debugError('Client appointment iOS tel link failed', err);
                   });
                 }
               }}

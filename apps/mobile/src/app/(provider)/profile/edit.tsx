@@ -10,6 +10,7 @@ import { FormInput } from '../../../components/FormInput';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 const AVAILABLE_LANGUAGES = [
   { value: 'Deutsch', labelKey: 'languageGerman' },
@@ -26,7 +27,7 @@ type CancellationPolicy = '24h' | '48h' | '72h';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { lang, t } = useLanguage();
+  const { t } = useLanguage();
   const businessNameRef = useRef<TextInput>(null);
   const bioRef = useRef<TextInput>(null);
   const streetRef = useRef<TextInput>(null);
@@ -131,7 +132,7 @@ export default function EditProfileScreen() {
         uploadAvatar(result.assets[0].uri);
       }
     } catch (error) {
-      console.log('Error picking avatar', error);
+      debugError('Provider avatar selection failed', error);
       setErrorMessage(t('providerEditPickImageError'));
       setErrorVisible(true);
     }

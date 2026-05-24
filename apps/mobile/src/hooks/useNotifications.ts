@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugLog } from '@/utils/logger';
 
 export interface Notification {
   id: string;
@@ -36,7 +37,7 @@ export const useNotifications = () => {
       const unread = notificationsArray.filter((n: Notification) => !n.isRead).length;
       setUnreadCount(prev => page === 1 ? unread : prev + unread);
     } catch (err) {
-      console.log('Error fetching notifications:', err);
+      debugLog('Error fetching notifications:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setNotifications([]);
     } finally {
@@ -53,7 +54,7 @@ export const useNotifications = () => {
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
-      console.log('Error marking notification as read:', err);
+      debugLog('Error marking notification as read:', err);
       throw err;
     }
   }, []);
@@ -65,7 +66,7 @@ export const useNotifications = () => {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.log('Error marking all notifications as read:', err);
+      debugLog('Error marking all notifications as read:', err);
       throw err;
     }
   }, []);

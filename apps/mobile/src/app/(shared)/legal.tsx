@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { colors, fonts, fontSizes, spacing } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getSafeLegalUrl } from '@/utils/safe-navigation';
 
 const normalizeParam = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] : v) ?? '';
 
@@ -13,7 +14,10 @@ export default function LegalScreen() {
   const params = useLocalSearchParams();
   const { t } = useLanguage();
 
-  const url = useMemo(() => normalizeParam(params.url as any).trim(), [params.url]);
+  const url = useMemo(
+    () => getSafeLegalUrl(normalizeParam(params.url as any)),
+    [params.url],
+  );
   const title = useMemo(() => normalizeParam(params.title as any).trim(), [params.title]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,12 +35,13 @@ export default function LegalScreen() {
         </View>
 
         <View style={styles.center}>
-          <Text style={styles.errorText}>{t('error')}</Text>
+          <Text style={styles.errorText}>{t('errorOpenLink')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  const safeOrigin = new URL(url).origin;
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
@@ -52,6 +57,15 @@ export default function LegalScreen() {
       <View style={styles.webviewContainer}>
         <WebView
           source={{ uri: url }}
+          originWhitelist={['https://*']}
+          onShouldStartLoadWithRequest={(request) => {
+            try {
+              const nextUrl = new URL(request.url);
+              return nextUrl.protocol === 'https:' && nextUrl.origin === safeOrigin;
+            } catch {
+              return false;
+            }
+          }}
           onLoadEnd={() => setIsLoading(false)}
           onError={() => {
             setIsLoading(false);

@@ -9,6 +9,7 @@ import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError } from '@/utils/logger';
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -46,7 +47,7 @@ export default function ProviderAppointmentDetailScreen() {
         setBooking(data);
       }
     } catch (error) {
-      console.log('Error fetching booking:', error);
+      debugError('Provider appointment detail load failed', error);
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ export default function ProviderAppointmentDetailScreen() {
         fetchBookingDetails(); // Reload data
       }
     } catch (error) {
-      console.log(`Error updating booking status to ${action}:`, error);
+      debugError(`Provider booking status update failed action=${action}`, error);
     }
   };
 
@@ -107,7 +108,7 @@ export default function ProviderAppointmentDetailScreen() {
         fetchBookingDetails();
       }
     } catch (error) {
-      console.log('Error accepting booking:', error);
+      debugError('Provider appointment accept failed', error);
     } finally {
       setIsAccepting(false);
     }
@@ -143,7 +144,7 @@ export default function ProviderAppointmentDetailScreen() {
                 fetchBookingDetails();
               }
             } catch (error) {
-              console.log('Error declining booking:', error);
+              debugError('Provider appointment decline failed', error);
             } finally {
               setIsDeclining(false);
             }

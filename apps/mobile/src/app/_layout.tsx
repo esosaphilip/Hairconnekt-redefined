@@ -25,6 +25,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenStorage } from '@/utils/token-storage';
 import { API } from '@/utils/api';
+import { getSafeNotificationRoute } from '@/utils/safe-navigation';
 
 // Keep splash visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -145,16 +146,18 @@ function RootLayout() {
       .then((response) => {
         if (!response) return;
         const data = response.notification.request.content.data as any;
-        if (data?.screen) {
-          router.push(data.screen as any);
+        const safeRoute = getSafeNotificationRoute(data?.screen);
+        if (safeRoute) {
+          router.push(safeRoute as any);
         }
       })
       .catch(() => {});
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as any;
-      if (data?.screen) {
-        router.push(data.screen as any);
+      const safeRoute = getSafeNotificationRoute(data?.screen);
+      if (safeRoute) {
+        router.push(safeRoute as any);
       }
     });
 

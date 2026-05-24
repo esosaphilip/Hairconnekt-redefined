@@ -7,6 +7,7 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ServiceCategory } from '../entities/service-category.entity';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category-admin.dto';
 
 @Controller('admin/categories')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -24,12 +25,7 @@ export class AdminCategoriesController {
 
   // POST /admin/categories — create new category
   @Post()
-  async create(@Body() body: {
-    name: string;
-    description?: string;
-    iconName?: string;
-    sortOrder?: number;
-  }) {
+  async create(@Body() body: CreateCategoryDto) {
     if (!body.name?.trim()) {
       throw new Error('Name ist erforderlich.');
     }
@@ -53,13 +49,7 @@ export class AdminCategoriesController {
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: {
-      name?: string;
-      description?: string;
-      iconName?: string;
-      sortOrder?: number;
-      isActive?: boolean;
-    },
+    @Body() body: UpdateCategoryDto,
   ) {
     const category = await this.categoryRepo.findOne({ where: { id } });
     if (!category) throw new Error('Kategorie nicht gefunden.');

@@ -42,6 +42,10 @@ export class AuthService {
     return value;
   }
 
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -106,7 +110,10 @@ export class AuthService {
     await this.userRepo.save(user);
 
     await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
-      this.logger.error('SendGrid email verification send failed', err);
+      this.logger.error(
+        'SendGrid email verification send failed',
+        err instanceof Error ? err.message : undefined,
+      );
     });
 
     return this.generateAuthResponse(user);
@@ -188,9 +195,14 @@ export class AuthService {
       throw new UnauthorizedException('Refresh-Token ungültig oder abgelaufen.');
     }
 
+    const tokenHash = this.hashRefreshToken(dto.refreshToken);
+
     // Check token exists in DB and is not revoked
     const stored = await this.refreshTokenRepo.findOne({
-      where: { token: dto.refreshToken, userId: payload.sub, isRevoked: false },
+      where: [
+        { token: tokenHash, userId: payload.sub, isRevoked: false },
+        { token: dto.refreshToken, userId: payload.sub, isRevoked: false },
+      ],
     });
     if (!stored || stored.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh-Token ungültig oder abgelaufen.');
@@ -209,8 +221,12 @@ export class AuthService {
   // ─── LOGOUT ────────────────────────────────────────────────────────────────
   async logout(userId: string, refreshToken?: string): Promise<void> {
     if (refreshToken) {
+      const tokenHash = this.hashRefreshToken(refreshToken);
       await this.refreshTokenRepo.update(
-        { userId, token: refreshToken },
+        [
+          { userId, token: tokenHash },
+          { userId, token: refreshToken },
+        ],
         { isRevoked: true },
       );
     } else {
@@ -421,7 +437,10 @@ export class AuthService {
     );
 
     await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
-      this.logger.error('Email verification resend failed', err);
+      this.logger.error(
+        'Email verification resend failed',
+        err instanceof Error ? err.message : undefined,
+      );
     });
 
     return { success: true };
@@ -545,7 +564,7 @@ export class AuthService {
 
     const refreshTokenEntity = this.refreshTokenRepo.create({
       userId: user.id,
-      token: refreshTokenStr,
+      token: this.hashRefreshToken(refreshTokenStr),
       expiresAt,
     });
     await this.refreshTokenRepo.save(refreshTokenEntity);

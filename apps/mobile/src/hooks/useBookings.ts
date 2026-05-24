@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugLog } from '@/utils/logger';
 
 export interface Booking {
   id: string;
@@ -51,7 +52,7 @@ export const useBookings = () => {
       const bookingList = data.data || data || [];
       setBookings(Array.isArray(bookingList) ? bookingList : []);
     } catch (err) {
-      console.log('Error fetching bookings:', err);
+      debugLog('Error fetching bookings:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setBookings([]);
     } finally {
@@ -67,7 +68,7 @@ export const useBookings = () => {
       // Refresh bookings after update
       await fetchBookings();
     } catch (err) {
-      console.log('Error updating booking:', err);
+      debugLog('Error updating booking:', err);
       throw err;
     }
   }, [fetchBookings]);

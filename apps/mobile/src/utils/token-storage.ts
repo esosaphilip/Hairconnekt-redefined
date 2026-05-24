@@ -1,8 +1,9 @@
 // src/utils/token-storage.ts
-// Secure token storage using AsyncStorage
-// Used by AuthContext and the API service interceptor
+// Store sensitive auth state in OS-backed secure storage.
+// Non-sensitive preferences remain in AsyncStorage.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const KEYS = {
   ACCESS_TOKEN: 'hc_access_token',
@@ -15,32 +16,32 @@ const KEYS = {
 
 export const tokenStorage = {
   async getAccessToken(): Promise<string | null> {
-    return AsyncStorage.getItem(KEYS.ACCESS_TOKEN);
+    return SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
   },
 
   async getRefreshToken(): Promise<string | null> {
-    return AsyncStorage.getItem(KEYS.REFRESH_TOKEN);
+    return SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
   },
 
   async getUserRole(): Promise<'client' | 'provider' | null> {
-    return AsyncStorage.getItem(KEYS.USER_ROLE) as Promise<'client' | 'provider' | null>;
+    return SecureStore.getItemAsync(KEYS.USER_ROLE) as Promise<'client' | 'provider' | null>;
   },
 
   async save(accessToken: string, refreshToken: string, role: 'client' | 'provider'): Promise<void> {
-    await AsyncStorage.multiSet([
-      [KEYS.ACCESS_TOKEN, accessToken],
-      [KEYS.REFRESH_TOKEN, refreshToken],
-      [KEYS.USER_ROLE, role],
+    await Promise.all([
+      SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken),
+      SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken),
+      SecureStore.setItemAsync(KEYS.USER_ROLE, role),
     ]);
   },
 
   /** Switch client ↔ provider mode without re-login (same keys as save). */
   async setUserRole(role: 'client' | 'provider'): Promise<void> {
-    await AsyncStorage.setItem(KEYS.USER_ROLE, role);
+    await SecureStore.setItemAsync(KEYS.USER_ROLE, role);
   },
 
   async setUser(user: any): Promise<void> {
-    await AsyncStorage.setItem(KEYS.USER_JSON, JSON.stringify(user));
+    await SecureStore.setItemAsync(KEYS.USER_JSON, JSON.stringify(user));
   },
 
   async getLanguage(): Promise<'de' | 'en'> {
@@ -55,11 +56,11 @@ export const tokenStorage = {
   },
 
   async clear(): Promise<void> {
-    await AsyncStorage.multiRemove([
-      KEYS.ACCESS_TOKEN,
-      KEYS.REFRESH_TOKEN,
-      KEYS.USER_ROLE,
-      KEYS.USER_JSON,
+    await Promise.all([
+      SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN),
+      SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
+      SecureStore.deleteItemAsync(KEYS.USER_ROLE),
+      SecureStore.deleteItemAsync(KEYS.USER_JSON),
     ]);
   },
 };

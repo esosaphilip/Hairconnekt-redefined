@@ -1,11 +1,18 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LogOut, Users, User, Tag, LayoutDashboard, Sparkles } from 'lucide-react';
+import { adminLogout, type AdminUserSummary } from '../api';
 
-export default function Layout() {
+type LayoutProps = {
+  user: AdminUserSummary;
+};
+
+export default function Layout({ user }: LayoutProps) {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+  const handleLogout = async () => {
+    try {
+      await adminLogout();
+    } catch {}
     navigate('/login');
   };
 
@@ -49,7 +56,7 @@ export default function Layout() {
         <header className="topbar">
           <div style={{ fontWeight: 600, fontSize: '1.25rem' }}>Admin Dashboard</div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Logged in as: <strong>admin@hairconnekt.de</strong>
+            Logged in as: <strong>{user.email}</strong>
           </div>
         </header>
         <div className="page-content">

@@ -1,10 +1,11 @@
 const { Client } = require('pg');
 require('dotenv').config({ path: './.env' });
+const { getDatabaseSslConfig } = require('./database-ssl');
 
 async function seed() {
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: getDatabaseSslConfig(),
   });
 
   try {

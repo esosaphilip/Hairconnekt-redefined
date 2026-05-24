@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
+import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { debugError } from '@/utils/logger';
 
 interface BookingItem {
   id: string;
@@ -71,7 +72,7 @@ export default function ProviderCalendarScreen() {
         setBlocks([]);
       }
     } catch (error) {
-      console.log('Error loading calendar data:', error);
+      debugError('Provider calendar load failed', error);
     } finally {
       setIsLoading(false);
     }

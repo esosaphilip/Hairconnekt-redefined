@@ -8,6 +8,7 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { AuthService } from '../../../services/authService';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError } from '@/utils/logger';
 
 
 export default function ProviderProfileHubScreen() {
@@ -33,7 +34,7 @@ export default function ProviderProfileHubScreen() {
       if (pData) setProvider(pData.data || pData);
       if (uData) setUser(uData.data || uData);
     } catch (error) {
-      console.log('Error loading provider profile:', error);
+      debugError('Provider profile hub load failed', error);
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +85,7 @@ export default function ProviderProfileHubScreen() {
         Alert.alert(t('error'), t('avatarUploadFailed'));
       }
     } catch (error) {
-      console.log('Upload error:', error);
+      debugError('Provider profile avatar upload failed', error);
     } finally {
       setIsUploading(false);
     }

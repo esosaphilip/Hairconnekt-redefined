@@ -1,4 +1,4 @@
-import { IsUUID, IsArray, IsString, IsBoolean, IsOptional, ValidateNested, Matches } from 'class-validator';
+import { IsUUID, IsArray, IsString, IsBoolean, IsOptional, Matches, MaxLength } from 'class-validator';
 
 export class CreateBookingDto {
   @IsUUID()
@@ -21,9 +21,10 @@ export class CreateBookingDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(500)
   clientNotes?: string;
 
-  @IsString()
   @IsOptional()
+  @IsUUID()
   addressId?: string;
 }

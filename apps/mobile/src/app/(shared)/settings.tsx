@@ -12,6 +12,7 @@ import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LEGAL_URLS } from '@/constants';
+import { debugLog } from '@/utils/logger';
 
 
 export default function SharedSettingsScreen() {
@@ -64,7 +65,7 @@ export default function SharedSettingsScreen() {
               await tokenStorage.clear();
               router.replace('/(auth)/login' as any);
             } catch (error) {
-              console.log('Error logging out:', error);
+              debugLog('Error logging out:', error);
               await tokenStorage.clear();
               router.replace('/(auth)/login' as any);
             }

@@ -3,6 +3,7 @@ import {
   UseGuards, ParseUUIDPipe, Query, Body,
   BadRequestException,
   NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -14,6 +15,8 @@ import { Service } from '../entities/service.entity';
 import { ProviderAdminDto } from './dto/provider-admin.dto';
 import { ProviderStatusReasonDto } from './dto/provider-status-reason.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import type { Response } from 'express';
+import { R2Service } from '../common/storage/r2.service';
 
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -26,6 +29,7 @@ export class AdminProvidersController {
     @InjectRepository(Service)
     private readonly serviceRepo: Repository<Service>,
     private readonly notificationsService: NotificationsService,
+    private readonly r2Service: R2Service,
   ) {}
 
   private isProtectedAddress(provider: Provider) {
@@ -152,6 +156,26 @@ export class AdminProvidersController {
 
     if (!row) throw new NotFoundException('Provider not found');
     return ProviderAdminDto.fromRaw(row);
+  }
+
+  @Get(':id/id-document')
+  async getIdDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'idDocumentUrl'],
+    });
+    if (!provider?.idDocumentUrl) {
+      throw new NotFoundException('ID document not found');
+    }
+
+    const signedUrl = await this.r2Service.createSignedReadUrl(
+      provider.idDocumentUrl,
+      60,
+    );
+    return res.redirect(signedUrl);
   }
 
   // PATCH /admin/providers/:id/approve — approve provider

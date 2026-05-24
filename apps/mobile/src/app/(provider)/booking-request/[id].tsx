@@ -8,6 +8,7 @@ import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { debugError } from '@/utils/logger';
 
 export default function BookingRequestScreen() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function BookingRequestScreen() {
       const data: any = await res.json();
       setBooking(data.data ?? data);
     } catch (err) {
-      console.log('Error loading booking:', err);
+      debugError('Provider booking request load failed', err);
       setError(t('errorUnknown'));
     } finally {
       setIsLoading(false);
@@ -69,7 +70,7 @@ export default function BookingRequestScreen() {
         await loadBooking();
       }
     } catch (err) {
-      console.log('Accept error:', err);
+      debugError('Provider booking accept failed', err);
     } finally {
       setIsAccepting(false);
     }
@@ -105,7 +106,7 @@ export default function BookingRequestScreen() {
                 await loadBooking();
               }
             } catch (err) {
-              console.log('Decline error:', err);
+              debugError('Provider booking decline failed', err);
             } finally {
               setIsDeclining(false);
             }

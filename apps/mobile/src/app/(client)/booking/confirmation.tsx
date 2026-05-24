@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
+import { debugError } from '@/utils/logger';
 
 export default function BookingConfirmation() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function BookingConfirmation() {
   try {
     booking = bookingParam ? JSON.parse(bookingParam as string) : null;
   } catch (e) {
-    console.error('Failed to parse booking data', e);
+    debugError('Failed to parse booking confirmation data', e);
   }
 
   // Fallback safe values

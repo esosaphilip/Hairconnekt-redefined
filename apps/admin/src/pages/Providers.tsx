@@ -3,6 +3,7 @@ import { UserCheck, UserX, UserMinus, ShieldAlert } from 'lucide-react';
 import {
   approveProvider,
   getProviders,
+  getAdminProviderIdDocumentUrl,
   rejectProvider,
   suspendProvider,
   type AdminProvider,
@@ -222,11 +223,11 @@ export default function Providers() {
                 <p><strong>Registriert:</strong> {new Date(selectedProvider.createdAt).toLocaleString()}</p>
               </div>
               
-              {selectedProvider.idDocumentUrl && (
+              {selectedProvider.hasIdDocument && (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Ausweisdokument</h3>
                   <div style={{ background: 'var(--bg-color)', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <img src={selectedProvider.idDocumentUrl} alt="ID Document" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain' }} />
+                    <img src={getAdminProviderIdDocumentUrl(selectedProvider.id)} alt="ID Document" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain' }} />
                   </div>
                 </div>
               )}

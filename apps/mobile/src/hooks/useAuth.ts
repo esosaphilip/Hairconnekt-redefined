@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { tokenStorage } from '../utils/token-storage';
 import { API } from '../utils/api';
+import { debugLog } from '../utils/logger';
 
 export interface User {
   id: string;
@@ -43,7 +44,7 @@ export const useAuth = () => {
         });
       }
     } catch (error) {
-      console.log('Auth check failed:', error);
+      debugLog('Auth check failed:', error);
       setAuthState({
         user: null,
         isLoading: false,

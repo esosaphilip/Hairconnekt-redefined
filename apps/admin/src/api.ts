@@ -7,25 +7,22 @@ const normalizeBaseUrl = (value: string): string => {
   return `${trimmed}/api/v1`;
 };
 
-const api = axios.create({
-  baseURL: normalizeBaseUrl(String(import.meta.env.VITE_API_URL ?? '')),
-});
+const API_BASE_URL = normalizeBaseUrl(String(import.meta.env.VITE_API_URL ?? ''));
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+const buildApiUrl = (path: string): string => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+};
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
 // Response interceptor to handle 401s globally
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('admin_token');
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;
@@ -33,12 +30,14 @@ export default api;
 export type ProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export type AdminUserSummary = {
+  id?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone?: string | null;
   avatarUrl?: string | null;
   isEmailVerified?: boolean;
+  role?: 'client' | 'provider' | 'admin';
 };
 
 export type AdminUser = {
@@ -76,8 +75,12 @@ export type AdminProvider = {
   providerType?: string | null;
   businessName?: string | null;
   avatarUrl?: string | null;
-  idDocumentUrl?: string | null;
+  hasIdDocument?: boolean;
   user?: AdminUserSummary | null;
+};
+
+export type AdminSessionResponse = {
+  user: AdminUserSummary;
 };
 
 export type Category = {
@@ -227,9 +230,22 @@ export async function deleteCategory(id: string): Promise<void> {
 export async function adminLogin(
   identifier: string,
   password: string,
-): Promise<{ accessToken: string }> {
+): Promise<AdminSessionResponse> {
   const res = await api.post('/auth/admin-login', { identifier, password });
-  return res.data as { accessToken: string };
+  return res.data as AdminSessionResponse;
+}
+
+export async function getAdminSession(): Promise<AdminSessionResponse> {
+  const res = await api.get('/auth/admin-session');
+  return res.data as AdminSessionResponse;
+}
+
+export async function adminLogout(): Promise<void> {
+  await api.post('/auth/admin-logout');
+}
+
+export function getAdminProviderIdDocumentUrl(providerId: string): string {
+  return buildApiUrl(`/admin/providers/${providerId}/id-document`);
 }
 
 export async function getAdminStats(): Promise<{

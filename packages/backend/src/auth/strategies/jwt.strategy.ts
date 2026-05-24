@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
+import { ADMIN_SESSION_COOKIE } from '../admin-session';
 
 export interface JwtPayload {
   sub: string;   // user.id
@@ -18,7 +19,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly userRepo: Repository<User>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: any) => req?.cookies?.[ADMIN_SESSION_COOKIE] ?? null,
+      ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_ACCESS_SECRET,
     });

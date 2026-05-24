@@ -1,6 +1,7 @@
 import { tokenStorage } from '../utils/token-storage';
 import { API } from '../utils/api';
 import { apiJson } from './apiClient';
+import { debugLog } from '../utils/logger';
 
 export interface LoginCredentials {
   identifier: string;
@@ -76,7 +77,7 @@ export class AuthService {
         });
       }
     } catch (error) {
-      console.log('Logout API call failed:', error);
+      debugLog('Logout API call failed:', error);
     } finally {
       await tokenStorage.clear();
     }

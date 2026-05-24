@@ -8,6 +8,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '@/them
 import { AuthService } from '../../../services/authService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function ClientProfileScreen() {
         router.replace('/(auth)/login');
         return;
       }
-      console.log('Failed to fetch user', err);
+      debugError('Client profile load failed', err);
     } finally {
       setIsLoading(false);
     }
