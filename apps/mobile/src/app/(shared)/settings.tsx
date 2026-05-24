@@ -11,6 +11,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LEGAL_URLS } from '@/constants';
 
 
 export default function SharedSettingsScreen() {
@@ -31,10 +32,8 @@ export default function SharedSettingsScreen() {
     await Linking.openSettings();
   };
 
-  const handleLink = (url: string) => {
-    Linking.openURL(url).catch(() => {
-      Alert.alert(t('error'), t('errorOpenLink'));
-    });
+  const openLegal = (url: string, title: string) => {
+    router.push({ pathname: '/(shared)/legal', params: { url, title } } as any);
   };
 
   const handleLogout = () => {
@@ -182,11 +181,9 @@ export default function SharedSettingsScreen() {
 
         <Text style={styles.sectionTitle}>{t('settingsLegal')}</Text>
         <View style={styles.cardGroup}>
-          {renderRow("shield", t('settingsPrivacy'), () => handleLink('https://hairconnekt.de/privacy'))}
-          <View style={styles.divider} />
-          {renderRow("file-text", t('settingsTerms'), () => handleLink('https://hairconnekt.de/terms'))}
-          <View style={styles.divider} />
-          {renderRow("info", t('settingsImprint'), () => handleLink('https://hairconnekt.de/impressum'))}
+          {renderRow("shield", t('settingsPrivacy'), () => openLegal(LEGAL_URLS.privacy, t('settingsPrivacy')))}
+          {renderRow("file-text", t('settingsTerms'), () => openLegal(LEGAL_URLS.terms, t('settingsTerms')))}
+          {renderRow("info", t('settingsImprint'), () => openLegal(LEGAL_URLS.imprint, t('settingsImprint')))}
         </View>
 
         <View style={styles.mainDivider} />
