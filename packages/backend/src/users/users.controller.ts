@@ -13,6 +13,13 @@ import { User } from '../entities/user.entity';
 import { Provider } from '../entities/provider.entity';
 import { R2Service } from '../common/storage/r2.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ensureAllowedImageUpload } from '../common/files/file-validation';
+import {
+  CreateAddressDto,
+  DeleteAccountDto,
+  UpdateAddressDto,
+  UpdateUserProfileDto,
+} from './dto/user-endpoints.dto';
 
 @Controller('users')
 export class UsersController {
@@ -34,7 +41,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async updateMe(
     @CurrentUser() user: User,
-    @Body() body: { firstName?: string; lastName?: string; phone?: string },
+    @Body() body: UpdateUserProfileDto,
   ) {
     return this.usersService.updateMe(user.id, body);
   }
@@ -44,7 +51,7 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async deleteAccount(
     @CurrentUser() user: User,
-    @Body() body: { password: string },
+    @Body() body: DeleteAccountDto,
   ) {
     if (!body?.password) {
       throw new BadRequestException(
@@ -68,8 +75,8 @@ export class UsersController {
 
   @Post('me/addresses')
   @UseGuards(JwtAuthGuard)
-  async createAddress(@CurrentUser() user: User, @Body() body: Record<string, unknown>) {
-    return this.usersService.createAddress(user.id, body as any);
+  async createAddress(@CurrentUser() user: User, @Body() body: CreateAddressDto) {
+    return this.usersService.createAddress(user.id, body);
   }
 
   @Patch('me/addresses/:id')
@@ -77,9 +84,9 @@ export class UsersController {
   async updateAddress(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: UpdateAddressDto,
   ) {
-    return this.usersService.updateAddress(user.id, id, body as any);
+    return this.usersService.updateAddress(user.id, id, body);
   }
 
   @Delete('me/addresses/:id')
@@ -98,7 +105,7 @@ export class UsersController {
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
+        if (!/^(image\/jpeg|image\/png|image\/webp)$/.test(file.mimetype)) {
           return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
         }
         cb(null, true);
@@ -110,6 +117,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    ensureAllowedImageUpload(file);
     const url = await this.r2Service.uploadFile(
       file.buffer,
       file.mimetype,

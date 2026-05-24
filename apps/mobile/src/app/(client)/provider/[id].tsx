@@ -10,6 +10,7 @@ import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
+import { debugLog } from '@/utils/logger';
 
 const { width } = Dimensions.get('window');
 
@@ -63,7 +64,6 @@ export default function ProviderProfile() {
       setServices(servRes.data || servRes);
       
       const portData = portRes.data || portRes || [];
-      console.log('Portfolio data:', JSON.stringify(portData).slice(0, 200));
       setPortfolio(portData.filter((img: any) => !!img.imageUrl));
 
       setReviews(revRes.data || revRes);
@@ -115,13 +115,13 @@ export default function ProviderProfile() {
       const conversationId = data?.data?.id ?? data?.id;
 
       if (!conversationId) {
-        console.log('No conversation ID returned');
+        debugLog('No conversation ID returned');
         return;
       }
 
       router.push(`/(shared)/chat/${conversationId}` as any);
     } catch (err) {
-      console.log('openChat error:', err);
+      debugLog('openChat error:', err);
     }
   };
 
@@ -273,7 +273,7 @@ export default function ProviderProfile() {
                 if (!imageUrl) return null;
                 return (
                   <View style={styles.galleryImageContainer}>
-                    <Image source={{ uri: imageUrl }} style={styles.galleryImage} resizeMode="cover" onError={() => console.log('Gallery image failed:', imageUrl)} />
+                    <Image source={{ uri: imageUrl }} style={styles.galleryImage} resizeMode="cover" onError={() => debugLog('Provider gallery image failed')} />
                   </View>
                 );
               }}

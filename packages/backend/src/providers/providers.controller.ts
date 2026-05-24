@@ -12,12 +12,18 @@ import { User, UserRole as Role } from '../entities/user.entity';
 import { ProvidersService } from './providers.service';
 import { RegisterProviderDto } from './dto/register-provider.dto';
 import { CreateServiceDto, UpdateServiceDto, CreateTimeBlockDto } from './dto/provider-endpoints.dto';
+import {
+  UpdateAvailabilityScheduleDto,
+  UpdateOnlineStatusDto,
+  UpdateProviderProfileDto,
+} from './dto/provider-security.dto';
 import { memoryStorage } from 'multer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Provider } from '../entities/provider.entity';
 import { PortfolioImage } from '../entities/portfolio-image.entity';
 import { R2Service } from '../common/storage/r2.service';
+import { ensureAllowedImageUpload } from '../common/files/file-validation';
 
 @Controller('providers')
 export class ProvidersController {
@@ -53,7 +59,7 @@ export class ProvidersController {
   @Roles(Role.PROVIDER)
   async updateMyProfile(
     @CurrentUser() user: User,
-    @Body() body: Record<string, any>,
+    @Body() body: UpdateProviderProfileDto,
   ) {
     return this.providersService.updateMyProfile(user.id, body);
   }
@@ -66,7 +72,7 @@ export class ProvidersController {
   @Roles(Role.PROVIDER)
   async updateAvailabilitySchedule(
     @CurrentUser() user: User,
-    @Body() body: { schedule: any[]; bufferMinutes?: number },
+    @Body() body: UpdateAvailabilityScheduleDto,
   ) {
     return this.providersService.updateAvailabilitySchedule(user.id, body);
   }
@@ -85,7 +91,7 @@ export class ProvidersController {
   @Roles(Role.PROVIDER)
   async setAvailability(
     @CurrentUser() user: User,
-    @Body() body: { isOnline: boolean },
+    @Body() body: UpdateOnlineStatusDto,
   ) {
     return this.providersService.setOnlineStatus(user.id, body.isOnline);
   }
@@ -98,7 +104,7 @@ export class ProvidersController {
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
+        if (!/^(image\/jpeg|image\/png|image\/webp)$/.test(file.mimetype)) {
           return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
         }
         cb(null, true);
@@ -110,6 +116,7 @@ export class ProvidersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    ensureAllowedImageUpload(file);
     const url = await this.r2Service.uploadFile(
       file.buffer,
       file.mimetype,
@@ -132,7 +139,7 @@ export class ProvidersController {
       storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for ID docs
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
+        if (!/^(image\/jpeg|image\/png|image\/webp)$/.test(file.mimetype)) {
           return cb(new BadRequestException('Nur Bilder erlaubt.'), false);
         }
         cb(null, true);
@@ -144,15 +151,16 @@ export class ProvidersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Kein Dokument hochgeladen.');
-    const url = await this.r2Service.uploadFile(
+    ensureAllowedImageUpload(file);
+    const storageKey = await this.r2Service.uploadPrivateFile(
       file.buffer,
       file.mimetype,
       'id-documents',
     );
     const provider = await this.providersService.findByUserId(user.id);
     if (!provider) throw new NotFoundException();
-    await this.providerRepo.update(provider.id, { idDocumentUrl: url });
-    return { idDocumentUrl: url };
+    await this.providerRepo.update(provider.id, { idDocumentUrl: storageKey });
+    return { uploaded: true };
   }
 
 

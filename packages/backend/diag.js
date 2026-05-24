@@ -1,8 +1,12 @@
 require('dotenv').config();
 const { Client } = require('pg');
+const { getDatabaseSslConfig } = require('./database-ssl');
 
 async function run() {
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: getDatabaseSslConfig(),
+  });
   await client.connect();
 
   console.log('--- FIXING DB SCHEMA ---');

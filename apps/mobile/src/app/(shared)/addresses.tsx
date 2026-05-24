@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError } from '@/utils/logger';
 
 
 interface Address {
@@ -55,7 +56,7 @@ export default function AddressesScreen() {
       const list = data.data ?? data ?? [];
       setAddresses(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.log('Error loading addresses:', error);
+      debugError('Address list load failed', error);
       setListErrorVisible(true);
       setAddresses([]);
     } finally {
@@ -102,7 +103,7 @@ export default function AddressesScreen() {
                 setAddresses(prev => prev.filter(a => a.id !== id));
               }
             } catch (error) {
-              console.log('Error deleting address:', error);
+              debugError('Address delete failed', error);
             }
           }
         }
@@ -127,7 +128,7 @@ export default function AddressesScreen() {
         body: JSON.stringify({ isDefault: true })
       }).catch(() => ({}));
     } catch (error) {
-      console.log('Error setting default:', error);
+      debugError('Address default update failed', error);
       loadAddresses(); // Revert on error
     }
   };
@@ -156,7 +157,7 @@ export default function AddressesScreen() {
       setShowModal(false);
       await loadAddresses();
     } catch (error) {
-      console.log('Error saving address:', error);
+      debugError('Address save failed', error);
       Alert.alert(t('error'), t('addressesSaveError'));
     } finally {
       setIsSaving(false);

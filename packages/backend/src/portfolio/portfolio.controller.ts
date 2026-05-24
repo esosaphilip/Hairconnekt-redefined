@@ -22,6 +22,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../entities/user.entity';
 import { PortfolioService } from './portfolio.service';
+import { ensureAllowedImageUpload } from '../common/files/file-validation';
+import { UploadPortfolioImageDto } from './upload-portfolio-image.dto';
 
 @Controller('providers')
 export class PortfolioController {
@@ -71,21 +73,17 @@ export class PortfolioController {
       }),
     )
     file: Express.Multer.File,
-    @Body('caption') caption?: string,
-    @Body('styleTags') styleTagsRaw?: string,
+    @Body() body: UploadPortfolioImageDto,
   ) {
     if (!file) throw new BadRequestException('Kein Bild hochgeladen.');
+    ensureAllowedImageUpload(file);
 
-    let styleTags: string[] = [];
-    if (styleTagsRaw) {
-      try {
-        styleTags = JSON.parse(styleTagsRaw);
-      } catch (e) {
-        throw new BadRequestException('Ungültige styleTags Format.');
-      }
-    }
-
-    return this.portfolioService.uploadImage(user.id, file, caption, styleTags);
+    return this.portfolioService.uploadImage(
+      user.id,
+      file,
+      body.caption?.trim(),
+      body.styleTags ?? [],
+    );
   }
 
   /**

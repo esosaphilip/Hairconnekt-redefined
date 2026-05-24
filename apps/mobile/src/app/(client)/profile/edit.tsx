@@ -8,6 +8,7 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 
 export default function ClientProfileEditScreen() {
@@ -50,7 +51,7 @@ export default function ClientProfileEditScreen() {
         setPhone(data.phone || data.data?.phone || '');
       }
     } catch (error: any) {
-      console.log('Error loading profile:', error);
+      debugError('Client profile load failed', error);
       setErrorMessage(mapHttpError(error?.status || 500, undefined, lang));
       setErrorVisible(true);
     } finally {
@@ -87,7 +88,7 @@ export default function ClientProfileEditScreen() {
         setErrorVisible(true);
       }
     } catch (error: any) {
-      console.log('Error saving profile:', error);
+      debugError('Client profile save failed', error);
       setErrorMessage(mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {
@@ -109,7 +110,7 @@ export default function ClientProfileEditScreen() {
         uploadAvatar(result.assets[0].uri);
       }
     } catch (error) {
-      console.log('Error picking avatar', error);
+      debugError('Client avatar selection failed', error);
       setErrorMessage(t('personalInfoPickImageError'));
       setErrorVisible(true);
     }
@@ -142,7 +143,7 @@ export default function ClientProfileEditScreen() {
       setAvatarUri(data.avatarUrl || uri);
       setAvatarVersion(Date.now());
     } catch (error: any) {
-      console.log('Avatar upload error', error);
+      debugError('Client avatar upload failed', error);
       setErrorMessage(error.message || mapHttpError(500, undefined, lang));
       setErrorVisible(true);
     } finally {

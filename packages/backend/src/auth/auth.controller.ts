@@ -1,5 +1,6 @@
 import {
   Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Req, HttpException,
+  Res, Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -12,12 +13,19 @@ import { GoogleAuthDto } from './dto/google-auth.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
+import {
+  clearAdminSessionCookie,
+  setAdminSessionCookie,
+} from './admin-session';
+import { AdminGuard } from './guards/admin.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -56,8 +64,22 @@ export class AuthController {
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 15 * 60 } })
   @HttpCode(HttpStatus.OK)
-  adminLogin(@Body() dto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.adminLogin(dto);
+  async adminLogin(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ user: AuthResponseDto['user'] }> {
+    const auth = await this.authService.adminLogin(dto);
+    setAdminSessionCookie(res, auth.accessToken);
+    return { user: auth.user };
+  }
+
+  @Get('admin-session')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  getAdminSession(@CurrentUser() user: User): { user: AuthResponseDto['user'] } {
+    return {
+      user: AuthResponseDto.fromUser(user, '', '').user,
+    };
   }
 
   /**
@@ -97,9 +119,24 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
     @CurrentUser() user: User,
-    @Body() body: { refreshToken?: string },
+    @Body() body: LogoutDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
     await this.authService.logout(user.id, body.refreshToken);
+    if (user.role === 'admin') {
+      clearAdminSessionCookie(res);
+    }
+  }
+
+  @Post('admin-logout')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async adminLogout(
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    clearAdminSessionCookie(res);
+    await this.authService.logout(user.id);
   }
 
   /**

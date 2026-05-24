@@ -9,6 +9,7 @@ import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -106,7 +107,7 @@ export default function AppointmentsList() {
         router.push(`/(shared)/chat/${conversationId}` as any);
       }
     } catch (err) {
-      console.log('openChat error:', err);
+      debugError('Client appointments chat open failed', err);
     }
   };
 

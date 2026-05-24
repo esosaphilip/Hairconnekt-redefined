@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getSafeNotificationRoute } from '@/utils/safe-navigation';
+import { debugLog } from '@/utils/logger';
 
 interface Notification {
   id: string;
@@ -67,7 +69,7 @@ export default function NotificationsScreen() {
       setHasMore(data.meta?.hasNextPage || false);
       setPage(pageNum);
     } catch (error) {
-      console.log('Error loading notifications', error);
+      debugLog('Error loading notifications', error);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -79,7 +81,7 @@ export default function NotificationsScreen() {
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
       await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
     } catch (e) {
-      console.log('Error marking as read', e);
+      debugLog('Error marking as read', e);
     }
   };
 
@@ -88,7 +90,7 @@ export default function NotificationsScreen() {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
     } catch (e) {
-      console.log('Error marking all as read', e);
+      debugLog('Error marking all as read', e);
     }
   };
 
@@ -97,8 +99,9 @@ export default function NotificationsScreen() {
       markAsRead(notif.id);
     }
 
-    if (notif.data?.screen) {
-      router.push(notif.data.screen as any);
+    const safeRoute = getSafeNotificationRoute(notif.data?.screen);
+    if (safeRoute) {
+      router.push(safeRoute as any);
     }
   };
 

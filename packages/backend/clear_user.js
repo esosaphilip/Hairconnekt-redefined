@@ -1,8 +1,15 @@
 const { Client } = require('pg');
+require('dotenv').config({ path: './.env' });
+const { getDatabaseSslConfig } = require('./database-ssl');
+
 async function clear() {
   const client = new Client({
-    connectionString: 'postgresql://neondb_owner:npg_f01nAFwaBVit@ep-damp-rain-ak9khu2m-pooler.c-3.us-west-2.aws.neon.tech/neondb?sslmode=require'
+    connectionString: process.env.DATABASE_URL,
+    ssl: getDatabaseSslConfig(),
   });
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required.');
+  }
   await client.connect();
   const res = await client.query("DELETE FROM \"user\" WHERE email='neu@test.de'");
   console.log('User deleted: ' + res.rowCount);

@@ -19,6 +19,7 @@ import { StorageModule } from './common/storage/storage.module';
 import { AdminModule } from './admin/admin.module';
 import { PopularStylesModule } from './popular-styles/popular-styles.module';
 import { HealthModule } from './health/health.module';
+import { getDatabaseSslConfig } from './common/database/database-ssl';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { HealthModule } from './health/health.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+      ssl: getDatabaseSslConfig(),
       autoLoadEntities: true,
       synchronize: false, // Disable auto-sync in production
       logging:

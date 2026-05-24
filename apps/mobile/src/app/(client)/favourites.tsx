@@ -7,6 +7,7 @@ import { useFavourites } from '../../contexts/FavouritesContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 type ProviderSummaryDto = {
   id: string;
@@ -45,7 +46,7 @@ export default function FavouritesScreen() {
         router.replace('/(auth)/login');
         return;
       }
-      console.log('Failed to fetch favourites', err);
+      debugError('Client favourites load failed', err);
     } finally {
       setIsLoading(false);
     }

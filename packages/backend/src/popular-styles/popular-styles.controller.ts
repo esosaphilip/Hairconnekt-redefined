@@ -27,6 +27,7 @@ import {
   ReorderPopularStylesDto,
   UpdatePopularStyleDto,
 } from './dto/popular-style.dto';
+import { ensureAllowedImageUpload } from '../common/files/file-validation';
 
 @Controller('popular-styles')
 export class PopularStylesController {
@@ -72,6 +73,7 @@ export class AdminPopularStylesController {
     )
     file: Express.Multer.File,
   ): Promise<{ imageUrl: string }> {
+    ensureAllowedImageUpload(file);
     return this.popularStylesService.uploadAdminImage(id, file);
   }
 

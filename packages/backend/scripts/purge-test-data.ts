@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { Provider } from '../src/entities/provider.entity';
 import { User } from '../src/entities/user.entity';
+import { getDatabaseSslConfig } from '../src/common/database/database-ssl';
 
 const requireEnv = (key: string): string => {
   const v = process.env[key];
@@ -38,7 +39,7 @@ const main = async () => {
   const dataSource = new DataSource({
     type: 'postgres',
     url: databaseUrl,
-    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+    ssl: getDatabaseSslConfig(),
     entities: [Provider, User],
   });
 

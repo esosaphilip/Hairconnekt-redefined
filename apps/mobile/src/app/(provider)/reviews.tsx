@@ -7,6 +7,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError, debugLog } from '@/utils/logger';
 
 interface ReviewSummary {
   avgRating: number;
@@ -38,9 +39,6 @@ export default function ReviewsScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterValue>('all');
   
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-
   const [respondingToId, setRespondingToId] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
@@ -59,19 +57,19 @@ export default function ReviewsScreen() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!meRes.ok) {
-        console.log('Could not load provider profile, status:', meRes.status);
+        debugLog(`Could not load provider profile status=${meRes.status}`);
         return;
       }
       const meData = await meRes.json();
       const pId: string | undefined = meData.id;
       if (!pId) {
-        console.log('Provider ID missing in response');
+        debugLog('Provider ID missing in response');
         return;
       }
       setProviderId(pId);
       await loadReviews(pId, 'all', 1, true);
     } catch (error) {
-      console.log('Error initializing reviews', error);
+      debugError('Provider reviews init failed', error);
     } finally {
       setIsLoading(false);
     }
@@ -104,11 +102,9 @@ export default function ReviewsScreen() {
       }
 
       setReviews(prev => refresh ? newReviews : [...prev, ...newReviews]);
-      setHasMore(data.meta?.hasNextPage || false);
-      setPage(pageNum);
 
     } catch (error) {
-      console.log('Error loading reviews', error);
+      debugError('Provider reviews load failed', error);
     }
   };
 
@@ -142,7 +138,7 @@ export default function ReviewsScreen() {
       
       const method = isEdit ? 'PATCH' : 'POST';
 
-      const res = await fetch(`${API}/reviews/${respondingToId}/response`, {
+      await fetch(`${API}/reviews/${respondingToId}/response`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -156,7 +152,7 @@ export default function ReviewsScreen() {
       closeReplyModal();
 
     } catch (error) {
-      console.log('Error submitting response', error);
+      debugError('Provider review response failed', error);
     } finally {
       setIsSubmittingResponse(false);
     }

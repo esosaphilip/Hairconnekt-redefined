@@ -1,5 +1,5 @@
 import { IsString, IsInt, IsArray, IsEnum, IsOptional,
-         Min, Max, MaxLength, Matches } from 'class-validator';
+         Min, Max, MaxLength, Matches, IsUUID } from 'class-validator';
 
 export enum ProviderType {
   FREELANCER = 'freelancer',
@@ -20,7 +20,7 @@ export class RegisterProviderDto {
   @IsString() @MaxLength(100) city: string;
   @IsString() @Matches(/^\d{4,6}$/) postalCode: string;
   @IsInt() @Min(1) @Max(100) serviceRadius: number;
-  @IsArray() @IsString({ each: true }) serviceIds: string[];
+  @IsArray() @IsUUID('all', { each: true }) serviceIds: string[];
   @IsInt() @Min(0) @Max(50) experienceYears: number;
   @IsArray() @IsString({ each: true }) languages: string[];
   @IsEnum(CancellationPolicy) cancellationPolicy: CancellationPolicy;

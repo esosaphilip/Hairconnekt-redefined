@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError, debugLog } from '@/utils/logger';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -53,7 +54,7 @@ export default function PortfolioScreen() {
         }
       }
     } catch (error) {
-      console.log('Error fetching portfolio:', error);
+      debugError('Provider portfolio load failed', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function PortfolioScreen() {
                 setImages(prevImages);
               }
             } catch (error) {
-              console.log('Error deleting image:', error);
+              debugError('Provider portfolio delete failed', error);
               setImages(prevImages);
             }
           }
@@ -109,7 +110,7 @@ export default function PortfolioScreen() {
           style={styles.image} 
           resizeMode="cover" 
           onError={() => {
-            console.log('Image load error:', item.imageUrl);
+            debugLog('Provider portfolio image load failed');
             setImages(prev => prev.filter(i => i.id !== item.id));
           }}
         />

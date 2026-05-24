@@ -8,6 +8,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { apiFetch } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError, debugLog } from '@/utils/logger';
 
 const PRESET_TAGS = ['Knotless', 'Box Braids', 'Cornrows', 'Twists', 'Locs', 'Fades'];
 
@@ -52,7 +53,7 @@ export default function PortfolioUploadScreen() {
         setErrorVisible(false);
       }
     } catch (error) {
-      console.log('Error picking image', error);
+      debugError('Portfolio image selection failed', error);
       setErrorMessage(t('pickImageError'));
       setErrorVisible(true);
     }
@@ -158,7 +159,7 @@ export default function PortfolioUploadScreen() {
                   source={{ uri: previewUri ?? imageUri }}
                   style={styles.previewImage}
                   resizeMode="cover"
-                  onError={(e) => console.log('Preview error:', e.nativeEvent.error)}
+                  onError={() => debugLog('Portfolio preview failed')}
                 />
                 <View style={styles.changeImageOverlay}>
                   <Feather name="camera" size={24} color={colors.background} />

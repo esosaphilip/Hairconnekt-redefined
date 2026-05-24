@@ -24,6 +24,7 @@ import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { Throttle } from '@nestjs/throttler';
+import { ensureAllowedChatMediaUpload } from '../common/files/file-validation';
 
 @Controller('chat')
 export class ChatController {
@@ -93,6 +94,7 @@ export class ChatController {
     file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Keine Datei hochgeladen.');
+    ensureAllowedChatMediaUpload(file);
     return this.chatService.sendMediaMessage(user.id, id, file);
   }
 }

@@ -6,6 +6,7 @@ import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { debugError } from '@/utils/logger';
 
 
 interface Review {
@@ -47,7 +48,7 @@ export default function ClientReviewsScreen() {
       const data: any = await res.json();
       setReviews(data.data || []);
     } catch (error) {
-      console.log('Error loading reviews:', error);
+      debugError('Client review history load failed', error);
     } finally {
       setIsLoading(false);
     }

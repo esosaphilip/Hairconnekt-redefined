@@ -12,8 +12,7 @@ export default function Login() {
     e.preventDefault();
     try {
       const res = await adminLogin(email, password);
-      if (res?.accessToken) {
-        localStorage.setItem('admin_token', res.accessToken);
+      if (res?.user) {
         navigate('/dashboard');
       }
     } catch (err: unknown) {

@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { MediaPickerActionSheet } from '@/components/MediaPickerActionSheet';
 import { pickChatDocument, pickChatImage } from '@/utils/chat-media-picker';
+import { debugError } from '@/utils/logger';
 
 type ConversationDetailResponse = {
   id: string;
@@ -419,8 +420,9 @@ export default function SharedChatScreen() {
       } else {
         loadConversation();
       }
-    } catch {
-      console.log('Media upload failed');
+    } catch (error) {
+      debugError('Chat media upload failed', error);
+      showError(500);
     } finally {
       setIsUploadingMedia(false);
     }

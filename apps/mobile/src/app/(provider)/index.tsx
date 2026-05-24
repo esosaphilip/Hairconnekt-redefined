@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { debugError } from '@/utils/logger';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -17,7 +18,6 @@ export default function ProviderDashboardScreen() {
   const [provider, setProvider] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [isTogglingOnline, setIsTogglingOnline] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     todayAppointments: 0,
     nextAppointmentTime: '--:--',
@@ -82,7 +82,6 @@ export default function ProviderDashboardScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       // Load stats and bookings in parallel
       const [providerRes, statsRes, bookingsRes] = await Promise.all([
@@ -107,8 +106,7 @@ export default function ProviderDashboardScreen() {
         setTodayBookings(bookingsData.data || bookingsData || []);
       }
     } catch (error) {
-      console.log('Error loading dashboard data:', error);
-      setError(t('dashboardLoadError'));
+      debugError('Provider dashboard load failed', error);
     } finally {
       setLoading(false);
     }
@@ -134,7 +132,7 @@ export default function ProviderDashboardScreen() {
       }
     } catch (error) {
       setIsOnline(!newStatus); // Revert on error
-      console.log('Error updating availability:', error);
+      debugError('Provider availability update failed', error);
     } finally {
       setIsTogglingOnline(false);
     }
@@ -151,7 +149,7 @@ export default function ProviderDashboardScreen() {
         loadData(); // Reload to get updated status
       }
     } catch (error) {
-      console.log('Error starting booking:', error);
+      debugError('Provider booking start failed', error);
     }
   };
 

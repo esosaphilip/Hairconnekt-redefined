@@ -43,9 +43,8 @@ export class ProviderAdminDto {
   @IsString()
   city: string;
 
-  @IsOptional()
-  @IsString()
-  idDocumentUrl: string | null;
+  @IsBoolean()
+  hasIdDocument: boolean;
 
   @IsOptional()
   @IsString()
@@ -70,7 +69,7 @@ export class ProviderAdminDto {
     dto.providerType = row.providerType;
     dto.status = row.status;
     dto.city = row.city;
-    dto.idDocumentUrl = row.idDocumentUrl ?? null;
+    dto.hasIdDocument = Boolean(row.idDocumentUrl);
     dto.avatarUrl = row.avatarUrl ?? null;
     dto.isEmailVerified = Boolean(row.userIsEmailVerified);
     dto.servicesCount = Number(row.servicesCount ?? 0);
