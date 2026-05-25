@@ -18,7 +18,7 @@
     "@react-native-community/slider": "5.1.2",
     "@sentry/react-native": "~7.11.0",
     "axios": "^1.16.1",
-    "expo": "~55.0.26",
+    "expo": "~56.0.4",
     "expo-asset": "~55.0.17",
     "expo-constants": "~55.0.16",
     "expo-device": "~55.0.17",
