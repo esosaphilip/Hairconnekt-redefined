@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +23,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(ChatGateway.name);
   private typingTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
@@ -155,7 +156,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             bodyEn: preview,
             data: { screen: `/(shared)/chat/${conversationId}`, conversationId },
           });
-        } catch {}
+        } catch (error) {
+          this.logger.warn(
+            `Failed to deliver chat notification to ${recipientUserId}: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          );
+        }
       }
     }
     return msg;

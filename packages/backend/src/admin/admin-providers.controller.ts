@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Res,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -24,6 +25,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminProvidersController {
+  private readonly logger = new Logger(AdminProvidersController.name);
+
   constructor(
     @InjectRepository(Provider)
     private readonly providerRepo: Repository<Provider>,
@@ -218,7 +221,13 @@ export class AdminProvidersController {
         bodyEn: 'Your HairConnekt profile has been approved. You can now receive bookings!',
         data: { screen: '/(provider)/' },
       });
-    } catch {}
+    } catch (error) {
+      this.logger.warn(
+        `Failed to notify approved provider ${provider.userId}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
 
     await this.auditService.record({
       actorUserId: admin.id,

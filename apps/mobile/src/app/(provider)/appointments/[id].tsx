@@ -4,50 +4,101 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
-import { tokenStorage } from '../../../utils/token-storage';
-import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
+import { ApiError, apiJson } from '@/services/apiClient';
+import { mapHttpError } from '@/utils/error-messages';
+
+type BookingClient = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  avatarUrl?: string;
+  city?: string;
+  address?: {
+    city?: string;
+  };
+};
+
+type BookingServiceItem = {
+  id: string;
+  name: string;
+};
+
+type ProviderAppointment = {
+  id: string;
+  status: string;
+  bookingNumber?: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  totalPrice: number;
+  platformFeeAmount?: number;
+  platformFeePercent?: number;
+  providerPayout?: number;
+  clientNotes?: string;
+  client?: BookingClient;
+  services?: BookingServiceItem[];
+};
+
+type ProviderAppointmentResponse = ProviderAppointment | { data?: ProviderAppointment };
+type ConversationResponse = { id?: string; data?: { id?: string } };
 
 export default function ProviderAppointmentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const bookingId = String(id ?? '');
   
   const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<ProviderAppointment | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (bookingId) {
       fetchBookingDetails();
     }
-  }, [id]);
+  }, [bookingId]);
 
   useFocusEffect(
     React.useCallback(() => {
-      if (id) fetchBookingDetails();
-    }, [id]),
+      if (bookingId) fetchBookingDetails();
+    }, [bookingId]),
   );
+
+  const extractBooking = (
+    payload: ProviderAppointmentResponse,
+  ): ProviderAppointment | null =>
+    'data' in payload ? payload.data ?? null : (payload as ProviderAppointment);
+
+  const getErrorMessage = (error: unknown, fallback: string): string => {
+    if (error instanceof ApiError) {
+      const body = error.body;
+      if (body && typeof body === 'object' && 'message' in body) {
+        const message = (body as { message?: unknown }).message;
+        if (typeof message === 'string' && message.trim()) {
+          return message;
+        }
+      }
+      return mapHttpError(error.status, fallback, lang);
+    }
+    return fallback;
+  };
 
   const fetchBookingDetails = async () => {
     try {
       setLoading(true);
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/bookings/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const payload = await apiJson<ProviderAppointmentResponse>(`/bookings/${bookingId}`, {
+        auth: true,
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setBooking(data);
-      }
+      setBooking(extractBooking(payload));
     } catch (error) {
       debugError('Provider appointment detail load failed', error);
+      setBooking(null);
     } finally {
       setLoading(false);
     }
@@ -57,58 +108,47 @@ export default function ProviderAppointmentDetailScreen() {
     const recipientId = booking?.client?.id as string | undefined;
     if (!recipientId) return;
     try {
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/chat/conversations`, {
+      const payload = await apiJson<ConversationResponse>('/chat/conversations', {
+        auth: true,
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const conversationId = data.data?.id ?? data.id;
+      const conversationId = payload.data?.id ?? payload.id;
+      if (conversationId) {
         router.push(('/(shared)/chat/' + conversationId) as any);
       }
-    } catch {}
+    } catch (error) {
+      debugError('Provider appointment chat open failed', error);
+      Alert.alert(t('error'), getErrorMessage(error, t('errorUnknown')));
+    }
   };
 
   const updateBookingStatus = async (action: 'start' | 'complete') => {
     try {
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/bookings/${id}/${action}`, {
+      await apiJson<unknown>(`/bookings/${bookingId}/${action}`, {
+        auth: true,
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      if (response.ok) {
-        fetchBookingDetails(); // Reload data
-      }
+      fetchBookingDetails();
     } catch (error) {
       debugError(`Provider booking status update failed action=${action}`, error);
+      Alert.alert(t('error'), getErrorMessage(error, t('errorUnknown')));
     }
   };
 
   const acceptBooking = async () => {
     try {
       setIsAccepting(true);
-      const token = await tokenStorage.getAccessToken();
-      const response = await fetch(`${API}/bookings/${id}/accept`, {
+      await apiJson<unknown>(`/bookings/${bookingId}/accept`, {
+        auth: true,
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      if (response.ok) {
-        fetchBookingDetails();
-      } else {
-        let msg = t('providerBookingAcceptError');
-        try {
-          const j: any = await response.json();
-          msg = j?.message || msg;
-        } catch {}
-        Alert.alert(t('error'), msg);
-        fetchBookingDetails();
-      }
+      fetchBookingDetails();
     } catch (error) {
       debugError('Provider appointment accept failed', error);
+      Alert.alert(t('error'), getErrorMessage(error, t('providerBookingAcceptError')));
+      fetchBookingDetails();
     } finally {
       setIsAccepting(false);
     }
@@ -126,25 +166,15 @@ export default function ProviderAppointmentDetailScreen() {
           onPress: async () => {
             try {
               setIsDeclining(true);
-              const token = await tokenStorage.getAccessToken();
-              const response = await fetch(`${API}/bookings/${id}/decline`, {
+              await apiJson<unknown>(`/bookings/${bookingId}/decline`, {
+                auth: true,
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}` },
               });
-
-              if (response.ok) {
-                fetchBookingDetails();
-              } else {
-                let msg = t('providerBookingDeclineError');
-                try {
-                  const j: any = await response.json();
-                  msg = j?.message || msg;
-                } catch {}
-                Alert.alert(t('error'), msg);
-                fetchBookingDetails();
-              }
+              fetchBookingDetails();
             } catch (error) {
               debugError('Provider appointment decline failed', error);
+              Alert.alert(t('error'), getErrorMessage(error, t('providerBookingDeclineError')));
+              fetchBookingDetails();
             } finally {
               setIsDeclining(false);
             }
@@ -261,7 +291,7 @@ export default function ProviderAppointmentDetailScreen() {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>{t('service')}</Text>
             <Text style={styles.infoValue}>
-              {booking.services?.map((s: any) => s.name).join(', ') || 'Service'}
+              {booking.services?.map((service) => service.name).join(', ') || 'Service'}
             </Text>
           </View>
           

@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException
+  Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException, Logger
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In, Brackets } from 'typeorm';
@@ -17,6 +17,8 @@ import { GeocodingService } from '../common/geocoding/geocoding.service';
 
 @Injectable()
 export class ProvidersService {
+  private readonly logger = new Logger(ProvidersService.name);
+
   constructor(
     @InjectRepository(Provider)
     private providerRepo: Repository<Provider>,
@@ -217,6 +219,11 @@ export class ProvidersService {
       [providers, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
     } catch (e) {
       if (sort === 'entfernung') {
+        this.logger.warn(
+          `Distance-sorted provider query failed; falling back to recommended sort. ${
+            e instanceof Error ? e.message : 'Unknown error'
+          }`,
+        );
         qb
           .orderBy('p.isOnline', 'DESC')
           .addOrderBy('p.avgRating', 'DESC')

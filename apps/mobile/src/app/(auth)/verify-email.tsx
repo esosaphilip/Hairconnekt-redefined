@@ -1,14 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import axios from 'axios';
+import type {
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
+} from 'react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
-import { API } from '../../utils/api';
 import { tokenStorage } from '../../utils/token-storage';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ApiError, apiJson } from '@/services/apiClient';
+import type { User } from '@/types/user';
+
+type CurrentUserResponse = Pick<
+  User,
+  'id' | 'email' | 'role' | 'firstName' | 'lastName'
+>;
+
+type ProviderProfileResponse = {
+  status?: string | null;
+};
+
+const normalizeProviderStatus = (status?: string | null): string =>
+  status?.trim().toLowerCase() ?? '';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -62,19 +87,16 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const handleOtpKeyPress = (e: any, index: number) => {
+  const handleOtpKeyPress = (
+    e: NativeSyntheticEvent<TextInputKeyPressEventData>,
+    index: number,
+  ) => {
     if (e.nativeEvent.key === 'Backspace' && otp[index] === '' && index > 0) {
       otpRefs.current[index - 1]?.focus();
       const newOtp = [...otp];
       newOtp[index - 1] = '';
       setOtp(newOtp);
     }
-  };
-
-  const getAuthHeaders = async () => {
-    const accessToken = await tokenStorage.getAccessToken();
-    if (!accessToken) return null;
-    return { Authorization: `Bearer ${accessToken}` };
   };
 
   const handleVerify = async () => {
@@ -88,47 +110,56 @@ export default function VerifyEmailScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      await axios.post(`${API}/auth/verify-email`, { email: String(email ?? ''), code });
+      await apiJson<unknown>('/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: String(email ?? ''), code }),
+      });
 
       try {
-        const headers = await getAuthHeaders();
-        if (!headers) throw new Error('no-auth');
-        const res = await fetch(`${API}/users/me`, { headers });
-        if (res.ok) {
-          const me = await res.json();
-          await tokenStorage.setUser(me);
-        }
-      } catch {}
+        const me = await apiJson<CurrentUserResponse>('/users/me', { auth: true });
+        await tokenStorage.setUser(me);
+      } catch (error) {
+        // Verification succeeds even if refreshing local user cache fails.
+        void error;
+      }
 
       const role = await tokenStorage.getUserRole();
       if (role === 'provider') {
         try {
-          const headers = await getAuthHeaders();
-          if (!headers) throw new Error('no-auth');
-          const res = await fetch(`${API}/providers/me`, { headers });
-          if (res.ok) {
-            const provider = await res.json();
-            if (provider.status?.toLowerCase() === 'approved') {
-              router.replace('/(provider)' as any);
-            } else {
-              router.replace('/(provider)/pending' as any);
-            }
-          } else if (res.status === 404) {
+          const provider = await apiJson<ProviderProfileResponse>('/providers/me', {
+            auth: true,
+          });
+          if (normalizeProviderStatus(provider.status) === 'approved') {
+            router.replace('/(provider)' as any);
+          } else {
+            router.replace('/(provider)/pending' as any);
+          }
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 404) {
             router.replace('/(provider)/register/type' as any);
           } else {
             router.replace('/(auth)/login?role=provider' as any);
           }
-        } catch {
-          router.replace('/(auth)/login?role=provider' as any);
         }
       } else {
         router.replace('/(client)' as any);
       }
-    } catch (err: any) {
-      const status = err.response?.status;
-      const msg = err.response?.data?.message;
-      if (typeof msg === 'string') {
-        showError(msg, status);
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      const message =
+        error instanceof ApiError &&
+        typeof error.body === 'object' &&
+        error.body !== null &&
+        'message' in error.body &&
+        typeof (error.body as { message?: unknown }).message === 'string'
+          ? (error.body as { message: string }).message
+          : undefined;
+
+      if (typeof message === 'string') {
+        showError(message, status);
+      } else if (error instanceof Error && !(error instanceof ApiError)) {
+        showError(error.message, status);
       } else if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
       } else {
@@ -145,11 +176,17 @@ export default function VerifyEmailScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      await axios.post(`${API}/auth/resend-verification`, { email: String(email ?? '') });
-    } catch (err: any) {
-      const status = err.response?.status;
+      await apiJson<unknown>('/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: String(email ?? '') }),
+      });
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
       if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
+      } else if (error instanceof Error && !(error instanceof ApiError)) {
+        showError(error.message, status);
       } else {
         showError(mapHttpError(status, undefined, lang), status);
       }

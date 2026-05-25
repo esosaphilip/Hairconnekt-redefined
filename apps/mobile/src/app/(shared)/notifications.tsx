@@ -8,29 +8,83 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getSafeNotificationRoute } from '@/utils/safe-navigation';
 import { debugLog } from '@/utils/logger';
 
-interface Notification {
+type NotificationData = {
+  screen?: string;
+} & Record<string, unknown>;
+
+type NotificationItem = {
   id: string;
   type: string;
   titleDe: string;
   titleEn?: string | null;
   bodyDe: string;
   bodyEn?: string | null;
-  data?: Record<string, any> | null;
+  data?: NotificationData | null;
   isRead: boolean;
   createdAt: string;
-}
+};
+
+type NotificationFilter = 'all' | 'booking' | 'message' | 'system';
+
+type NotificationListResponse = {
+  data?: NotificationItem[];
+  meta?: {
+    hasNextPage?: boolean;
+  };
+};
+
+type NotificationSection = {
+  label: string;
+  data: NotificationItem[];
+};
+
+type NotificationHeaderItem = {
+  id: string;
+  isHeader: true;
+  label: string;
+};
+
+type NotificationRowItem = {
+  id: string;
+  isHeader: false;
+  notification: NotificationItem;
+};
+
+type NotificationListItem =
+  | NotificationHeaderItem
+  | NotificationRowItem;
+
+type NotificationIconConfig = {
+  name: React.ComponentProps<typeof Feather>['name'];
+  color: string;
+  bg: string;
+};
+
+const FILTER_OPTIONS: ReadonlyArray<{
+  key: NotificationFilter;
+  labelKey:
+    | 'notificationsAll'
+    | 'notificationsBookings'
+    | 'notificationsMessages'
+    | 'notificationsSystem';
+}> = [
+  { key: 'all', labelKey: 'notificationsAll' },
+  { key: 'booking', labelKey: 'notificationsBookings' },
+  { key: 'message', labelKey: 'notificationsMessages' },
+  { key: 'system', labelKey: 'notificationsSystem' },
+] as const;
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'booking' | 'message' | 'system'>('all');
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
 
   const BOOKING_TYPES = [
     'new_booking',
@@ -62,11 +116,14 @@ export default function NotificationsScreen() {
       if (refresh) setIsLoading(true);
       else setIsLoadingMore(true);
 
-      const data: any = await apiJson(`/notifications?page=${pageNum}&limit=20`, { auth: true });
+      const response = await apiJson<NotificationListResponse>(
+        `/notifications?page=${pageNum}&limit=20`,
+        { auth: true },
+      );
 
-      const newItems = data.data || [];
+      const newItems = Array.isArray(response.data) ? response.data : [];
       setNotifications(prev => (refresh ? newItems : [...prev, ...newItems]));
-      setHasMore(data.meta?.hasNextPage || false);
+      setHasMore(response.meta?.hasNextPage ?? false);
       setPage(pageNum);
     } catch (error) {
       debugLog('Error loading notifications', error);
@@ -94,7 +151,7 @@ export default function NotificationsScreen() {
     }
   };
 
-  const handleNotificationPress = (notif: Notification) => {
+  const handleNotificationPress = (notif: NotificationItem) => {
     if (!notif.isRead) {
       markAsRead(notif.id);
     }
@@ -149,7 +206,7 @@ export default function NotificationsScreen() {
     return true;
   });
 
-  const groupedData: { label: string; data: Notification[] }[] = [];
+  const groupedData: NotificationSection[] = [];
   filteredNotifications.forEach(n => {
     const label = getDateLabel(n.createdAt);
     let group = groupedData.find(g => g.label === label);
@@ -160,13 +217,19 @@ export default function NotificationsScreen() {
     group.data.push(n);
   });
 
-  const flattenedData: any[] = [];
+  const flattenedData: NotificationListItem[] = [];
   groupedData.forEach(group => {
     flattenedData.push({ isHeader: true, label: group.label, id: `header-${group.label}` });
-    group.data.forEach(n => flattenedData.push(n));
+    group.data.forEach((notification) =>
+      flattenedData.push({
+        id: notification.id,
+        isHeader: false,
+        notification,
+      }),
+    );
   });
 
-  const getIconConfig = (type: string) => {
+  const getIconConfig = (type: string): NotificationIconConfig => {
     switch (type) {
       case 'new_booking':
         return { name: 'calendar', color: '#FFFFFF', bg: colors.coral };
@@ -194,12 +257,16 @@ export default function NotificationsScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => {
-    if (item.isHeader) {
+  function renderItem({
+    item,
+  }: {
+    item: NotificationListItem;
+  }): React.ReactElement {
+    if (item.isHeader === true) {
       return <Text style={styles.sectionHeader}>{item.label}</Text>;
     }
 
-    const notif = item as Notification;
+    const notif = item.notification;
     const iconConfig = getIconConfig(notif.type);
     const title = lang === 'en' ? (notif.titleEn || notif.titleDe) : notif.titleDe;
     const body = lang === 'en' ? (notif.bodyEn || notif.bodyDe) : notif.bodyDe;
@@ -211,7 +278,7 @@ export default function NotificationsScreen() {
         activeOpacity={0.7}
       >
         <View style={[styles.iconCircle, { backgroundColor: iconConfig.bg }]}>
-          <Feather name={iconConfig.name as any} size={20} color={iconConfig.color} />
+          <Feather name={iconConfig.name} size={20} color={iconConfig.color} />
         </View>
 
         <View style={styles.contentCol}>
@@ -225,7 +292,7 @@ export default function NotificationsScreen() {
         {!notif.isRead && <View style={styles.unreadDot} />}
       </TouchableOpacity>
     );
-  };
+  }
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -254,21 +321,18 @@ export default function NotificationsScreen() {
       ) : (
         <>
           <View style={styles.filterRow}>
-            {[
-              { key: 'all', label: t('notificationsAll') },
-              { key: 'booking', label: t('notificationsBookings') },
-              { key: 'message', label: t('notificationsMessages') },
-              { key: 'system', label: t('notificationsSystem') },
-            ].map((f) => {
-              const isActive = activeFilter === (f.key as any);
+            {FILTER_OPTIONS.map((f) => {
+              const isActive = activeFilter === f.key;
               return (
                 <TouchableOpacity
                   key={f.key}
                   style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setActiveFilter(f.key as any)}
+                  onPress={() => setActiveFilter(f.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{f.label}</Text>
+                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                    {t(f.labelKey)}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -276,7 +340,7 @@ export default function NotificationsScreen() {
 
           <FlatList
             data={flattenedData}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             onEndReached={loadMore}

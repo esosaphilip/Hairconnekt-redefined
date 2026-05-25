@@ -21,6 +21,16 @@ type ApiRequestOptions = Omit<RequestInit, 'headers'> & {
   retryDelayMs?: number;
 };
 
+type UserRole = 'client' | 'provider';
+
+type RefreshResponse = {
+  accessToken?: unknown;
+  refreshToken?: unknown;
+  user?: {
+    role?: unknown;
+  } | null;
+};
+
 let refreshInFlight: Promise<string> | null = null;
 
 const joinUrl = (base: string, path: string): string => {
@@ -41,6 +51,23 @@ const parseJsonOrText = async (res: Response): Promise<unknown> => {
 
 const sleep = async (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getApiMessage = (body: unknown): string | null => {
+  if (!isRecord(body) || !('message' in body)) return null;
+  const message = body.message;
+  if (typeof message === 'string') return message;
+  if (Array.isArray(message)) {
+    const first = message.find((entry) => typeof entry === 'string');
+    return typeof first === 'string' ? first : null;
+  }
+  return null;
+};
+
+const isUserRole = (value: unknown): value is UserRole =>
+  value === 'client' || value === 'provider';
+
 const fetchWithTimeout = async (
   url: string,
   init: RequestInit,
@@ -58,18 +85,22 @@ const fetchWithTimeout = async (
     throw new ApiError('Request aborted', 0, null);
   }
   const onAbort = () => controller.abort();
-  signal?.addEventListener?.('abort', onAbort, { once: true } as any);
+  signal?.addEventListener?.('abort', onAbort, { once: true });
 
   try {
     return await fetch(url, { ...init, signal: controller.signal });
-  } catch (err: any) {
+  } catch (error: unknown) {
     if (controller.signal.aborted) {
       throw new ApiError('Request timed out', 408, null);
     }
-    throw new ApiError('Network request failed', 0, err?.message ?? null);
+    throw new ApiError(
+      'Network request failed',
+      0,
+      error instanceof Error ? error.message : null,
+    );
   } finally {
     clearTimeout(timeout);
-    signal?.removeEventListener?.('abort', onAbort as any);
+    signal?.removeEventListener?.('abort', onAbort);
   }
 };
 
@@ -87,16 +118,18 @@ const refreshAccessToken = async (): Promise<string> => {
     }, 20000);
 
     const body = await parseJsonOrText(res);
-    if (!res.ok || typeof body !== 'object' || body === null) {
+    if (!res.ok || !isRecord(body)) {
       throw new ApiError('Token refresh failed', res.status, body);
     }
 
-    const data = body as any;
-    const accessToken = String(data.accessToken ?? '');
-    const nextRefreshToken = String(data.refreshToken ?? '');
-    const role = (data.user?.role as 'client' | 'provider' | undefined) ?? null;
+    const data = body as RefreshResponse;
+    const accessToken =
+      typeof data.accessToken === 'string' ? data.accessToken : '';
+    const nextRefreshToken =
+      typeof data.refreshToken === 'string' ? data.refreshToken : '';
+    const role = data.user?.role;
 
-    if (!accessToken || !nextRefreshToken || (role !== 'client' && role !== 'provider')) {
+    if (!accessToken || !nextRefreshToken || !isUserRole(role)) {
       throw new ApiError('Token refresh response invalid', res.status, body);
     }
 
@@ -172,9 +205,7 @@ export const apiJson = async <T>(path: string, options: ApiRequestOptions = {}):
   const res = await apiFetch(path, options);
   const body = await parseJsonOrText(res);
   if (!res.ok) {
-    const message = typeof body === 'object' && body !== null && 'message' in (body as any)
-      ? String((body as any).message)
-      : `Request failed (${res.status})`;
+    const message = getApiMessage(body) ?? `Request failed (${res.status})`;
     throw new ApiError(message, res.status, body);
   }
   return body as T;

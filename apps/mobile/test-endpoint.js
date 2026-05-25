@@ -1,43 +1,34 @@
 async function run() {
-  const apiUrl = process.env.API_URL ?? 'http://localhost:3000/api/v1';
+  const apiUrl = process.env.API_URL;
+  const testEmail = process.env.TEST_CLIENT_EMAIL;
+  const testPassword = process.env.TEST_PASSWORD;
+
+  if (!apiUrl) {
+    throw new Error('API_URL is required.');
+  }
+  if (!testEmail) {
+    throw new Error('TEST_CLIENT_EMAIL is required.');
+  }
+  if (!testPassword) {
+    throw new Error('TEST_PASSWORD is required.');
+  }
+
   let token = '';
   let providerId = '';
   let serviceId = '';
 
   try {
-    const email = `test.client.${Date.now()}@example.com`;
-    const password = process.env.TEST_PASSWORD ?? `Aa1!Test${Date.now()}`;
-    console.log('Registering user:', email);
-    
-    // Register User
-    let res = await fetch(`${apiUrl}/auth/register`, {
+    console.log('Logging in test user:', testEmail);
+
+    let res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        password,
-        firstName: 'Test',
-        lastName: 'Client',
-        role: 'client',
-        phone: '+4915112345678',
-        acceptedTerms: true
-      })
+      body: JSON.stringify({ identifier: testEmail, password: testPassword })
     });
     let data = await res.json();
-    const registerToken = data?.accessToken ?? data?.data?.accessToken;
-    if (registerToken) {
-      token = registerToken;
-    } else {
-      res = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      data = await res.json();
-      const loginToken = data?.accessToken ?? data?.data?.accessToken;
-      if (!loginToken) throw new Error('Auth failed');
-      token = loginToken;
-    }
+    const loginToken = data?.accessToken ?? data?.data?.accessToken;
+    if (!loginToken) throw new Error('Auth failed');
+    token = loginToken;
     console.log('✅ Got token');
 
     // Get providers

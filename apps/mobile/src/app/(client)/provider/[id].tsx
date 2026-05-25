@@ -9,11 +9,69 @@ import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
-import { apiJson } from '@/services/apiClient';
+import { ApiError, apiJson } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
 
 const { width } = Dimensions.get('window');
 
+type ProviderServiceItem = {
+  id: string;
+  name: string;
+  price: number | string;
+  durationMin?: number | null;
+  duration?: number | null;
+};
+
+type ProviderPortfolioItem = {
+  id?: string;
+  imageUrl?: string | null;
+};
+
+type ProviderReviewItem = {
+  id?: string;
+  rating?: number | null;
+  comment?: string | null;
+  createdAt?: string | null;
+  clientName?: string | null;
+};
+
+type ProviderProfileData = {
+  id: string;
+  businessName?: string | null;
+  avatarUrl?: string | null;
+  city?: string | null;
+  avgRating?: number | null;
+  totalReviews?: number | null;
+  distanceKm?: number | null;
+  specialisationTags?: string[] | null;
+  specializations?: string[] | null;
+  startingPrice?: number | null;
+  bio?: string | null;
+  responseTime?: string | null;
+  cancellationPolicy?: string | null;
+  isVerified?: boolean | null;
+  userId?: string | null;
+  user?: { id?: string | null } | null;
+};
+
+type ProviderDetailResponse = ProviderProfileData | { data?: ProviderProfileData | null };
+type ProviderServicesResponse = ProviderServiceItem[] | { data?: ProviderServiceItem[] | null };
+type ProviderPortfolioResponse = ProviderPortfolioItem[] | { data?: ProviderPortfolioItem[] | null };
+type ProviderReviewsResponse = ProviderReviewItem[] | { data?: ProviderReviewItem[] | null };
+type ConversationCreateResponse = { id?: string | null } | { data?: { id?: string | null } | null };
+
+const extractList = <T,>(payload: T[] | { data?: T[] | null } | null | undefined): T[] => {
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.data) ? payload.data : [];
+};
+
+const extractObject = <T extends object>(
+  payload: T | { data?: T | null } | null | undefined,
+): T | null => {
+  if (!payload) return null;
+  const withData = payload as { data?: T | null };
+  return withData.data ?? (payload as T);
+};
 
 export default function ProviderProfile() {
   const router = useRouter();
@@ -26,10 +84,10 @@ export default function ProviderProfile() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
 
-  const [provider, setProvider] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]);
-  const [portfolio, setPortfolio] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [provider, setProvider] = useState<ProviderProfileData | null>(null);
+  const [services, setServices] = useState<ProviderServiceItem[]>([]);
+  const [portfolio, setPortfolio] = useState<ProviderPortfolioItem[]>([]);
+  const [reviews, setReviews] = useState<ProviderReviewItem[]>([]);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'gallery' | 'reviews'>('overview');
   const tabs = [
@@ -54,21 +112,21 @@ export default function ProviderProfile() {
         : '';
 
       const [provRes, servRes, portRes, revRes] = await Promise.all([
-        apiJson<any>(`/providers/${id}${locationQuery}`, { auth: true }),
-        apiJson<any>(`/providers/${id}/services`, { auth: true }),
-        apiJson<any>(`/providers/${id}/portfolio`, { auth: true }),
-        apiJson<any>(`/providers/${id}/reviews?limit=20`, { auth: true }),
+        apiJson<ProviderDetailResponse>(`/providers/${id}${locationQuery}`, { auth: true }),
+        apiJson<ProviderServicesResponse>(`/providers/${id}/services`, { auth: true }),
+        apiJson<ProviderPortfolioResponse>(`/providers/${id}/portfolio`, { auth: true }),
+        apiJson<ProviderReviewsResponse>(`/providers/${id}/reviews?limit=20`, { auth: true }),
       ]);
 
-      setProvider(provRes.data || provRes);
-      setServices(servRes.data || servRes);
-      
-      const portData = portRes.data || portRes || [];
-      setPortfolio(portData.filter((img: any) => !!img.imageUrl));
+      setProvider(extractObject(provRes));
+      setServices(extractList(servRes));
 
-      setReviews(revRes.data || revRes);
-    } catch (err: any) {
-      const status = err?.status ?? err.response?.status;
+      const portData = extractList(portRes);
+      setPortfolio(portData.filter((img) => Boolean(img.imageUrl)));
+
+      setReviews(extractList(revRes));
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
       setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {
@@ -101,18 +159,20 @@ export default function ProviderProfile() {
   const distance = (typeof provider.distanceKm === 'number' && !isNaN(provider.distanceKm)) ? `${provider.distanceKm.toFixed(1)} km` : '';
   const totalReviews = (typeof provider.totalReviews === 'number' && !isNaN(provider.totalReviews)) ? provider.totalReviews : 0;
   const specialisationTags = Array.isArray(provider.specialisationTags) ? provider.specialisationTags : Array.isArray(provider.specializations) ? provider.specializations : [];
-  const minPrice = services.length > 0 ? Math.min(...services.map((s: any) => Number(s.price))) : (provider.startingPrice || 0);
+  const minPrice = services.length > 0 ? Math.min(...services.map((s) => Number(s.price))) : (provider.startingPrice || 0);
 
   const openChat = async (recipientUserId: string) => {
     if (!recipientUserId) return;
     try {
-      const data = await apiJson<any>('/chat/conversations', {
+      const response = await apiJson<ConversationCreateResponse>('/chat/conversations', {
         auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId: recipientUserId }),
       });
-      const conversationId = data?.data?.id ?? data?.id;
+      const withData = response as { data?: { id?: string | null } | null };
+      const direct = response as { id?: string | null };
+      const conversationId = withData.data?.id ?? direct.id;
 
       if (!conversationId) {
         debugLog('No conversation ID returned');
@@ -208,7 +268,7 @@ export default function ProviderProfile() {
                   <View key={idx} style={styles.tagChip}>
                     <Text style={styles.tagText}>{tag}</Text>
                   </View>
-                )) : services.slice(0, 6).map((s: any, idx: number) => (
+                )) : services.slice(0, 6).map((s, idx: number) => (
                   <View key={idx} style={styles.tagChip}>
                     <Text style={styles.tagText}>{s.name}</Text>
                   </View>

@@ -264,7 +264,13 @@ export class AuthService {
     });
     await this.passwordResetRepo.save(reset);
 
-    await this.sendOtpEmail(user.email, otp).catch(() => {});
+    await this.sendOtpEmail(user.email, otp).catch((error: unknown) => {
+      this.logger.warn(
+        `Password reset OTP email failed for ${user.email}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    });
 
     const isDev =
       (process.env.NODE_ENV ?? 'development') !== 'production' &&

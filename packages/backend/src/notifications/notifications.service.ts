@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
@@ -8,7 +8,7 @@ type ExpoPushMessage = {
   to: string;
   title?: string;
   body?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   sound?: 'default' | null;
   badge?: number;
   channelId?: string;
@@ -16,7 +16,7 @@ type ExpoPushMessage = {
 
 type ExpoClient = {
   chunkPushNotifications: (messages: ExpoPushMessage[]) => ExpoPushMessage[][];
-  sendPushNotificationsAsync: (messages: ExpoPushMessage[]) => Promise<any>;
+  sendPushNotificationsAsync: (messages: ExpoPushMessage[]) => Promise<unknown>;
 };
 
 type ExpoModule = {
@@ -37,7 +37,11 @@ const getExpoClient = async (): Promise<ExpoClient> => {
   const mod = await expoModulePromise;
   const ExpoClass = mod.default;
   expoClient = new ExpoClass({ accessToken: process.env.EXPO_ACCESS_TOKEN });
-  isExpoPushTokenFn = (ExpoClass as any).isExpoPushToken?.bind(ExpoClass) ?? null;
+  isExpoPushTokenFn = (
+    ExpoClass as typeof ExpoClass & {
+      isExpoPushToken?: (token: string) => boolean;
+    }
+  ).isExpoPushToken?.bind(ExpoClass) ?? null;
   return expoClient;
 };
 
@@ -48,11 +52,13 @@ export interface SendPushParams {
   titleEn: string;
   bodyDe: string;
   bodyEn: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     @InjectRepository(Notification) private notifRepo: Repository<Notification>,
     @InjectRepository(User) private userRepo: Repository<User>,
@@ -112,8 +118,12 @@ export class NotificationsService {
       for (const chunk of chunks) {
         await expo.sendPushNotificationsAsync(chunk);
       }
-    } catch {
-      return;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to send notification ${params.type} to user ${params.userId}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
     }
   }
 }

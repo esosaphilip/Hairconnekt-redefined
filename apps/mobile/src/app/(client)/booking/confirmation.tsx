@@ -9,6 +9,42 @@ import { apiJson } from '@/services/apiClient';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { debugError } from '@/utils/logger';
 
+const DEFAULT_AVATAR = require('../../../assets/avatar-placeholder.png');
+
+type BookingConfirmationService = {
+  id: string;
+  name: string;
+  durationMinutes?: number;
+};
+
+type BookingConfirmationProvider = {
+  businessName?: string;
+  userId?: string;
+  user?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    city?: string;
+    avatarUrl?: string;
+  };
+};
+
+type BookingConfirmationPayload = {
+  bookingNumber?: string;
+  provider?: BookingConfirmationProvider;
+  services?: BookingConfirmationService[];
+  scheduledDate?: string;
+  scheduledTime?: string;
+  totalPrice?: number;
+};
+
+type ConversationCreateResponse = {
+  id?: string;
+  data?: {
+    id?: string;
+  };
+};
+
 export default function BookingConfirmation() {
   const router = useRouter();
   const { booking: bookingParam } = useLocalSearchParams();
@@ -16,9 +52,11 @@ export default function BookingConfirmation() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
-  let booking: any = null;
+  let booking: BookingConfirmationPayload | null = null;
   try {
-    booking = bookingParam ? JSON.parse(bookingParam as string) : null;
+    booking = bookingParam
+      ? (JSON.parse(String(bookingParam)) as BookingConfirmationPayload)
+      : null;
   } catch (e) {
     debugError('Failed to parse booking confirmation data', e);
   }
@@ -29,15 +67,22 @@ export default function BookingConfirmation() {
   const user = provider?.user || {};
   const providerName = provider?.businessName || (user?.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
   const city = user?.city || t('countryDefault');
-  const avatarUrl = user?.avatarUrl || 'https://via.placeholder.com/150';
+  const avatarSource = user?.avatarUrl
+    ? { uri: user.avatarUrl }
+    : DEFAULT_AVATAR;
   
   const services = booking?.services || [];
-  const serviceNames = services.length > 0 ? services.map((s: any) => s.name).join(', ') : t('bookedServices');
+  const serviceNames = services.length > 0
+    ? services.map((service) => service.name).join(', ')
+    : t('bookedServices');
   
   // Compute approximate duration if available, else static fallback
   let durationInMins = 0;
   if (services.length > 0) {
-    durationInMins = services.reduce((acc: number, s: any) => acc + (s.durationMinutes || 0), 0);
+    durationInMins = services.reduce(
+      (acc, service) => acc + (service.durationMinutes || 0),
+      0,
+    );
   }
   const durationText = durationInMins > 0 ? `${Math.floor(durationInMins / 60)} ${t('appointmentsHours')} ${durationInMins % 60} ${t('appointmentsMinutes')}` : t('approxDuration');
   
@@ -55,7 +100,7 @@ export default function BookingConfirmation() {
 
     try {
       setErrorVisible(false);
-      const data = await apiJson<any>('/chat/conversations', {
+      const data = await apiJson<ConversationCreateResponse>('/chat/conversations', {
         auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +144,7 @@ export default function BookingConfirmation() {
         {/* Booking Summary Card */}
         <View style={styles.card}>
           <View style={styles.providerInfoRow}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <Image source={avatarSource} style={styles.avatar} />
             <View>
               <Text style={styles.providerNameText}>{providerName}</Text>
               <View style={styles.locationRow}>

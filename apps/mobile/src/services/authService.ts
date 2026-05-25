@@ -1,7 +1,7 @@
 import { tokenStorage } from '../utils/token-storage';
-import { API } from '../utils/api';
-import { apiJson } from './apiClient';
+import { apiFetch, apiJson } from './apiClient';
 import { debugLog } from '../utils/logger';
+import type { User } from '../types/user';
 
 export interface LoginCredentials {
   identifier: string;
@@ -30,48 +30,38 @@ export interface AuthResponse {
   };
 }
 
+type CurrentUserResponse = Pick<
+  User,
+  'id' | 'email' | 'role' | 'firstName' | 'lastName'
+>;
+
 export class AuthService {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await fetch(`${API}/auth/login`, {
+    return apiJson<AuthResponse>('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     });
-
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-
-    const data = await response.json();
-    return data;
   }
 
   static async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await fetch(`${API}/auth/register`, {
+    return apiJson<AuthResponse>('/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
     });
-
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-
-    const data = await response.json();
-    return data;
   }
 
   static async logout(): Promise<void> {
     try {
-      const token = await tokenStorage.getAccessToken();
       const refreshToken = await tokenStorage.getRefreshToken();
 
       if (refreshToken) {
-        await fetch(`${API}/auth/logout`, {
+        await apiFetch('/auth/logout', {
+          auth: true,
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ refreshToken }),
         });
@@ -99,10 +89,10 @@ export class AuthService {
     return data.accessToken;
   }
 
-  static async getCurrentUser(): Promise<any> {
+  static async getCurrentUser(): Promise<CurrentUserResponse> {
     const role = await tokenStorage.getUserRole();
     const endpoint = role === 'provider' ? '/providers/me' : '/users/me';
 
-    return apiJson(endpoint, { auth: true });
+    return apiJson<CurrentUserResponse>(endpoint, { auth: true });
   }
 }

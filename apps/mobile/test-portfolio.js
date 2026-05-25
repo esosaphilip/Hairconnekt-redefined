@@ -1,7 +1,16 @@
 const { tokenStorage } = require('./src/utils/token-storage.js');
 async function test() {
+  const apiUrl = process.env.API_URL;
+  if (!apiUrl) {
+    throw new Error('API_URL is required.');
+  }
+
   const token = await tokenStorage.getAccessToken();
-  const res = await fetch('http://127.0.0.1:3000/api/v1/providers/me/portfolio', {
+  if (!token) {
+    throw new Error('No access token available in token storage.');
+  }
+
+  const res = await fetch(`${apiUrl}/providers/me/portfolio`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   console.log(await res.json());

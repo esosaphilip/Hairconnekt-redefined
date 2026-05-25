@@ -1,10 +1,40 @@
 import type { Conversation, Message, OtherUser } from '@/types/chat';
 import { apiJson } from './apiClient';
 
+type ConversationListResponse =
+  | Conversation[]
+  | {
+      data?: Conversation[] | null;
+    };
+
+type ConversationMessagesResponse =
+  | {
+      messages?: Message[] | null;
+      otherUser?: OtherUser | null;
+      myUserId?: string | null;
+    }
+  | {
+      data?: {
+        messages?: Message[] | null;
+        otherUser?: OtherUser | null;
+        myUserId?: string | null;
+      } | null;
+    };
+
+type ConversationMessagesPayload = {
+  messages?: Message[] | null;
+  otherUser?: OtherUser | null;
+  myUserId?: string | null;
+};
+
 export class ChatService {
   static async getConversations(): Promise<Conversation[]> {
-    const data = await apiJson<any>('/chat/conversations', { auth: true });
-    const conversationList = data.data || data || [];
+    const data = await apiJson<ConversationListResponse>('/chat/conversations', { auth: true });
+    const conversationList = Array.isArray(data)
+      ? data
+      : Array.isArray(data.data)
+        ? data.data
+        : [];
     return Array.isArray(conversationList) ? conversationList : [];
   }
 
@@ -13,11 +43,17 @@ export class ChatService {
     otherUser: OtherUser | null;
     myUserId: string;
   }> {
-    const data = await apiJson<any>(`/chat/conversations/${conversationId}/messages`, { auth: true });
+    const data = await apiJson<ConversationMessagesResponse>(
+      `/chat/conversations/${conversationId}/messages`,
+      { auth: true },
+    );
+    const payload = (
+      'data' in data && data.data ? data.data : data
+    ) as ConversationMessagesPayload;
     return {
-      messages: data.messages || data || [],
-      otherUser: data.otherUser || null,
-      myUserId: data.myUserId || '',
+      messages: Array.isArray(payload.messages) ? payload.messages : [],
+      otherUser: payload.otherUser ?? null,
+      myUserId: payload.myUserId ?? '',
     };
   }
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review } from '../entities/review.entity';
@@ -10,6 +10,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReviewsService {
+  private readonly logger = new Logger(ReviewsService.name);
+
   constructor(
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
@@ -76,7 +78,13 @@ export class ReviewsService {
             bodyEn: `${client.firstName} gave you ${review.rating} stars`,
             data: { screen: '/(provider)/reviews' },
           });
-        } catch {}
+        } catch (error) {
+          this.logger.warn(
+            `Failed to deliver review notification to ${booking.provider.userId}: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          );
+        }
       }
     }
     

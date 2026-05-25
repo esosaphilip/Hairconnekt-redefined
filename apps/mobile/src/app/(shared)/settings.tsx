@@ -9,10 +9,11 @@ import { colors, fonts, fontSizes, spacing, borderRadius, layout, shadows } from
 import { tokenStorage } from '../../utils/token-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
-import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LEGAL_URLS } from '@/constants';
 import { debugLog } from '@/utils/logger';
+import { AuthService } from '@/services/authService';
+import { ApiError, apiFetch } from '@/services/apiClient';
 
 
 export default function SharedSettingsScreen() {
@@ -48,21 +49,7 @@ export default function SharedSettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const token = await tokenStorage.getAccessToken();
-              const refreshToken = await tokenStorage.getRefreshToken();
-
-              if (refreshToken) {
-                await fetch(`${API}/auth/logout`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ refreshToken })
-                });
-              }
-
-              await tokenStorage.clear();
+              await AuthService.logout();
               router.replace('/(auth)/login' as any);
             } catch (error) {
               debugLog('Error logging out:', error);
@@ -92,27 +79,26 @@ export default function SharedSettingsScreen() {
     try {
       setIsDeleting(true);
       setDeleteError('');
-      const token = await tokenStorage.getAccessToken();
-      
-      const response = await fetch(`${API}/users/me`, {
+      const response = await apiFetch('/users/me', {
+        auth: true,
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ password }),
       });
 
       if (!response.ok) {
-        throw { response: { status: response.status } };
+        throw new ApiError('Delete account failed', response.status, null);
       }
 
       await tokenStorage.clear();
       setDeleteModalVisible(false);
       router.replace('/(auth)/login' as any);
 
-    } catch (error: any) {
-      setDeleteError(mapHttpError(error?.response?.status, undefined, lang));
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      setDeleteError(mapHttpError(status, undefined, lang));
     } finally {
       setIsDeleting(false);
     }

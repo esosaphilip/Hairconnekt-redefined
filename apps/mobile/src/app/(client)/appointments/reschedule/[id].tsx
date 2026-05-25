@@ -2,13 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
-import { API } from '../../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ApiError, apiJson } from '@/services/apiClient';
+
+type BookingProviderInfo = {
+  id: string;
+  businessName?: string | null;
+  user?: {
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
+};
+
+type BookingServiceInfo = {
+  id?: string;
+  name: string;
+};
+
+type RescheduleBooking = {
+  id: string;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  provider?: BookingProviderInfo | null;
+  services?: BookingServiceInfo[] | null;
+};
+
+type BookingDetailResponse = RescheduleBooking | { data?: RescheduleBooking | null };
+
+type AvailableSlot = {
+  time?: string | null;
+  startTime?: string | null;
+  available?: boolean | null;
+  isAvailable?: boolean | null;
+};
+
+type SlotsResponse =
+  | {
+      slots?: AvailableSlot[] | null;
+      data?: AvailableSlot[] | null;
+    }
+  | {
+      data?: {
+        slots?: AvailableSlot[] | null;
+      } | null;
+    };
 
 export default function RescheduleAppointment() {
   const router = useRouter();
@@ -18,7 +58,7 @@ export default function RescheduleAppointment() {
   const timeSuffix = lang === 'de' ? ' Uhr' : '';
 
   // Booking Data
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<RescheduleBooking | null>(null);
   const [isBookingLoading, setIsBookingLoading] = useState(true);
 
   // Form State
@@ -28,7 +68,7 @@ export default function RescheduleAppointment() {
   const [reason, setReason] = useState<string>('');
   
   // Slots Data
-  const [slots, setSlots] = useState<any[]>([]);
+  const [slots, setSlots] = useState<AvailableSlot[]>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(false);
   
   // UI States
@@ -62,19 +102,37 @@ export default function RescheduleAppointment() {
   const handlePrevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
+  const extractBooking = (
+    payload: BookingDetailResponse,
+  ): RescheduleBooking | null => {
+    const withData = payload as { data?: RescheduleBooking | null };
+    return withData.data ?? (payload as RescheduleBooking);
+  };
+
+  const extractSlots = (payload: SlotsResponse): AvailableSlot[] => {
+    const direct = payload as { slots?: AvailableSlot[] | null; data?: unknown };
+    if (Array.isArray(direct.slots)) return direct.slots;
+    if (Array.isArray(direct.data)) return direct.data as AvailableSlot[];
+    const nested = direct.data as { slots?: AvailableSlot[] | null } | null | undefined;
+    if (nested && Array.isArray(nested.slots)) {
+      return nested.slots;
+    }
+    return [];
+  };
+
   // Fetch Booking Details
   useEffect(() => {
     const fetchBooking = async () => {
       try {
         if (!id) return;
         setIsBookingLoading(true);
-        const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API}/bookings/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const response = await apiJson<BookingDetailResponse>(`/bookings/${id}`, {
+          auth: true,
         });
-        setBooking(res.data);
-      } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+        setBooking(extractBooking(response));
+      } catch (error) {
+        const status = error instanceof ApiError ? error.status : undefined;
+        setErrorMessage(mapHttpError(status, undefined, lang));
         setErrorVisible(true);
       } finally {
         setIsBookingLoading(false);
@@ -101,24 +159,27 @@ export default function RescheduleAppointment() {
         setIsSlotsLoading(true);
         setErrorVisible(false);
         setSelectedTime('');
-        const token = await tokenStorage.getAccessToken();
-        const res = await fetch(`${API}/providers/${booking.provider.id}/slots?date=${selectedDate}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        const slotArray = data.slots ?? data.data ?? [];
-        // Filter only available slots
-        setSlots(slotArray.filter((s: any) => s.available || s.isAvailable));
-        setIsSlotsLoading(false);
-      } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+        const response = await apiJson<SlotsResponse>(
+          `/providers/${booking.provider.id}/slots?date=${selectedDate}`,
+          {
+            auth: true,
+          },
+        );
+        const slotArray = extractSlots(response);
+        setSlots(
+          slotArray.filter((slot) => Boolean(slot.available || slot.isAvailable)),
+        );
+      } catch (error) {
+        const status = error instanceof ApiError ? error.status : undefined;
+        setErrorMessage(mapHttpError(status, undefined, lang));
         setErrorVisible(true);
         setSlots([]);
+      } finally {
         setIsSlotsLoading(false);
       }
     };
     fetchSlots();
-  }, [selectedDate, booking]);
+  }, [selectedDate, booking, lang]);
 
   const submitReschedule = async () => {
     Keyboard.dismiss();
@@ -138,12 +199,11 @@ export default function RescheduleAppointment() {
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
 
-      const res = await fetch(`${API}/bookings/${id}/reschedule`, {
+      await apiJson<unknown>(`/bookings/${id}/reschedule`, {
+        auth: true,
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -153,23 +213,20 @@ export default function RescheduleAppointment() {
         }),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const backendMessage = Array.isArray(err?.message) ? err.message[0] : err?.message;
-        if (res.status === 409) {
-          throw new Error(t('bookingSlotTaken'));
-        }
-        if (res.status === 400) {
-          throw new Error(t('bookingInvalidSlot'));
-        }
-        throw new Error(backendMessage ?? mapHttpError(res.status, undefined, lang));
-      }
-
       // Success → navigate back to appointment detail
       router.replace(`/(client)/appointments/${id}`);
 
-    } catch (err: any) {
-      setErrorMessage(err.message ?? mapHttpError(500, undefined, lang));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setErrorMessage(t('bookingSlotTaken'));
+      } else if (error instanceof ApiError && error.status === 400) {
+        setErrorMessage(t('bookingInvalidSlot'));
+      } else if (error instanceof Error && !(error instanceof ApiError)) {
+        setErrorMessage(error.message);
+      } else {
+        const status = error instanceof ApiError ? error.status : 500;
+        setErrorMessage(mapHttpError(status, undefined, lang));
+      }
       setErrorVisible(true);
     } finally {
       setIsSubmitting(false);
@@ -213,8 +270,8 @@ export default function RescheduleAppointment() {
     }
 
     const totalSlots = [...blanks, ...days];
-    let rows: any[][] = [];
-    let cells: any[] = [];
+    let rows: React.ReactElement[][] = [];
+    let cells: React.ReactElement[] = [];
 
     totalSlots.forEach((row, i) => {
       cells.push(row);
@@ -248,7 +305,7 @@ export default function RescheduleAppointment() {
   }
 
   const providerName = booking?.provider?.businessName || (booking?.provider?.user?.firstName ? `${booking.provider.user.firstName} ${booking.provider.user.lastName}` : t('providerGeneric'));
-  const serviceNames = booking?.services?.map((s: any) => s.name).join(', ') || '';
+  const serviceNames = booking?.services?.map((s) => s.name).join(', ') || '';
 
   return (
     <SafeAreaView style={styles.safeContainer}>

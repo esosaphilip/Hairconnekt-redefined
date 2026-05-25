@@ -6,8 +6,4 @@ if (config.resolver) {
   config.resolver.useWatchman = false;
 }
 
-if (config.watcher) {
-  config.watcher.useWatchman = false;
-}
-
 module.exports = config;

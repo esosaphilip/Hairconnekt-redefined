@@ -6,8 +6,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenStorage } from '../../../utils/token-storage';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
+
+type RegisterAuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type ReactNativeFile = Blob & {
+  uri: string;
+  type: string;
+  name: string;
+};
 
 export default function RegisterStep5Screen() {
   const router = useRouter();
@@ -27,13 +38,28 @@ export default function RegisterStep5Screen() {
     return value;
   };
 
+  const createImageFormData = (
+    fieldName: 'avatar' | 'idDocument' | 'portfolio',
+    uri: string,
+    filename: string,
+  ): FormData => {
+    const formData = new FormData();
+    const file: ReactNativeFile = {
+      uri,
+      type: 'image/jpeg',
+      name: filename,
+    } as ReactNativeFile;
+    formData.append(fieldName, file);
+    return formData;
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
     try {
       // STEP 1: Create user account
       setProgressText(t('providerRegisterSubmittingAccount'));
-      const authRes = await fetch(`${API}/auth/register`, {
+      const authData = await apiJson<RegisterAuthResponse>('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -46,27 +72,14 @@ export default function RegisterStep5Screen() {
           acceptedTerms: true,
         }),
       });
-
-      if (!authRes.ok) {
-        if (authRes.status === 409) {
-          throw new Error(t('providerRegisterEmailTaken'));
-        }
-        throw new Error(t('providerRegisterAccountCreateFailed'));
-      }
-
-      const authData = await authRes.json();
       const token = authData.accessToken;
 
       // STEP 2: Upload user avatar (BUG 9: before providers/register so the user exists)
       setProgressText(t('providerRegisterUploadingProfilePhoto'));
       if (form.profilePhotoUri) {
-        const fd = new FormData();
-        fd.append('avatar', { 
-          uri: form.profilePhotoUri, type: 'image/jpeg', name: 'avatar.jpg',
-        } as any);
-        await fetch(`${API}/users/me/avatar`, {
+        const fd = createImageFormData('avatar', form.profilePhotoUri, 'avatar.jpg');
+        await apiFetch('/users/me/avatar', {
           method: 'POST',
-          // BUG 8: no Content-Type — RN sets multipart boundary automatically
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         });
@@ -74,7 +87,7 @@ export default function RegisterStep5Screen() {
 
       // STEP 3: Create provider profile record
       setProgressText(t('providerRegisterCreatingProfile'));
-      const provRes = await fetch(`${API}/providers/register`, {
+      const provRes = await apiFetch('/providers/register', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,11 +114,8 @@ export default function RegisterStep5Screen() {
       // STEP 4: Upload ID document (BUG 9: requires provider record to exist)
       setProgressText(t('providerRegisterUploadingId'));
       if (form.idDocumentUri) {
-        const fd = new FormData();
-        fd.append('idDocument', {
-          uri: form.idDocumentUri, type: 'image/jpeg', name: 'id-doc.jpg',
-        } as any);
-        await fetch(`${API}/providers/me/id-document`, {
+        const fd = createImageFormData('idDocument', form.idDocumentUri, 'id-doc.jpg');
+        await apiFetch('/providers/me/id-document', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
@@ -115,11 +125,8 @@ export default function RegisterStep5Screen() {
       // STEP 5: Upload portfolio images
       setProgressText(t('providerRegisterUploadingPortfolio'));
       for (const uri of form.portfolioUris) {
-        const fd = new FormData();
-        fd.append('portfolio', {
-          uri, type: 'image/jpeg', name: 'portfolio.jpg',
-        } as any);
-        await fetch(`${API}/providers/me/portfolio`, {
+        const fd = createImageFormData('portfolio', uri, 'portfolio.jpg');
+        await apiFetch('/providers/me/portfolio', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
@@ -132,8 +139,14 @@ export default function RegisterStep5Screen() {
       reset();
       router.replace(`/(provider)/verify-email?email=${encodeURIComponent(form.email)}` as any);
 
-    } catch (err: any) {
-      setError(err.message ?? t('errorUnknown'));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setError(t('providerRegisterEmailTaken'));
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError(t('errorUnknown'));
+      }
     } finally {
       setIsSubmitting(false);
       setProgressText('');

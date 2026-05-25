@@ -3,47 +3,95 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Act
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
-import { tokenStorage } from '../../../utils/token-storage';
-import { API } from '../../../utils/api';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { debugError } from '@/utils/logger';
+import { ApiError, apiJson } from '@/services/apiClient';
+import { mapHttpError } from '@/utils/error-messages';
+
+type BookingParticipant = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  totalBookings?: number;
+};
+
+type BookingServiceItem = {
+  id: string;
+  name: string;
+};
+
+type BookingAddress = {
+  street?: string;
+  houseNumber?: string;
+  city?: string;
+};
+
+type BookingDetail = {
+  id: string;
+  status: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  totalMinutes?: number;
+  totalPrice: number;
+  isMobile?: boolean;
+  clientNotes?: string;
+  client: BookingParticipant;
+  address?: BookingAddress;
+  services?: BookingServiceItem[];
+};
+
+type BookingDetailResponse = BookingDetail | { data?: BookingDetail };
+type ConversationResponse = { id?: string; data?: { id?: string } };
 
 export default function BookingRequestScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { lang, t } = useLanguage();
+  const bookingId = String(id ?? '');
 
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadBooking();
-  }, [id]);
+    if (bookingId) {
+      loadBooking();
+    }
+  }, [bookingId]);
+
+  const extractBooking = (payload: BookingDetailResponse): BookingDetail | null =>
+    'data' in payload ? payload.data ?? null : (payload as BookingDetail);
+
+  const getErrorMessage = (err: unknown, fallback: string): string => {
+    if (err instanceof ApiError) {
+      const body = err.body;
+      if (body && typeof body === 'object' && 'message' in body) {
+        const message = (body as { message?: unknown }).message;
+        if (typeof message === 'string' && message.trim()) {
+          return message;
+        }
+      }
+      return mapHttpError(err.status, fallback, lang);
+    }
+    return fallback;
+  };
 
   const loadBooking = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/bookings/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const payload = await apiJson<BookingDetailResponse>(`/bookings/${bookingId}`, {
+        auth: true,
       });
-
-      if (!res.ok) {
-        setError(t('errorUnknown'));
-        return;
-      }
-
-      const data: any = await res.json();
-      setBooking(data.data ?? data);
+      setBooking(extractBooking(payload));
     } catch (err) {
       debugError('Provider booking request load failed', err);
-      setError(t('errorUnknown'));
+      setError(getErrorMessage(err, t('errorUnknown')));
     } finally {
       setIsLoading(false);
     }
@@ -52,25 +100,15 @@ export default function BookingRequestScreen() {
   const handleAccept = async () => {
     try {
       setIsAccepting(true);
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/bookings/${id}/accept`, {
+      await apiJson<unknown>(`/bookings/${bookingId}/accept`, {
+        auth: true,
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      if (res.ok) {
-        router.replace(`/(provider)/appointments/${id}`);
-      } else {
-        let msg = t('errorUnknown');
-        try {
-          const j: any = await res.json();
-          msg = j?.message || msg;
-        } catch {}
-        Alert.alert(t('error'), msg);
-        await loadBooking();
-      }
+      router.replace(`/(provider)/appointments/${bookingId}`);
     } catch (err) {
       debugError('Provider booking accept failed', err);
+      Alert.alert(t('error'), getErrorMessage(err, t('errorUnknown')));
+      await loadBooking();
     } finally {
       setIsAccepting(false);
     }
@@ -88,25 +126,15 @@ export default function BookingRequestScreen() {
           onPress: async () => {
             try {
               setIsDeclining(true);
-              const token = await tokenStorage.getAccessToken();
-              const res = await fetch(`${API}/bookings/${id}/decline`, {
+              await apiJson<unknown>(`/bookings/${bookingId}/decline`, {
+                auth: true,
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}` }
               });
-
-              if (res.ok) {
-                router.replace('/(provider)/calendar');
-              } else {
-                let msg = t('errorUnknown');
-                try {
-                  const j: any = await res.json();
-                  msg = j?.message || msg;
-                } catch {}
-                Alert.alert(t('error'), msg);
-                await loadBooking();
-              }
+              router.replace('/(provider)/calendar');
             } catch (err) {
               debugError('Provider booking decline failed', err);
+              Alert.alert(t('error'), getErrorMessage(err, t('errorUnknown')));
+              await loadBooking();
             } finally {
               setIsDeclining(false);
             }
@@ -120,18 +148,20 @@ export default function BookingRequestScreen() {
     const recipientId = booking?.client?.id as string | undefined;
     if (!recipientId) return;
     try {
-      const token = await tokenStorage.getAccessToken();
-      const res = await fetch(`${API}/chat/conversations`, {
+      const payload = await apiJson<ConversationResponse>('/chat/conversations', {
+        auth: true,
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const conversationId = data.data?.id ?? data.id;
+      const conversationId = payload.data?.id ?? payload.id;
+      if (conversationId) {
         router.push(`/(shared)/chat/${conversationId}` as any);
       }
-    } catch {}
+    } catch (err) {
+      debugError('Provider booking request chat open failed', err);
+      Alert.alert(t('error'), getErrorMessage(err, t('errorUnknown')));
+    }
   };
 
   const handleCall = () => {
@@ -243,7 +273,7 @@ export default function BookingRequestScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('bookingServices')}</Text>
-            <Text style={styles.detailValue}>{booking.services?.map((s: any) => s.name).join(', ')}</Text>
+            <Text style={styles.detailValue}>{booking.services?.map((service) => service.name).join(', ')}</Text>
           </View>
 
           <View style={styles.detailRow}>

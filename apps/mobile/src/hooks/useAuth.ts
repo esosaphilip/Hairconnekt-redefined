@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { tokenStorage } from '../utils/token-storage';
-import { API } from '../utils/api';
 import { debugLog } from '../utils/logger';
+import { AuthService } from '../services/authService';
 
 export interface User {
   id: string;
@@ -27,12 +27,11 @@ export const useAuth = () => {
   const checkAuth = useCallback(async () => {
     try {
       const token = await tokenStorage.getAccessToken();
-      const role = await tokenStorage.getUserRole();
       
-      if (token && role) {
-        // TODO: Fetch user profile based on role
+      if (token) {
+        const user = await AuthService.getCurrentUser();
         setAuthState({
-          user: { id: '', email: '', role, firstName: '', lastName: '' },
+          user,
           isLoading: false,
           isAuthenticated: true,
         });
@@ -53,13 +52,22 @@ export const useAuth = () => {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    // TODO: Implement login logic
-    throw new Error('Not implemented');
+  const login = useCallback(async (identifier: string, password: string) => {
+    const auth = await AuthService.login({ identifier, password });
+    await tokenStorage.save(
+      auth.accessToken,
+      auth.refreshToken,
+      auth.user.role,
+    );
+    setAuthState({
+      user: auth.user,
+      isLoading: false,
+      isAuthenticated: true,
+    });
   }, []);
 
   const logout = useCallback(async () => {
-    await tokenStorage.clear();
+    await AuthService.logout();
     setAuthState({
       user: null,
       isLoading: false,

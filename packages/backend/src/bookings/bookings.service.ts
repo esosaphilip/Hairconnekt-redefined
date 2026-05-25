@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Raw } from 'typeorm';
@@ -12,7 +13,7 @@ import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { TimeBlock } from '../entities/time-block.entity';
-import { User, UserRole } from '../entities/user.entity';
+import { UserRole } from '../entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -20,6 +21,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
@@ -31,10 +34,23 @@ export class BookingsService {
     private readonly availabilityScheduleRepo: Repository<AvailabilitySchedule>,
     @InjectRepository(TimeBlock)
     private readonly timeBlockRepo: Repository<TimeBlock>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  private async sendNotificationSafely(
+    context: string,
+    payload: Parameters<NotificationsService['sendToUser']>[0],
+  ): Promise<void> {
+    try {
+      await this.notificationsService.sendToUser(payload);
+    } catch (error) {
+      this.logger.warn(
+        `Notification failed during ${context} for user ${payload.userId}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
+  }
 
   private generateBookingNumber(dateStr: string): string {
     const compactDate = dateStr.replace(/-/g, '');
@@ -219,17 +235,15 @@ export class BookingsService {
     });
 
     if (fullBooking?.provider?.userId && fullBooking?.client) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: fullBooking.provider.userId,
-          type: 'new_booking',
-          titleDe: 'Neue Buchungsanfrage',
-          titleEn: 'New Booking Request',
-          bodyDe: `${fullBooking.client.firstName} möchte einen Termin am ${fullBooking.scheduledDate} um ${fullBooking.scheduledTime} Uhr`,
-          bodyEn: `${fullBooking.client.firstName} wants to book on ${fullBooking.scheduledDate} at ${fullBooking.scheduledTime}`,
-          data: { screen: `/(provider)/booking-request/${fullBooking.id}`, bookingId: fullBooking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking creation', {
+        userId: fullBooking.provider.userId,
+        type: 'new_booking',
+        titleDe: 'Neue Buchungsanfrage',
+        titleEn: 'New Booking Request',
+        bodyDe: `${fullBooking.client.firstName} möchte einen Termin am ${fullBooking.scheduledDate} um ${fullBooking.scheduledTime} Uhr`,
+        bodyEn: `${fullBooking.client.firstName} wants to book on ${fullBooking.scheduledDate} at ${fullBooking.scheduledTime}`,
+        data: { screen: `/(provider)/booking-request/${fullBooking.id}`, bookingId: fullBooking.id },
+      });
     }
 
     return {
@@ -357,17 +371,15 @@ export class BookingsService {
     await this.bookingRepo.save(booking);
 
     if (booking?.provider?.userId && booking?.client) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.provider.userId,
-          type: 'booking_rescheduled',
-          titleDe: 'Terminverschiebung angefragt',
-          titleEn: 'Reschedule Requested',
-          bodyDe: `${booking.client.firstName} möchte den Termin auf ${dto.scheduledDate} um ${dto.scheduledTime} Uhr verschieben`,
-          bodyEn: `${booking.client.firstName} wants to reschedule to ${dto.scheduledDate} at ${dto.scheduledTime}`,
-          data: { screen: `/(provider)/booking-request/${booking.id}`, bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking reschedule', {
+        userId: booking.provider.userId,
+        type: 'booking_rescheduled',
+        titleDe: 'Terminverschiebung angefragt',
+        titleEn: 'Reschedule Requested',
+        bodyDe: `${booking.client.firstName} möchte den Termin auf ${dto.scheduledDate} um ${dto.scheduledTime} Uhr verschieben`,
+        bodyEn: `${booking.client.firstName} wants to reschedule to ${dto.scheduledDate} at ${dto.scheduledTime}`,
+        data: { screen: `/(provider)/booking-request/${booking.id}`, bookingId: booking.id },
+      });
     }
 
     return this.findOne(id, user);
@@ -417,31 +429,27 @@ export class BookingsService {
     await this.bookingRepo.save(booking);
 
     if (booking.cancelledBy === CancelledBy.CLIENT && booking?.provider?.userId && booking?.client) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.provider.userId,
-          type: 'booking_cancelled_by_client',
-          titleDe: 'Termin storniert',
-          titleEn: 'Appointment Cancelled',
-          bodyDe: `${booking.client.firstName} hat den Termin am ${booking.scheduledDate} um ${booking.scheduledTime} Uhr storniert`,
-          bodyEn: `${booking.client.firstName} cancelled the appointment on ${booking.scheduledDate} at ${booking.scheduledTime}`,
-          data: { screen: '/(provider)/calendar', bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking cancellation by client', {
+        userId: booking.provider.userId,
+        type: 'booking_cancelled_by_client',
+        titleDe: 'Termin storniert',
+        titleEn: 'Appointment Cancelled',
+        bodyDe: `${booking.client.firstName} hat den Termin am ${booking.scheduledDate} um ${booking.scheduledTime} Uhr storniert`,
+        bodyEn: `${booking.client.firstName} cancelled the appointment on ${booking.scheduledDate} at ${booking.scheduledTime}`,
+        data: { screen: '/(provider)/calendar', bookingId: booking.id },
+      });
     }
 
     if (booking.cancelledBy === CancelledBy.PROVIDER && booking?.provider) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.clientId,
-          type: 'booking_cancelled_by_provider',
-          titleDe: 'Termin abgesagt',
-          titleEn: 'Appointment Cancelled',
-          bodyDe: `${booking.provider.businessName} hat deinen Termin am ${booking.scheduledDate} leider abgesagt`,
-          bodyEn: `${booking.provider.businessName} has cancelled your appointment on ${booking.scheduledDate}`,
-          data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking cancellation by provider', {
+        userId: booking.clientId,
+        type: 'booking_cancelled_by_provider',
+        titleDe: 'Termin abgesagt',
+        titleEn: 'Appointment Cancelled',
+        bodyDe: `${booking.provider.businessName} hat deinen Termin am ${booking.scheduledDate} leider abgesagt`,
+        bodyEn: `${booking.provider.businessName} has cancelled your appointment on ${booking.scheduledDate}`,
+        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
+      });
     }
 
     return this.findOne(id, user);
@@ -475,17 +483,15 @@ export class BookingsService {
     booking.status = BookingStatus.CONFIRMED;
     await this.bookingRepo.save(booking);
     if (booking?.provider) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.clientId,
-          type: 'booking_confirmed',
-          titleDe: 'Buchung bestätigt ✓',
-          titleEn: 'Booking Confirmed ✓',
-          bodyDe: `Dein Termin mit ${booking.provider.businessName} am ${booking.scheduledDate} wurde bestätigt`,
-          bodyEn: `Your appointment with ${booking.provider.businessName} on ${booking.scheduledDate} is confirmed`,
-          data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking acceptance', {
+        userId: booking.clientId,
+        type: 'booking_confirmed',
+        titleDe: 'Buchung bestätigt ✓',
+        titleEn: 'Booking Confirmed ✓',
+        bodyDe: `Dein Termin mit ${booking.provider.businessName} am ${booking.scheduledDate} wurde bestätigt`,
+        bodyEn: `Your appointment with ${booking.provider.businessName} on ${booking.scheduledDate} is confirmed`,
+        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
+      });
     }
     return this.findOne(id, user);
   }
@@ -503,17 +509,15 @@ export class BookingsService {
     booking.cancelledAt = new Date();
     await this.bookingRepo.save(booking);
     if (booking?.provider) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.clientId,
-          type: 'booking_declined',
-          titleDe: 'Buchung abgelehnt',
-          titleEn: 'Booking Declined',
-          bodyDe: `${booking.provider.businessName} kann deinen Termin am ${booking.scheduledDate} leider nicht wahrnehmen`,
-          bodyEn: `${booking.provider.businessName} cannot take your appointment on ${booking.scheduledDate}`,
-          data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking decline', {
+        userId: booking.clientId,
+        type: 'booking_declined',
+        titleDe: 'Buchung abgelehnt',
+        titleEn: 'Booking Declined',
+        bodyDe: `${booking.provider.businessName} kann deinen Termin am ${booking.scheduledDate} leider nicht wahrnehmen`,
+        bodyEn: `${booking.provider.businessName} cannot take your appointment on ${booking.scheduledDate}`,
+        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
+      });
     }
     return this.findOne(id, user);
   }
@@ -542,17 +546,15 @@ export class BookingsService {
     booking.status = BookingStatus.COMPLETED;
     await this.bookingRepo.save(booking);
     if (booking?.provider) {
-      try {
-        await this.notificationsService.sendToUser({
-          userId: booking.clientId,
-          type: 'booking_completed',
-          titleDe: 'Termin abgeschlossen — Bewertung abgeben?',
-          titleEn: 'Appointment done — Leave a review?',
-          bodyDe: `Wie war dein Termin mit ${booking.provider.businessName}? Jetzt bewerten!`,
-          bodyEn: `How was your appointment with ${booking.provider.businessName}? Leave a review!`,
-          data: { screen: `/(client)/review/${booking.id}`, bookingId: booking.id },
-        });
-      } catch {}
+      await this.sendNotificationSafely('booking completion', {
+        userId: booking.clientId,
+        type: 'booking_completed',
+        titleDe: 'Termin abgeschlossen — Bewertung abgeben?',
+        titleEn: 'Appointment done — Leave a review?',
+        bodyDe: `Wie war dein Termin mit ${booking.provider.businessName}? Jetzt bewerten!`,
+        bodyEn: `How was your appointment with ${booking.provider.businessName}? Leave a review!`,
+        data: { screen: `/(client)/review/${booking.id}`, bookingId: booking.id },
+      });
     }
     return this.findOne(id, user);
   }

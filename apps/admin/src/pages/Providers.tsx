@@ -15,6 +15,19 @@ export default function Providers() {
   const [filter, setFilter] = useState<ProviderStatus | ''>('');
   const [selectedProvider, setSelectedProvider] = useState<AdminProvider | null>(null);
 
+  const normalizeStatus = (status?: string | null): ProviderStatus | '' => {
+    const normalized = status?.toLowerCase();
+    if (
+      normalized === 'pending' ||
+      normalized === 'approved' ||
+      normalized === 'rejected' ||
+      normalized === 'suspended'
+    ) {
+      return normalized;
+    }
+    return '';
+  };
+
   const loadProviders = async (status?: ProviderStatus) => {
     try {
       const data = await getProviders(status);
@@ -171,7 +184,7 @@ export default function Providers() {
                 <td>{getStatusBadge(p.status)}</td>
                 <td style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{new Date(p.createdAt).toLocaleDateString()}</td>
                 <td style={{ textAlign: 'right' }}>
-                  {p.status === 'pending' && (
+                  {normalizeStatus(p.status) === 'pending' && (
                     <>
                       <button className="btn btn-success" style={{ padding: '0.4rem', marginRight: '0.5rem' }} onClick={(e) => approve(p.id, e)} title="Genehmigen">
                         <UserCheck size={16} />
@@ -181,7 +194,7 @@ export default function Providers() {
                       </button>
                     </>
                   )}
-                  {p.status === 'approved' && (
+                  {normalizeStatus(p.status) === 'approved' && (
                     <button className="btn btn-outline" style={{ padding: '0.4rem', color: 'var(--text-muted)' }} onClick={(e) => suspend(p.id, e)} title="Sperren">
                       <UserMinus size={16} />
                     </button>
@@ -237,16 +250,16 @@ export default function Providers() {
               <button className="btn btn-outline" onClick={() => setSelectedProvider(null)}>Schließen</button>
               
               <div style={{ display: 'flex', gap: '1rem' }}>
-                {selectedProvider.status === 'pending' && (
+                {normalizeStatus(selectedProvider.status) === 'pending' && (
                   <>
                     <button className="btn btn-danger" onClick={() => reject(selectedProvider.id)}>Ablehnen</button>
                     <button className="btn btn-success" onClick={() => approve(selectedProvider.id)}>Genehmigen</button>
                   </>
                 )}
-                {selectedProvider.status === 'approved' && (
+                {normalizeStatus(selectedProvider.status) === 'approved' && (
                   <button className="btn btn-outline" style={{ color: 'var(--text-muted)' }} onClick={() => suspend(selectedProvider.id)}>Sperren</button>
                 )}
-                {selectedProvider.status === 'suspended' && (
+                {normalizeStatus(selectedProvider.status) === 'suspended' && (
                   <button className="btn btn-success" onClick={() => approve(selectedProvider.id)}>Reaktivieren</button>
                 )}
               </div>

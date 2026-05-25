@@ -11,7 +11,7 @@ import { MessageTicks } from '../../../components/MessageTicks';
 import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { apiFetch, apiJson } from '@/services/apiClient';
+import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
 import { MediaPickerActionSheet } from '@/components/MediaPickerActionSheet';
 import { pickChatDocument, pickChatImage } from '@/utils/chat-media-picker';
 import { debugError } from '@/utils/logger';
@@ -24,17 +24,60 @@ type ConversationDetailResponse = {
   myUserId: string;
 };
 
+type ConversationDetailApiResponse =
+  | ConversationDetailResponse
+  | {
+      data?: ConversationDetailResponse | null;
+    };
+
+type ChatMessageApiResponse =
+  | Message
+  | {
+      data?: Message | null;
+    }
+  | null;
+
 type DisplayItem =
   | { type: 'typing'; id: 'typing' }
   | { type: 'date'; id: string; label: string }
   | { type: 'message'; id: string; message: Message };
 
+type ReactNativeFile = Blob & {
+  uri: string;
+  type: string;
+  name: string;
+};
+
 const normalizeParam = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] : v) ?? '';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isMessage = (value: unknown): value is Message =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  typeof value.senderId === 'string' &&
+  typeof value.createdAt === 'string' &&
+  typeof value.isRead === 'boolean';
+
+const extractConversationDetail = (
+  payload: ConversationDetailApiResponse,
+): ConversationDetailResponse | null => {
+  const resolved = isRecord(payload) && 'data' in payload ? payload.data : payload;
+  return isRecord(resolved) ? (resolved as ConversationDetailResponse) : null;
+};
+
+const extractMessagePayload = (
+  payload: ChatMessageApiResponse,
+): Message | null => {
+  const resolved = isRecord(payload) && 'data' in payload ? payload.data : payload;
+  return isMessage(resolved) ? resolved : null;
+};
 
 export default function SharedChatScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const id = normalizeParam(params.id as any);
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = normalizeParam(params.id);
   const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
@@ -55,7 +98,7 @@ export default function SharedChatScreen() {
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
-  const flatListRef = useRef<FlatList<any>>(null);
+  const flatListRef = useRef<FlatList<DisplayItem>>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentAtRef = useRef<number>(0);
   const myUserIdRef = useRef<string>('');
@@ -83,6 +126,31 @@ export default function SharedChatScreen() {
     return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
+  const markConversationRead = async (conversationId: string) => {
+    try {
+      await apiFetch(`/chat/conversations/${conversationId}/read`, {
+        auth: true,
+        method: 'POST',
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.senderId !== myUserIdRef.current ? { ...m, isRead: true } : m,
+        ),
+      );
+    } catch (error) {
+      debugError('Failed to mark chat conversation as read', error);
+    }
+  };
+
+  const openExternalUrl = async (url: string, context: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      debugError(`Failed to open external URL during ${context}`, error);
+      showError(500);
+    }
+  };
+
   const loadConversation = async () => {
     try {
       setErrorVisible(false);
@@ -93,25 +161,31 @@ export default function SharedChatScreen() {
         showError(401);
         return;
       }
-      let data: any;
+      let response: ConversationDetailApiResponse;
       try {
-        data = await apiJson<any>(`/chat/conversations/${id}`, { auth: true });
-      } catch (err: any) {
-        showError(err?.status ?? 500);
+        response = await apiJson<ConversationDetailApiResponse>(`/chat/conversations/${id}`, {
+          auth: true,
+        });
+      } catch (error) {
+        showError(error instanceof ApiError ? error.status : 500);
         return;
       }
 
-      const payload: ConversationDetailResponse = data?.data ?? data;
-      setOtherUser(payload?.otherUser ?? null);
-      setBookingRef(payload?.bookingReference ?? null);
-      setMessages(Array.isArray(payload?.messages) ? payload.messages : []);
-      setMyUserId(payload?.myUserId ?? '');
-      myUserIdRef.current = payload?.myUserId ?? '';
+      const payload = extractConversationDetail(response);
+      if (!payload) {
+        showError(500);
+        return;
+      }
 
-      await apiFetch(`/chat/conversations/${id}/read`, { auth: true, method: 'POST' }).catch(() => {});
+      setOtherUser(payload.otherUser ?? null);
+      setBookingRef(payload.bookingReference ?? null);
+      setMessages(Array.isArray(payload.messages) ? payload.messages : []);
+      setMyUserId(payload.myUserId ?? '');
+      myUserIdRef.current = payload.myUserId ?? '';
 
-      setMessages((prev) => prev.map((m) => (m.senderId !== myUserIdRef.current ? { ...m, isRead: true } : m)));
-    } catch {
+      await markConversationRead(id);
+    } catch (error) {
+      debugError('Failed to load chat conversation', error);
       showError(500);
     } finally {
       setIsLoading(false);
@@ -268,7 +342,8 @@ export default function SharedChatScreen() {
         if (withoutTemp.some((m) => m.id === msg.id)) return withoutTemp;
         return [msg, ...withoutTemp];
       });
-    } catch {
+    } catch (error) {
+      debugError('Chat send failed', error);
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
       setInput(content);
       showError(500);
@@ -301,10 +376,13 @@ export default function SharedChatScreen() {
   const handlePhonePress = async () => {
     const phone = otherUser?.phone;
     if (!phone) return;
-    await Linking.openURL(`tel:${phone}`).catch(() => {});
+    await openExternalUrl(`tel:${phone}`, 'phone call');
   };
 
-  const renderItem = ({ item }: { item: DisplayItem }) => {
+  function renderItem(
+    info: { item: DisplayItem },
+  ): React.ReactElement {
+    const { item } = info;
     if (item.type === 'typing') {
       return (
         <View style={styles.typingRow}>
@@ -333,7 +411,11 @@ export default function SharedChatScreen() {
           ) : null}
 
           {msg.mediaType === 'image' && msg.mediaUrl ? (
-            <TouchableOpacity onPress={() => Linking.openURL(msg.mediaUrl!).catch(() => {})}>
+            <TouchableOpacity
+              onPress={() => {
+                void openExternalUrl(msg.mediaUrl, 'chat image');
+              }}
+            >
               <Image
                 source={{ uri: msg.mediaUrl }}
                 style={styles.mediaBubbleImage}
@@ -345,7 +427,9 @@ export default function SharedChatScreen() {
           {msg.mediaType === 'document' && msg.mediaUrl ? (
             <TouchableOpacity
               style={styles.mediaBubbleDoc}
-              onPress={() => Linking.openURL(msg.mediaUrl!).catch(() => {})}
+              onPress={() => {
+                void openExternalUrl(msg.mediaUrl, 'chat document');
+              }}
             >
               <Feather
                 name="file-text"
@@ -381,7 +465,7 @@ export default function SharedChatScreen() {
         </View>
       </View>
     );
-  };
+  }
 
   const canSend = input.trim().length > 0 && !isSending;
 
@@ -393,32 +477,42 @@ export default function SharedChatScreen() {
     setIsUploadingMedia(true);
     try {
       const formData = new FormData();
-      formData.append('chatMedia', {
+      const file: ReactNativeFile = {
         uri,
         type: mimeType,
         name: filename,
-      } as any);
+      } as ReactNativeFile;
+      formData.append('chatMedia', file);
 
       const res = await apiFetch(`/chat/conversations/${id}/messages/media`, {
         auth: true,
         method: 'POST',
-        body: formData as any,
+        body: formData,
       });
 
       if (!res.ok) {
         throw new Error('Upload fehlgeschlagen');
       }
 
-      const body = await res.json().catch(() => null);
-      const msg: Message | null = (body as any)?.data ?? body;
-      if (msg && typeof msg === 'object' && 'id' in (msg as any)) {
+      const responseText = await res.text();
+      let parsedBody: unknown = null;
+      if (responseText) {
+        try {
+          parsedBody = JSON.parse(responseText);
+        } catch (error) {
+          debugError('Chat media upload returned invalid JSON', error);
+        }
+      }
+
+      const msg = extractMessagePayload(parsedBody as ChatMessageApiResponse);
+      if (msg) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === (msg as any).id)) return prev;
-          return [msg as any, ...prev];
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [msg, ...prev];
         });
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       } else {
-        loadConversation();
+        await loadConversation();
       }
     } catch (error) {
       debugError('Chat media upload failed', error);
