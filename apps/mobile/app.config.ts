@@ -1,9 +1,109 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-const appJson = require('./app.json') as { expo: ExpoConfig };
+const baseConfig: ExpoConfig = {
+  name: 'HairConnekt',
+  slug: 'hairconnekt-redefined',
+  owner: 'esosaphilip',
+  version: '1.0.1',
+  scheme: 'hairconnekt',
+  orientation: 'portrait',
+  userInterfaceStyle: 'light',
+  backgroundColor: '#FFFFFF',
+  icon: './assets/icon.png',
+  splash: {
+    image: './assets/splash.png',
+    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
+  },
+  ios: {
+    supportsTablet: false,
+    bundleIdentifier: 'de.hairconnekt.app',
+    buildNumber: '4',
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription:
+        'HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen.',
+    },
+  },
+  android: {
+    backgroundColor: '#FFFFFF',
+    package: 'de.hairconnekt.app',
+    versionCode: 4,
+    blockedPermissions: ['android.permission.RECORD_AUDIO'],
+    permissions: [
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.READ_MEDIA_IMAGES',
+    ],
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#FFFFFF',
+    },
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          {
+            scheme: 'https',
+            host: 'hairconnekt.de',
+            pathPrefix: '/',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
+    predictiveBackGestureEnabled: false,
+  },
+  web: {
+    bundler: 'metro',
+    favicon: './assets/favicon.png',
+  },
+  plugins: [
+    '@sentry/react-native',
+    'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: '#FFFFFF',
+        image: './assets/splash.png',
+        imageWidth: 280,
+        resizeMode: 'contain',
+      },
+    ],
+    'expo-font',
+    'expo-secure-store',
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'HairConnekt benötigt Zugriff auf deine Fotos, um Profilbilder und Portfolio-Fotos hochzuladen.',
+      },
+    ],
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen.',
+      },
+    ],
+  ],
+  experiments: {
+    typedRoutes: true,
+  },
+  extra: {
+    eas: {
+      projectId: 'cf78514f-f8c9-478b-b2fb-d6a784f93262',
+    },
+  },
+  runtimeVersion: {
+    policy: 'appVersion',
+  },
+  updates: {
+    url: 'https://u.expo.dev/cf78514f-f8c9-478b-b2fb-d6a784f93262',
+  },
+};
 
-export default ({ config }: ConfigContext): ExpoConfig => {
-  const base = (appJson?.expo ?? config) as ExpoConfig;
+export default (_: ConfigContext): ExpoConfig => {
   const profile = process.env.EAS_BUILD_PROFILE ?? '';
 
   const isNonProduction =
@@ -15,13 +115,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const androidPackage = isNonProduction
     ? 'de.hairconnekt.app.staging'
-    : base.android?.package ?? 'de.hairconnekt.app';
+    : baseConfig.android?.package ?? 'de.hairconnekt.app';
 
   const iosBundleIdentifier = isNonProduction
     ? 'de.hairconnekt.app.staging'
-    : base.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
+    : baseConfig.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
 
-  const plugins = Array.isArray(base.plugins) ? [...base.plugins] : [];
+  const plugins = Array.isArray(baseConfig.plugins) ? [...baseConfig.plugins] : [];
   const hasAdiPlugin = plugins.some((p) => {
     if (typeof p === 'string') return p.includes('withAdiRegistration');
     if (Array.isArray(p)) return String(p[0]).includes('withAdiRegistration');
@@ -32,25 +132,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
 
   return {
-    ...base,
+    ...baseConfig,
     name,
     plugins,
     android: {
-      ...base.android,
+      ...baseConfig.android,
       package: androidPackage,
     },
     ios: {
-      ...base.ios,
+      ...baseConfig.ios,
       bundleIdentifier: iosBundleIdentifier,
       infoPlist: {
-        ...(base.ios as any)?.infoPlist,
+        ...baseConfig.ios?.infoPlist,
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     extra: {
-      ...base.extra,
+      ...baseConfig.extra,
       eas: {
-        ...(base.extra as any)?.eas,
+        ...baseConfig.extra?.eas,
         buildProfile: profile || undefined,
         isProduction: isProduction || undefined,
       },
