@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   backButton: { position: 'absolute', top: spacing.xl, left: spacing.lg, zIndex: 10, padding: spacing.sm },
   backText: { fontFamily: fonts.bodyMedium, color: colors.textSecondary, fontSize: fontSizes.md },
   progressContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xl, marginTop: spacing.xxl * 2 },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, marginHorizontal: 2 },
+  progressSegment: { flex: 1, height: 4, borderRadius: 2, marginHorizontal: spacing.xxxs },
   stepContainer: { flex: 1, justifyContent: 'center', marginBottom: spacing.xxl },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.sm, textAlign: 'center' },
   bodyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },

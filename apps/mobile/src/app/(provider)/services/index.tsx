@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
@@ -110,7 +110,7 @@ export default function ProviderServicesListScreen() {
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('servicesTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -175,7 +175,7 @@ export default function ProviderServicesListScreen() {
 
         {Object.keys(groupedServices).length > 0 && (
           <TouchableOpacity style={styles.dashedAddBtn} onPress={() => router.push('/(provider)/services/new')}>
-            <Feather name="plus" size={20} color={colors.coral} style={{ marginRight: 8 }} />
+            <Feather name="plus" size={20} color={colors.coral} style={{ marginRight: spacing.xs }} />
             <Text style={styles.dashedAddText}>{t('servicesAdd')}</Text>
           </TouchableOpacity>
         )}
@@ -191,24 +191,24 @@ export default function ProviderServicesListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backBtn: { padding: 8 },
-  headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: 18, color: colors.textPrimary },
-  scrollContent: { padding: spacing.lg, paddingBottom: 100 },
+  backBtn: { padding: spacing.xs },
+  headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
   categorySection: { marginBottom: spacing.xl },
-  categoryHeader: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary, marginBottom: spacing.md },
-  serviceCard: { backgroundColor: colors.background, borderRadius: 16, padding: spacing.md, marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...shadows.card },
+  categoryHeader: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.md },
+  serviceCard: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...shadows.card },
   inactiveCard: { opacity: 0.6 },
   cardInfo: { flex: 1, paddingRight: spacing.sm },
-  serviceName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: 4 },
-  serviceDuration: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, marginBottom: 4 },
-  servicePrice: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.coral },
-  inactiveBadge: { backgroundColor: colors.borderStrong, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginLeft: spacing.sm },
-  inactiveBadgeText: { fontSize: 10, fontFamily: fonts.bodyMedium, color: colors.textSecondary },
+  serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxs },
+  serviceDuration: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxs },
+  servicePrice: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
+  inactiveBadge: { backgroundColor: colors.borderStrong, paddingHorizontal: spacing.xxs + spacing.xxxs, paddingVertical: spacing.xxxs, borderRadius: borderRadius.sm, marginLeft: spacing.sm },
+  inactiveBadgeText: { fontSize: fontSizes.xxs, fontFamily: fonts.bodyMedium, color: colors.textSecondary },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   menuDots: { padding: spacing.sm },
-  dashedAddBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.coral, borderRadius: 16, marginTop: spacing.md },
-  dashedAddText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.coral },
-  emptyState: { alignItems: 'center', marginTop: 100 },
+  dashedAddBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.coral, borderRadius: borderRadius.md, marginTop: spacing.md },
+  dashedAddText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
+  emptyState: { alignItems: 'center', marginTop: spacing.xxxxxl },
   emptyText: { fontFamily: fonts.body, color: colors.textSecondary, marginBottom: spacing.lg },
-  fab: { position: 'absolute', bottom: spacing.xl, right: spacing.xl, backgroundColor: colors.coral, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', ...shadows.card }
+  fab: { position: 'absolute', bottom: spacing.xl, right: spacing.xl, backgroundColor: colors.coral, width: layout.fabSize, height: layout.fabSize, borderRadius: layout.fabSize / 2, alignItems: 'center', justifyContent: 'center', ...shadows.card }
 });

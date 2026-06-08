@@ -191,8 +191,8 @@ export default function ProviderAppointmentDetailScreen() {
 
   const getStatusColor = (status: string) => {
     // Provider view uses BLUE for status
-    if (bookingStatus(status) === 'pending') return '#E65100';
-    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return '#1976D2';
+    if (bookingStatus(status) === 'pending') return colors.orange;
+    if (bookingStatus(status) === 'confirmed' || bookingStatus(status) === 'in_progress') return colors.blue;
     if (bookingStatus(status) === 'completed') return colors.green;
     if (bookingStatus(status) === 'cancelled') return colors.error;
     return colors.textSecondary;
@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 100 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
 
   topInfo: { alignItems: 'center', marginBottom: spacing.xl },
-  statusChip: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: spacing.sm },
+  statusChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xxs + spacing.xxxs, borderRadius: 20, marginBottom: spacing.sm },
   statusChipText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.background },
   bookingNumber: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
@@ -434,11 +434,11 @@ const styles = StyleSheet.create({
   clientAvatarRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   clientAvatar: { width: 60, height: 60, borderRadius: 30 },
   clientInfo: { flex: 1 },
-  clientName: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: 4 },
+  clientName: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxs },
   clientCity: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   clientActions: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
-  greyButton: { flex: 1, backgroundColor: colors.surface, paddingVertical: 12, borderRadius: borderRadius.sm, alignItems: 'center' },
+  greyButton: { flex: 1, backgroundColor: colors.surface, paddingVertical: spacing.sm, borderRadius: borderRadius.sm, alignItems: 'center' },
   greyButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
 
   notesBox: { backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.sm, marginTop: spacing.md },
@@ -450,10 +450,10 @@ const styles = StyleSheet.create({
   
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
   
-  boldGreenText: { fontFamily: fonts.bodyBold, color: '#2E7D32' },
+  boldGreenText: { fontFamily: fonts.bodyBold, color: colors.green },
   
   paymentMethodRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
-  orangeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.orange, marginRight: 8 },
+  orangeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.orange, marginRight: spacing.xs },
   paymentMethodText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },

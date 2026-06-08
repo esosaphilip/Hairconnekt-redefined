@@ -187,7 +187,7 @@ export default function ProviderProfile() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxxxl }}>
         
         {/* HERO SECTION */}
         <View style={styles.heroContainer}>
@@ -346,7 +346,7 @@ export default function ProviderProfile() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
                 <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('profileTabReviews')}</Text>
               </View>
@@ -405,13 +405,13 @@ export default function ProviderProfile() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-  heroContainer: { height: 220, position: 'relative', marginBottom: 50 },
+  heroContainer: { height: 220, position: 'relative', marginBottom: spacing.xxl + spacing.xxxs },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroImagePlaceholder: { width: '100%', height: '100%', backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   heroControls: { position: 'absolute', top: 60, left: spacing.lg, right: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   heroControlsRight: { flexDirection: 'row' },
-  avatarWrapper: { position: 'absolute', bottom: -48, alignSelf: 'center', width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.gold, backgroundColor: colors.surface, padding: 2, ...shadows.card },
+  avatarWrapper: { position: 'absolute', bottom: -48, alignSelf: 'center', width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.gold, backgroundColor: colors.surface, padding: spacing.xxxs, ...shadows.card },
   avatarImage: { width: '100%', height: '100%', borderRadius: 44 },
   avatarPlaceholder: { backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: fonts.heading, fontSize: 32, color: colors.primary },
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: 4 },
+  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
 
   tabsScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   tabsContainer: { paddingHorizontal: spacing.lg, gap: spacing.md },
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: 22, marginBottom: spacing.xl },
   sectionHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.xl },
-  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: 6, paddingHorizontal: 12, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
   tagText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
@@ -442,10 +442,10 @@ const styles = StyleSheet.create({
 
   serviceCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   serviceInfo: { flex: 1 },
-  serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: 4 },
-  serviceDetail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, marginBottom: 4 },
+  serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxs },
+  serviceDetail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, marginBottom: spacing.xxs },
   servicePrice: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  selectButton: { backgroundColor: colors.primaryLight, paddingVertical: 8, paddingHorizontal: 16, borderRadius: borderRadius.sm },
+  selectButton: { backgroundColor: colors.primaryLight, paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: borderRadius.sm },
   selectButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
 
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
   reviewerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   reviewerAvatarText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
   reviewerInfo: { flex: 1 },
-  reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: 2 },
+  reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 
-  stickyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: 30 },
+  stickyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs },
   footerPriceBlock: { marginRight: spacing.lg },
   footerPriceLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   footerPriceValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },

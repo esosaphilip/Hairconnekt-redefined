@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenStorage } from '../../../utils/token-storage';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
@@ -135,7 +134,6 @@ export default function RegisterStep5Screen() {
 
       setProgressText(t('done'));
       await tokenStorage.save(token, authData.refreshToken, 'provider');
-      await AsyncStorage.removeItem('registrationForm');
       reset();
       router.replace(`/(provider)/verify-email?email=${encodeURIComponent(form.email)}` as any);
 
@@ -182,7 +180,7 @@ export default function RegisterStep5Screen() {
         {error && (
           <View style={styles.errorBanner}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
-              <Feather name="alert-circle" size={20} color={colors.error} style={{ marginTop: 2 }} />
+              <Feather name="alert-circle" size={20} color={colors.error} style={{ marginTop: spacing.xxxs }} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
             <TouchableOpacity onPress={handleSubmit} style={styles.retryBtn}>
@@ -306,7 +304,7 @@ const styles = StyleSheet.create({
   backButton: { padding: spacing.xs, marginLeft: -spacing.xs },
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
-  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: 4, marginBottom: spacing.md },
+  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
   progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
@@ -315,7 +313,7 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.lg },
   
   errorBanner: { 
-    flexDirection: 'column', backgroundColor: '#FFEBEE', padding: spacing.md, 
+    flexDirection: 'column', backgroundColor: colors.errorLightSolid, padding: spacing.md, 
     borderRadius: borderRadius.md, marginBottom: spacing.lg,
     borderLeftWidth: 4, borderLeftColor: colors.error 
   },
@@ -329,15 +327,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
-    borderWidth: 1, borderColor: '#EEEEEE',
+    borderWidth: 1, borderColor: colors.border,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
   editLink: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.coral },
-  cardValueMain: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: 4 },
-  cardValueSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: 2 },
+  cardValueMain: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxs },
+  cardValueSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxxs },
   
-  greenText: { color: '#4CAF50' },
+  greenText: { color: colors.successAlt },
   redText: { color: colors.error },
   
   sectionTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.md, textTransform: 'uppercase' },
@@ -345,8 +343,8 @@ const styles = StyleSheet.create({
   nextStepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.md },
   goldCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
   goldCircleText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
-  nextStepContent: { flex: 1, paddingTop: 6 },
-  nextStepTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: 2 },
+  nextStepContent: { flex: 1, paddingTop: spacing.xxs + spacing.xxxs },
+  nextStepTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxxs },
   nextStepSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
@@ -355,6 +353,6 @@ const styles = StyleSheet.create({
   submitButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.background },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'center', width: '70%', ...shadows.card },
-  modalText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: '#555555', marginTop: spacing.md, textAlign: 'center' },
+  modalCard: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.lg, alignItems: 'center', width: '70%', ...shadows.card },
+  modalText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textMuted, marginTop: spacing.md, textAlign: 'center' },
 });

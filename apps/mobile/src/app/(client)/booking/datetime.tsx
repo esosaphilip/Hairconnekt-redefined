@@ -2,25 +2,66 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ApiError, apiJson } from '@/services/apiClient';
 
+type BookingSlot = {
+  time?: string | null;
+  startTime?: string | null;
+  available?: boolean | null;
+  isAvailable?: boolean | null;
+};
+
+type SlotsResponse =
+  | BookingSlot[]
+  | {
+      data?: BookingSlot[] | null;
+      slots?: BookingSlot[] | null;
+    };
+
+const normalizeParam = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] ?? '' : value ?? '';
+
+const extractSlots = (payload: SlotsResponse): BookingSlot[] => {
+  const rawSlots = Array.isArray(payload)
+    ? payload
+    : payload.slots ?? payload.data;
+
+  if (!Array.isArray(rawSlots)) {
+    return [];
+  }
+
+  return [...rawSlots].sort((a, b) =>
+    String(a.time ?? a.startTime ?? '').localeCompare(
+      String(b.time ?? b.startTime ?? ''),
+    ),
+  );
+};
+
+const isSlotAvailable = (slot: BookingSlot): boolean =>
+  Boolean(slot.available ?? slot.isAvailable);
+
+const getSlotTime = (slot: BookingSlot): string =>
+  String(slot.time ?? slot.startTime ?? '');
+
+type CalendarCell = React.ReactNode;
 
 export default function ClientBookingDateTime() {
   const router = useRouter();
   const { providerId, selectedServiceIds, totalPrice } = useLocalSearchParams<{ providerId: string, selectedServiceIds: string, totalPrice: string }>();
   const { t, lang } = useLanguage();
+  const providerIdValue = normalizeParam(providerId);
+  const selectedServiceIdsValue = normalizeParam(selectedServiceIds);
+  const totalPriceValue = normalizeParam(totalPrice);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
 
-  const [slots, setSlots] = useState<any[]>([]);
+  const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
@@ -48,10 +89,10 @@ export default function ClientBookingDateTime() {
   };
 
   useEffect(() => {
-    if (selectedDate && providerId) {
-      fetchSlots(selectedDate);
+    if (selectedDate && providerIdValue) {
+      void fetchSlots(selectedDate);
     }
-  }, [selectedDate, providerId]);
+  }, [selectedDate, providerIdValue]);
 
   const fetchSlots = async (dateStr: string) => {
     const today = new Date();
@@ -69,20 +110,17 @@ export default function ClientBookingDateTime() {
       setIsLoading(true);
       setErrorVisible(false);
       setSelectedTime('');
-      const token = await tokenStorage.getAccessToken();
-      
-      const response = await axios.get(`${API}/providers/${providerId}/slots?date=${dateStr}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      let fetchedSlots = response.data.slots ?? response.data.data ?? response.data ?? [];
-      if (!Array.isArray(fetchedSlots)) {
-        fetchedSlots = [];
-      }
-      // Basic formatting sort
-      fetchedSlots.sort((a: any, b: any) => (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''));
-      setSlots(fetchedSlots);
-    } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+      const payload = await apiJson<SlotsResponse>(
+        `/providers/${providerIdValue}/slots?date=${encodeURIComponent(dateStr)}`,
+        {
+          auth: true,
+          retryCount: 1,
+        },
+      );
+      setSlots(extractSlots(payload));
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
       setSlots([]);
     } finally {
@@ -93,20 +131,18 @@ export default function ClientBookingDateTime() {
   const handleNext = async () => {
     if (!selectedDate || !selectedTime) return;
 
-    const providerIdValue = (Array.isArray(providerId) ? providerId[0] : providerId) as string;
-
     try {
-      const token = await tokenStorage.getAccessToken();
-      const res = await axios.get(
-        `${API}/providers/${providerIdValue}/slots?date=${selectedDate}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+      const payload = await apiJson<SlotsResponse>(
+        `/providers/${providerIdValue}/slots?date=${encodeURIComponent(selectedDate)}`,
+        {
+          auth: true,
+          retryCount: 1,
+        },
       );
-
-      const freshSlots: Array<{ time: string; available: boolean }> =
-        res.data?.slots ?? res.data?.data ?? [];
+      const freshSlots = extractSlots(payload);
 
       const stillAvailable = freshSlots.find(
-        (s) => s.time === selectedTime && s.available,
+        (slot) => getSlotTime(slot) === selectedTime && isSlotAvailable(slot),
       );
 
       if (!stillAvailable) {
@@ -115,30 +151,35 @@ export default function ClientBookingDateTime() {
         );
         setErrorVisible(true);
         setSelectedTime('');
-        fetchSlots(selectedDate);
+        await fetchSlots(selectedDate);
         return;
       }
-    } catch {}
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorVisible(true);
+      return;
+    }
 
     router.push({
       pathname: '/(client)/booking/details',
       params: { 
-        providerId, 
-        selectedServiceIds, 
-        totalPrice, 
+        providerId: providerIdValue, 
+        selectedServiceIds: selectedServiceIdsValue, 
+        totalPrice: totalPriceValue, 
         date: selectedDate,
         time: selectedTime
       }
-    } as any);
+    });
   };
 
   const renderCalendarDays = () => {
-    let blanks = [];
+    const blanks: CalendarCell[] = [];
     for (let i = 0; i < firstDay; i++) {
       blanks.push(<View key={`blank-${i}`} style={styles.calendarDay} />);
     }
 
-    let days = [];
+    const days: CalendarCell[] = [];
     const today = new Date();
     today.setHours(0,0,0,0);
 
@@ -163,8 +204,8 @@ export default function ClientBookingDateTime() {
     }
 
     const totalSlots = [...blanks, ...days];
-    let rows: any[][] = [];
-    let cells: any[] = [];
+    const rows: CalendarCell[][] = [];
+    let cells: CalendarCell[] = [];
 
     totalSlots.forEach((row, i) => {
       cells.push(row);
@@ -189,7 +230,7 @@ export default function ClientBookingDateTime() {
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bookingSelectDate')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <View style={styles.stepIndicatorContainer}>
@@ -238,9 +279,9 @@ export default function ClientBookingDateTime() {
             ) : (
               <View style={styles.slotsGrid}>
                 {slots
-                  .filter(slot => slot.available || slot.isAvailable)
+                  .filter((slot) => isSlotAvailable(slot))
                   .map((slot, idx) => {
-                  const time = slot.time ?? slot.startTime;
+                  const time = getSlotTime(slot);
                   const active = selectedTime === time;
                   return (
                     <TouchableOpacity 
@@ -284,17 +325,17 @@ export default function ClientBookingDateTime() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: 1, borderBottomColor: colors.border },
+  backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
   
   stepIndicatorContainer: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.surface },
-  stepText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: 8 },
-  stepBarRow: { flexDirection: 'row', gap: 4 },
-  stepSegment: { flex: 1, height: 4, backgroundColor: colors.border, borderRadius: 2 },
+  stepText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xs },
+  stepBarRow: { flexDirection: 'row', gap: spacing.xxs },
+  stepSegment: { flex: 1, height: spacing.xxs, backgroundColor: colors.border, borderRadius: borderRadius.xs },
   stepSegmentActive: { backgroundColor: colors.coral },
   
-  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: 120 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xxxxxxl },
   
   calendarCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.lg, ...shadows.card },
   monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
@@ -304,7 +345,7 @@ const styles = StyleSheet.create({
   weekDayText: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary },
   calendarRow: { flexDirection: 'row', marginBottom: spacing.xs },
   calendarDay: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
-  calendarDaySelected: { backgroundColor: colors.coral, borderRadius: 20 },
+  calendarDaySelected: { backgroundColor: colors.coral, borderRadius: borderRadius.pill },
   calendarDayText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   calendarDayTextSelected: { color: colors.surface, fontFamily: fonts.bodyBold },
   calendarDayPast: { color: colors.textTertiary },
@@ -312,17 +353,17 @@ const styles = StyleSheet.create({
   slotsSection: { marginTop: spacing.sm },
   slotsHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  slotButton: { width: '31%', paddingVertical: 12, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   slotButtonActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
   slotText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   slotTextActive: { color: colors.primary },
   emptySlotsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, fontStyle: 'italic' },
   
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: 30, ...shadows.card },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs, ...shadows.card },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   footerDateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   footerTimeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  nextButton: { backgroundColor: colors.coral, height: 48, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
+  nextButton: { backgroundColor: colors.coral, height: layout.inputHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   nextButtonDisabled: { backgroundColor: colors.border },
   nextButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
 });

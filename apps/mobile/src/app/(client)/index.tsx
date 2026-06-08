@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -187,7 +188,11 @@ export default function ClientHome() {
           setDiscoveryLocation(coords);
           await fetchProviders(coords);
         }
-      } catch {}
+      } catch (error) {
+        Sentry.captureException(error);
+        setErrorMessage(mapHttpError(undefined, undefined, lang));
+        setErrorVisible(true);
+      }
     }
     setShowLocationModal(false);
   };
@@ -197,7 +202,8 @@ export default function ClientHome() {
       const res: any = await apiJson('/notifications?page=1&limit=20', { auth: true });
       const list = Array.isArray(res?.data) ? res.data : [];
       setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       setUnreadNotificationsCount(0);
     }
   };
@@ -435,7 +441,7 @@ const styles = StyleSheet.create({
   avatarContainer: { marginRight: spacing.md },
   avatarRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   headerTitles: { flex: 1 },
-  greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: 2 },
+  greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.xxxs },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',

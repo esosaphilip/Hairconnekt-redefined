@@ -2,7 +2,7 @@
 // Loads Google Fonts (Playfair Display + DM Sans) before rendering anything
 
 import { useEffect, useRef } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Href, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Sentry from '@sentry/react-native';
@@ -24,8 +24,10 @@ import {
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenStorage } from '@/utils/token-storage';
-import { API } from '@/utils/api';
 import { getSafeNotificationRoute } from '@/utils/safe-navigation';
+import { apiFetch } from '@/services/apiClient';
+import { debugLog } from '@/utils/logger';
+import { colors } from '@/theme';
 
 // Keep splash visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -58,7 +60,7 @@ async function registerForPushNotifications(): Promise<void> {
       name: 'Standard',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#E05A4E',
+      lightColor: colors.coral,
     });
   }
 
@@ -82,23 +84,25 @@ async function registerForPushNotifications(): Promise<void> {
   const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
   const pushToken = tokenData.data;
 
-  const accessToken = await tokenStorage.getAccessToken();
-  if (!accessToken) return;
-
-  await fetch(`${API}/notifications/push-token`, {
+  await apiFetch('/notifications/push-token', {
+    auth: true,
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ token: pushToken }),
   });
 }
 
+type NotificationRoutePayload = {
+  screen?: unknown;
+};
+
 function RootLayout() {
   const router = useRouter();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
+  const registerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium,
@@ -119,6 +123,27 @@ function RootLayout() {
 
     let cancelled = false;
 
+    const clearRegisterTimeout = () => {
+      if (registerTimeout.current) {
+        clearTimeout(registerTimeout.current);
+        registerTimeout.current = null;
+      }
+    };
+
+    const scheduleRegisterAttempt = (delayMs: number) => {
+      clearRegisterTimeout();
+      registerTimeout.current = setTimeout(() => {
+        void attemptRegister();
+      }, delayMs);
+    };
+
+    const navigateFromNotificationPayload = (payload: NotificationRoutePayload) => {
+      const safeRoute = getSafeNotificationRoute(payload.screen);
+      if (safeRoute) {
+        router.push(safeRoute as Href);
+      }
+    };
+
     const attemptRegister = async () => {
       if (cancelled) return;
 
@@ -128,41 +153,42 @@ function RootLayout() {
       try {
         const accessToken = await tokenStorage.getAccessToken();
         if (!accessToken) {
-          setTimeout(attemptRegister, 10_000);
+          scheduleRegisterAttempt(10_000);
           return;
         }
 
         await registerForPushNotifications();
-      } catch {
-        setTimeout(attemptRegister, 20_000);
+        clearRegisterTimeout();
+      } catch (error) {
+        debugLog('Push registration failed:', error);
+        scheduleRegisterAttempt(20_000);
       }
     };
 
-    attemptRegister();
+    void attemptRegister();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});
 
     Notifications.getLastNotificationResponseAsync()
       .then((response) => {
         if (!response) return;
-        const data = response.notification.request.content.data as any;
-        const safeRoute = getSafeNotificationRoute(data?.screen);
-        if (safeRoute) {
-          router.push(safeRoute as any);
-        }
+        navigateFromNotificationPayload(
+          response.notification.request.content.data as NotificationRoutePayload,
+        );
       })
-      .catch(() => {});
+      .catch((error) => {
+        debugLog('Failed to load last notification response:', error);
+      });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as any;
-      const safeRoute = getSafeNotificationRoute(data?.screen);
-      if (safeRoute) {
-        router.push(safeRoute as any);
-      }
+      navigateFromNotificationPayload(
+        response.notification.request.content.data as NotificationRoutePayload,
+      );
     });
 
     return () => {
       cancelled = true;
+      clearRegisterTimeout();
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };

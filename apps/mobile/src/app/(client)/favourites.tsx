@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
   backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary },
   
-  listContainer: { paddingHorizontal: 16, paddingVertical: spacing.md, paddingBottom: 40 },
-  rowGap: { gap: 12, marginBottom: 12 },
+  listContainer: { paddingHorizontal: spacing.md, paddingVertical: spacing.md, paddingBottom: spacing.xl2 },
+  rowGap: { gap: spacing.sm, marginBottom: spacing.sm },
   
   card: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, ...shadows.card, overflow: 'hidden' },
   imageContainer: { width: '100%', height: 120, position: 'relative' },
@@ -182,15 +182,15 @@ const styles = StyleSheet.create({
   
   heartButton: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255, 255, 255, 0.8)', justifyContent: 'center', alignItems: 'center' },
   
-  cardContent: { padding: 12 },
-  providerName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary, marginBottom: 4 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  cardContent: { padding: spacing.sm },
+  providerName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary, marginBottom: spacing.xxs },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, marginBottom: spacing.xxs },
   ratingText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.gold },
   reviewCount: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textTertiary },
   priceText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary },
 
   emptyStateContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xl },
-  emptyStateTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: '#555555', marginBottom: 4 },
+  emptyStateTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textMuted, marginBottom: spacing.xxs },
   emptyStateSubtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
   primaryButton: { backgroundColor: colors.primary, height: 50, borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: 300 },
   primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.surface }

@@ -92,23 +92,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   cardSelected: {
-    borderColor: '#E05A4E', // coral
-    backgroundColor: '#FFF5F4',
+    borderColor: colors.coral,
+    backgroundColor: colors.coralTint,
   },
   cardUnselected: {
-    borderColor: '#EEEEEE',
+    borderColor: colors.border,
   },
   emoji: { fontSize: 32, marginRight: spacing.md },
   cardTextContainer: { flex: 1 },
-  cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: 2 },
+  cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxxs },
   cardSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
   radioButton: {
     width: 24, height: 24, borderRadius: 12, borderWidth: 2,
-    borderColor: colors.borderStrong || '#EEEEEE', justifyContent: 'center', alignItems: 'center'
+    borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center'
   },
-  radioButtonSelected: { borderColor: '#E05A4E' },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E05A4E' },
+  radioButtonSelected: { borderColor: colors.coral },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.coral },
   
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
 });

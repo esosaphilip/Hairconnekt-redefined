@@ -1,7 +1,7 @@
 // src/theme/index.ts
 // Re-export all design tokens
 // CORRECT usage: import { colors, spacing, fonts } from '@/theme'
-// WRONG:  backgroundColor: '#8B4513'  (never hardcode hex/pixels)
+// WRONG:  backgroundColor: colors.primary  (never hardcode hex/pixels)
 
 export * from './colors';
 export * from './typography';

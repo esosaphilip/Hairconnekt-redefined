@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../theme';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { bookingStatusLabel } from '../../utils/booking-status';
@@ -282,7 +282,7 @@ export default function ProviderCalendarScreen() {
                     style={styles.blockDeleteButton}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Feather name="trash-2" size={16} color="#BF6000" />
+                    <Feather name="trash-2" size={16} color={colors.warningIcon} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -368,8 +368,8 @@ const styles = StyleSheet.create({
   monthRightRow: { flexDirection: 'row', alignItems: 'center' },
   todayPill: {
     backgroundColor: colors.tealLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs + spacing.xxxs,
     borderRadius: 16,
     marginRight: spacing.sm,
   },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
 
   calendarGrid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   calendarLoader: { height: 200, justifyContent: 'center', alignItems: 'center' },
-  weekRow: { flexDirection: 'row', marginBottom: 8 },
+  weekRow: { flexDirection: 'row', marginBottom: spacing.xs },
   dayCell: { flex: 1, alignItems: 'center', height: 44 },
   dayCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   todayCircle: { backgroundColor: colors.coral },
@@ -393,12 +393,12 @@ const styles = StyleSheet.create({
   pastDayText: { color: colors.textTertiary },
   activeDayText: { color: colors.background, fontFamily: fonts.bodyBold },
   
-  dotsRow: { flexDirection: 'row', marginTop: 2, height: 4 },
-  dot: { width: 4, height: 4, borderRadius: 2, marginHorizontal: 1 },
+  dotsRow: { flexDirection: 'row', marginTop: spacing.xxxs, height: 4 },
+  dot: { width: 4, height: 4, borderRadius: 2, marginHorizontal: spacing.unit },
 
   agendaContainer: { flex: 1, backgroundColor: colors.surfaceCard },
-  agendaContent: { padding: spacing.lg, paddingBottom: 80 },
-  agendaDateHeading: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: 4 },
+  agendaContent: { padding: spacing.lg, paddingBottom: spacing.xxxxl },
+  agendaDateHeading: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: spacing.xxs },
   earningsText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.teal, marginBottom: spacing.lg },
 
   emptyText: { textAlign: 'center', fontFamily: fonts.body, color: colors.textSecondary, marginTop: spacing.xl },
@@ -418,43 +418,43 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   blockDeleteButton: {
-    padding: 4,
+    padding: spacing.xxs,
     marginLeft: spacing.sm,
   },
-  blockTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.orange, marginBottom: 4 },
-  blockTime: { fontFamily: fonts.body, fontSize: 14, color: colors.orange },
+  blockTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.orange, marginBottom: spacing.xxs },
+  blockTime: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.orange },
 
   bookingCard: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginBottom: spacing.md,
     ...shadows.card,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xxs,
     borderLeftColor: colors.green,
   },
   bookingCardInner: { padding: spacing.md },
-  bookingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  bookingTime: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
-  bookingClient: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.sm },
+  bookingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xxs },
+  bookingTime: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary },
+  bookingClient: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.sm },
   bookingServiceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  serviceChipText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-  bookingPrice: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  serviceChipText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
+  bookingPrice: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
   
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  statusBadge: { paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
   statusConfirmed: { backgroundColor: colors.greenLight },
   statusPending: { backgroundColor: colors.orangeLight },
-  statusText: { fontFamily: fonts.bodyBold, fontSize: 10 },
+  statusText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xxs },
   statusConfirmedText: { color: colors.green },
   statusPendingText: { color: colors.orange },
 
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: spacing.lg,
+    right: spacing.lg,
+    width: layout.fabSize,
+    height: layout.fabSize,
+    borderRadius: layout.fabSize / 2,
     backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',

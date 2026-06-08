@@ -284,16 +284,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  scrollContent: { padding: spacing.lg, paddingBottom: 60 },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl2 + spacing.l },
 
-  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: spacing.md, marginTop: spacing.sm },
+  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md, marginTop: spacing.sm },
   
   cardGroup: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     ...shadows.card,
     marginBottom: spacing.xl,
   },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xxs,
   },
   langPill: {
     flex: 1,
@@ -347,19 +347,19 @@ const styles = StyleSheet.create({
   actionTextCoral: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
   actionTextSmallRed: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.error },
 
-  versionText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'center', marginTop: 40 },
+  versionText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl2 },
 
   modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: spacing.xl },
-  modalContent: { backgroundColor: colors.surface, borderRadius: 24, padding: spacing.xl, alignItems: 'center' },
-  modalIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.errorLight, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
+  modalContent: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.xl, alignItems: 'center' },
+  modalIconCircle: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.iconButton - spacing.xxxs, backgroundColor: colors.errorLight, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
   modalTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.md },
-  modalBody: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 22 },
+  modalBody: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl, lineHeight: spacing.lg - spacing.xxxs },
   
   passwordInput: {
     width: '100%',
-    height: 50,
+    height: layout.inputHeightMd,
     backgroundColor: colors.background,
-    borderRadius: 12,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
@@ -370,8 +370,8 @@ const styles = StyleSheet.create({
   errorText: { color: colors.error, fontFamily: fonts.body, fontSize: fontSizes.sm, marginBottom: spacing.md, textAlign: 'center' },
 
   modalButtons: { flexDirection: 'row', width: '100%' },
-  modalBtnOutline: { flex: 1, height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
+  modalBtnOutline: { flex: 1, height: layout.inputHeightMd, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
   modalBtnOutlineText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
-  modalBtnSolid: { flex: 1, height: 50, borderRadius: 12, backgroundColor: colors.coral, justifyContent: 'center', alignItems: 'center', marginLeft: spacing.md },
+  modalBtnSolid: { flex: 1, height: layout.inputHeightMd, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, backgroundColor: colors.coral, justifyContent: 'center', alignItems: 'center', marginLeft: spacing.md },
   modalBtnSolidText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
 });

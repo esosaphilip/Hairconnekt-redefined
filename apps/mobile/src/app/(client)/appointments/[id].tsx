@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { API } from '../../../utils/api';
@@ -315,37 +315,37 @@ const styles = StyleSheet.create({
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   retryButton: { alignSelf: 'center', marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.coral, borderRadius: borderRadius.sm },
   retryButtonText: { color: colors.surface, fontFamily: fonts.bodyBold },
-  mr: { marginRight: 4 },
+  mr: { marginRight: spacing.xxs },
   
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    height: 60,
+    height: layout.headerHeight,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  topBarTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'flex-start' },
+  topBarTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   
-  scrollContent: { paddingBottom: 100 },
+  scrollContent: { paddingBottom: spacing.xxxxxl },
 
   timelineContainer: {
     backgroundColor: colors.surfaceCard,
-    paddingHorizontal: 32,
-    paddingVertical: 24,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     marginBottom: spacing.xl,
   },
   timelineRow: { flexDirection: 'row' },
-  timelineGraphic: { alignItems: 'center', width: 24, marginRight: spacing.md },
-  timelineCircle: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
+  timelineGraphic: { alignItems: 'center', width: spacing.lg, marginRight: spacing.md },
+  timelineCircle: { width: spacing.lg, height: spacing.lg, borderRadius: spacing.sm, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
   timelineCircleReached: { backgroundColor: colors.green },
   timelineCirclePending: { backgroundColor: colors.border },
-  timelineLine: { width: 2, height: 40, position: 'absolute', top: 24 },
+  timelineLine: { width: spacing.xxxs, height: layout.iconButton, position: 'absolute', top: spacing.lg },
   timelineLineReached: { backgroundColor: colors.green },
   timelineLinePending: { backgroundColor: colors.border },
-  timelineLabel: { fontFamily: fonts.bodyBold, fontSize: 16, marginTop: 2, height: 64 },
+  timelineLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, marginTop: spacing.xxxs, height: layout.avatarMd },
   timelineLabelReached: { color: colors.textPrimary },
   timelineLabelPending: { color: colors.textSecondary },
 
@@ -356,43 +356,43 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     padding: spacing.md,
     ...shadows.card,
-    elevation: 4,
+    elevation: spacing.xxs,
   },
   providerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  providerAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.md },
+  providerAvatar: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.iconButton - spacing.xxxs, borderWidth: spacing.xxxs, borderColor: colors.gold, marginRight: spacing.md },
   providerAvatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   providerInfo: { flex: 1 },
-  providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: 4 },
+  providerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary, marginBottom: spacing.xxs },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
+  locationText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
   
-  providerActions: { flexDirection: 'row', backgroundColor: colors.surfaceCard, borderRadius: borderRadius.sm, height: 48 },
+  providerActions: { flexDirection: 'row', backgroundColor: colors.surfaceCard, borderRadius: borderRadius.sm, height: layout.inputHeight },
   providerBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  btnDivider: { width: 1, backgroundColor: colors.border, height: '60%', alignSelf: 'center' },
-  providerBtnText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary, marginLeft: 8 },
+  btnDivider: { width: spacing.unit, backgroundColor: colors.border, height: '60%', alignSelf: 'center' },
+  providerBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary, marginLeft: spacing.xs },
 
-  cardTitle: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.primary, marginBottom: spacing.lg },
+  cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.lg },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md },
-  infoLabel: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
-  infoValue: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textPrimary, maxWidth: '60%', textAlign: 'right' },
+  infoLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
+  infoValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, maxWidth: '60%', textAlign: 'right' },
   dateValueRow: { flexDirection: 'row', alignItems: 'center' },
-  infoValueDecorator: { color: colors.textTertiary, marginHorizontal: 4 },
+  infoValueDecorator: { color: colors.textTertiary, marginHorizontal: spacing.xxs },
   
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm, marginBottom: spacing.md },
   
-  totalLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary },
-  totalValue: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary },
-  bookingNumber: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
+  totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
+  totalValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
+  bookingNumber: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   footerContainer: {
     padding: spacing.lg,
-    paddingBottom: spacing.xl + 20,
+    paddingBottom: spacing.xl + spacing.l,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   outlineBtn: {
-    height: 56,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.primary,
@@ -400,19 +400,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  outlineBtnText: { fontFamily: fonts.heading, fontSize: 18, color: colors.primary },
+  outlineBtnText: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.primary },
   textBtn: {
-    height: 56,
+    height: layout.buttonHeight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  textBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#C62828' },
+  textBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.error },
   primaryBtn: {
-    height: 56,
+    height: layout.buttonHeight,
     backgroundColor: colors.coral,
     borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryBtnText: { fontFamily: fonts.heading, fontSize: 18, color: colors.surface },
+  primaryBtnText: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.surface },
 });

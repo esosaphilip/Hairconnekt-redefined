@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
@@ -189,17 +189,17 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
-  headerAction: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerAction: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
 
-  listContent: { padding: spacing.lg, paddingBottom: 100 },
+  listContent: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
   columnWrapper: { justifyContent: 'space-between', marginBottom: spacing.md },
 
   imageCard: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     backgroundColor: colors.surface,
     position: 'relative',
     ...shadows.card,
@@ -207,15 +207,15 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
   },
   deleteButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: spacing.xs,
+    right: spacing.xs,
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emptyIconContainer: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
+  emptyIconContainer: { width: layout.avatarLg, height: layout.avatarLg, borderRadius: layout.avatarMd - spacing.xs, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
   emptyTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.textPrimary, marginBottom: spacing.xs, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
 });

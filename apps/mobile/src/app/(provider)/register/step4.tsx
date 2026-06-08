@@ -105,7 +105,7 @@ export default function RegisterStep4Screen() {
           <TouchableOpacity style={styles.documentCard} onPress={handlePickIdDocument}>
             {form.idDocumentUri ? (
               <View style={styles.documentFilled}>
-                <Feather name="check-circle" size={24} color={colors.green || '#4CAF50'} style={{ marginRight: spacing.sm }} />
+                <Feather name="check-circle" size={24} color={colors.green} style={{ marginRight: spacing.sm }} />
                 <Text style={styles.documentSuccessText}>{t('providerRegisterStep4IdUploaded')}</Text>
                 <TouchableOpacity onPress={handlePickIdDocument} style={styles.changeDocBtn}>
                   <Text style={styles.changeDocText}>{t('providerRegisterStep4Change')}</Text>
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   backButton: { padding: spacing.xs, marginLeft: -spacing.xs },
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
-  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: 4, marginBottom: spacing.md },
+  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
   progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   profilePhotoContainer: { alignItems: 'center', paddingVertical: spacing.md },
   profilePhotoCircle: {
     width: 120, height: 120, borderRadius: 60,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
     ...shadows.card,
@@ -200,16 +200,16 @@ const styles = StyleSheet.create({
   documentCard: {
     width: '100%', height: 100,
     borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.borderStrong || '#EEEEEE',
+    borderWidth: 1, borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center',
     borderStyle: 'dashed',
   },
   documentEmpty: { alignItems: 'center' },
   documentEmptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
-  documentEmptySub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: 2 },
-  documentFilled: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', width: '100%', height: '100%', justifyContent: 'center', borderRadius: borderRadius.md, borderStyle: 'solid' },
-  documentSuccessText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.green || '#4CAF50' },
+  documentEmptySub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: spacing.xxxs },
+  documentFilled: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenLight, width: '100%', height: '100%', justifyContent: 'center', borderRadius: borderRadius.md, borderStyle: 'solid' },
+  documentSuccessText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.green },
   changeDocBtn: { position: 'absolute', right: spacing.md, padding: spacing.xs },
   changeDocText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
   
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     width: '47%', aspectRatio: 1,
     borderRadius: borderRadius.md,
     borderWidth: 1, borderColor: colors.coral, borderStyle: 'dashed',
-    backgroundColor: '#FFF5F4',
+    backgroundColor: colors.coralTint,
     justifyContent: 'center', alignItems: 'center',
   },
   addPortfolioText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.coral },

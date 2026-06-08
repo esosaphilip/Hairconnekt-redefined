@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import { tokenStorage } from '@/utils/token-storage';
 import { colors, fonts, fontSizes, lineHeights, spacing } from '@/theme';
 import { apiJson } from '@/services/apiClient';
@@ -81,7 +82,9 @@ export default function SplashScreen() {
               }
               return;
             }
-          } catch {}
+          } catch (error) {
+            Sentry.captureException(error);
+          }
 
           // Token exists — navigate to the correct home
           if (role === 'provider') {
@@ -106,7 +109,8 @@ export default function SplashScreen() {
           // No token — show account type selection
           router.replace('/(auth)/account-type');
         }
-      } catch {
+      } catch (error) {
+        Sentry.captureException(error);
         // On any storage error — go to account type
         router.replace('/(auth)/account-type');
       }

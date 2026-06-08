@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   toolsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, zIndex: 10, paddingBottom: spacing.sm },
   resultCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   sortWrapper: { position: 'relative', zIndex: 10 },
-  sortButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: spacing.sm },
+  sortButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, paddingVertical: spacing.sm },
   sortButtonText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   dropdownModal: { position: 'absolute', top: layout.buttonHeightSm + spacing.xxs, right: 0, backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.sm, ...shadows.card, elevation: 5, minWidth: spacing.xxl * 3 },
   dropdownItem: { paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },

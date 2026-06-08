@@ -44,7 +44,7 @@ export class ChatService {
     myUserId: string;
   }> {
     const data = await apiJson<ConversationMessagesResponse>(
-      `/chat/conversations/${conversationId}/messages`,
+      `/chat/conversations/${conversationId}`,
       { auth: true },
     );
     const payload = (
@@ -69,16 +69,14 @@ export class ChatService {
   }
 
   static async markMessageAsRead(conversationId: string, messageId: string): Promise<void> {
-    await apiJson(`/chat/conversations/${conversationId}/messages/${messageId}/read`, {
-      auth: true,
-      method: 'PATCH',
-    });
+    void messageId;
+    await ChatService.markAllMessagesAsRead(conversationId);
   }
 
   static async markAllMessagesAsRead(conversationId: string): Promise<void> {
     await apiJson(`/chat/conversations/${conversationId}/read`, {
       auth: true,
-      method: 'PATCH',
+      method: 'POST',
     });
   }
 

@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Eye, EyeOff } from 'lucide-react';
 
+const LEGAL_LINKS = {
+  terms: 'https://hairconnekt-terms-of-use.netlify.app',
+  privacy: 'https://hairconnekt-privacy.netlify.app',
+} as const;
+
 export default function ClientRegistration() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -238,9 +243,9 @@ export default function ClientRegistration() {
             />
             <label htmlFor="terms" className="text-sm" style={{ color: '#555555' }}>
               Ich akzeptiere die{' '}
-              <a href="#" className="text-[#1A8C85] hover:underline">AGB</a>
+              <a href={LEGAL_LINKS.terms} target="_blank" rel="noreferrer" className="text-[#1A8C85] hover:underline">AGB</a>
               {' '}und{' '}
-              <a href="#" className="text-[#1A8C85] hover:underline">Datenschutzerklärung</a>
+              <a href={LEGAL_LINKS.privacy} target="_blank" rel="noreferrer" className="text-[#1A8C85] hover:underline">Datenschutzerklärung</a>
             </label>
           </div>
 

@@ -1,5 +1,6 @@
 import { bookingStatus } from '../utils/booking-status';
 import { apiJson } from './apiClient';
+import { colors } from '@/theme';
 
 export interface Booking {
   id: string;
@@ -110,15 +111,15 @@ export class BookingService {
     switch (normalizedStatus) {
       case 'confirmed':
       case 'in_progress':
-        return '#2E7D32'; // Green
+        return colors.green;
       case 'pending':
-        return '#BF6000'; // Amber
+        return colors.warningIcon;
       case 'completed':
-        return '#6B6B6B'; // Gray
+        return colors.textSecondary;
       case 'cancelled':
-        return '#C62828'; // Red
+        return colors.error;
       default:
-        return '#999999'; // Default gray
+        return colors.textTertiary;
     }
   }
 
@@ -126,17 +127,17 @@ export class BookingService {
     const normalizedStatus = bookingStatus(status);
     switch (normalizedStatus) {
       case 'pending':
-        return { bg: '#BF6000', text: 'Ausstehend' };
+        return { bg: colors.warningIcon, text: 'Ausstehend' };
       case 'confirmed':
-        return { bg: '#2E7D32', text: 'Bestätigt' };
+        return { bg: colors.green, text: 'Bestätigt' };
       case 'in_progress':
-        return { bg: '#2E7D32', text: 'Aktiv' };
+        return { bg: colors.green, text: 'Aktiv' };
       case 'completed':
-        return { bg: '#6B6B6B', text: 'Abgeschlossen' };
+        return { bg: colors.textSecondary, text: 'Abgeschlossen' };
       case 'cancelled':
-        return { bg: '#C62828', text: 'Abgesagt' };
+        return { bg: colors.error, text: 'Abgesagt' };
       default:
-        return { bg: '#999999', text: status };
+        return { bg: colors.textTertiary, text: status };
     }
   }
 }

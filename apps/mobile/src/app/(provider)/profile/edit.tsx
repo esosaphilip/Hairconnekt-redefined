@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Slider from '@react-native-community/slider';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { FormInput } from '../../../components/FormInput';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
@@ -454,30 +454,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  headerButton: { minWidth: 60, height: 40, justifyContent: 'center' },
+  headerButton: { minWidth: layout.headerHeight, height: layout.iconButton, justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   headerSaveText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.teal, textAlign: 'right' },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 40 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xl2 },
 
   avatarSection: { alignItems: 'center', marginBottom: spacing.xl },
   avatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
+    width: layout.avatarXl,
+    height: layout.avatarXl,
+    borderRadius: layout.buttonHeight + borderRadius.xs,
+    borderWidth: spacing.xxxs,
     borderColor: colors.gold,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 60 },
-  avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 60, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' },
+  avatarImage: { width: '100%', height: '100%', borderRadius: layout.buttonHeight + borderRadius.xs },
+  avatarPlaceholder: { width: '100%', height: '100%', borderRadius: layout.buttonHeight + borderRadius.xs, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface },
   avatarLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 60,
+    borderRadius: layout.buttonHeight + borderRadius.xs,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -485,9 +485,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: layout.buttonHeightSm,
+    height: layout.buttonHeightSm,
+    borderRadius: borderRadius.lg - borderRadius.xs,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -499,24 +499,24 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   
   bioInput: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
     padding: spacing.md,
-    minHeight: 120,
+    minHeight: layout.textAreaHeight,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
-  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: 4 },
+  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xxs },
 
   slider: { width: '100%', height: 40 },
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.s,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -526,28 +526,28 @@ const styles = StyleSheet.create({
 
   radioCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 2,
-    borderColor: '#EEEEEE',
+    borderColor: colors.border,
     ...shadows.card,
   },
-  radioCardSelected: { borderColor: colors.coral, backgroundColor: '#FFF9F8' },
+  radioCardSelected: { borderColor: colors.coral, backgroundColor: colors.coralTintSoft },
   radioHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   radioTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   radioTitleSelected: { color: colors.coral },
   radioCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: spacing.lg,
+    height: spacing.lg,
+    borderRadius: borderRadius.sm,
     borderWidth: 2,
     borderColor: colors.borderStrong,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioCircleSelected: { borderColor: colors.coral },
-  radioInnerCircle: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.coral },
+  radioInnerCircle: { width: fontSizes.xs, height: fontSizes.xs, borderRadius: borderRadius.xs + spacing.xxs, backgroundColor: colors.coral },
   radioDesc: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   footer: {

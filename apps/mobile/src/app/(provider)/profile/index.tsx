@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Act
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { AuthService } from '../../../services/authService';
 import { apiFetch, apiJson } from '@/services/apiClient';
@@ -263,7 +263,7 @@ export default function ProviderProfileHubScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: '#FAFAFA' },
+  safeContainer: { flex: 1, backgroundColor: colors.surfaceCard },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   
   header: {
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   headerIcon: { padding: spacing.xs },
 
   scrollContent: { flex: 1 },
-  scrollInner: { paddingBottom: 40 },
+  scrollInner: { paddingBottom: spacing.xl2 },
 
   topSection: {
     alignItems: 'center',
@@ -291,41 +291,41 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   avatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
+    width: layout.avatarLg,
+    height: layout.avatarLg,
+    borderRadius: layout.avatarMd - spacing.xs,
+    borderWidth: spacing.xxxs,
     borderColor: colors.gold,
     marginBottom: spacing.md,
     position: 'relative',
   },
-  avatar: { width: '100%', height: '100%', borderRadius: 46 },
-  avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 46, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: '100%', height: '100%', borderRadius: layout.avatarMd - spacing.sm - spacing.xxxs },
+  avatarPlaceholder: { width: '100%', height: '100%', borderRadius: layout.avatarMd - spacing.sm - spacing.xxxs, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
   cameraIconBadge: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: -spacing.xxs,
+    right: -spacing.xxs,
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.card,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
-  displayName: { fontFamily: fonts.heading, fontSize: 24, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
+  displayName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  locationText: { fontFamily: fonts.body, fontSize: 14, color: '#555', marginLeft: 4 },
-  ratingText: { fontFamily: fonts.body, fontSize: 14, color: '#555', marginBottom: spacing.sm },
+  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, marginLeft: spacing.xxs },
+  ratingText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: spacing.sm },
   
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginTop: spacing.xs },
-  statusApproved: { backgroundColor: '#E0F2F1' },
-  statusPending: { backgroundColor: '#FFF3E0' },
-  statusBadgeText: { fontFamily: fonts.bodyBold, fontSize: 12 },
+  statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs + spacing.xxxs, borderRadius: borderRadius.md, marginTop: spacing.xs },
+  statusApproved: { backgroundColor: colors.tealLight },
+  statusPending: { backgroundColor: colors.orangeLight },
+  statusBadgeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs },
   statusApprovedText: { color: colors.teal },
-  statusPendingText: { color: '#E65100' },
+  statusPendingText: { color: colors.orange },
 
   menuContainer: { paddingHorizontal: spacing.lg },
   menuCard: {
@@ -333,16 +333,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    height: 56,
-    borderRadius: 16,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
     ...shadows.card,
   },
   menuCardLeft: { flexDirection: 'row', alignItems: 'center' },
-  menuCardText: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
+  menuCardText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   switchModeCard: { borderWidth: 1, borderColor: colors.teal, marginTop: spacing.lg },
-  switchModeText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.teal },
+  switchModeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.teal },
 
   logoutButton: {
     flexDirection: 'row',
@@ -351,5 +351,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     paddingVertical: spacing.md,
   },
-  logoutText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.error },
+  logoutText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.error },
 });

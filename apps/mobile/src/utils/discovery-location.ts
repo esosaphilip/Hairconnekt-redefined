@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
+import { tokenStorage } from '@/utils/token-storage';
 
 export type DiscoveryCoordinates = {
   lat: number;
@@ -13,36 +14,32 @@ let cachedOverride: DiscoveryOverride | null = null;
 let cachedPermissionDenied = false;
 let inflightRequest: Promise<DiscoveryCoordinates | null> | null = null;
 
-const OVERRIDE_KEY = 'hc_discovery_override';
-
 async function loadOverride(): Promise<DiscoveryOverride | null> {
   if (cachedOverride) return cachedOverride;
-  const raw = await AsyncStorage.getItem(OVERRIDE_KEY);
-  if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.city === 'string' &&
-      typeof parsed.lat === 'number' &&
-      typeof parsed.lng === 'number'
-    ) {
-      cachedOverride = { city: parsed.city, lat: parsed.lat, lng: parsed.lng };
-      return cachedOverride;
-    }
-  } catch {}
-  return null;
+    const override = await tokenStorage.getDiscoveryOverride();
+    if (!override) return null;
+    cachedOverride = {
+      city: override.city,
+      lat: override.lat,
+      lng: override.lng,
+    };
+    return cachedOverride;
+  } catch (error) {
+    Sentry.captureException(error);
+    return null;
+  }
 }
 
 export async function setDiscoveryOverride(
   override: DiscoveryOverride | null,
 ): Promise<void> {
   cachedOverride = override;
-  if (!override) {
-    await AsyncStorage.removeItem(OVERRIDE_KEY);
-    return;
+  try {
+    await tokenStorage.setDiscoveryOverride(override);
+  } catch (error) {
+    Sentry.captureException(error);
   }
-  await AsyncStorage.setItem(OVERRIDE_KEY, JSON.stringify(override));
 }
 
 export async function getDiscoveryOverride(): Promise<DiscoveryOverride | null> {
@@ -83,7 +80,8 @@ async function resolveDiscoveryCoordinates(): Promise<DiscoveryCoordinates | nul
 
     cachedPermissionDenied = false;
     return cachedCoordinates;
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     return cachedCoordinates;
   } finally {
     inflightRequest = null;

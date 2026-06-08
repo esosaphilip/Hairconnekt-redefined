@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingBottom: 34,
+    paddingBottom: spacing.xl + spacing.xxxs,
   },
   toolbar: {
     flexDirection: 'row',

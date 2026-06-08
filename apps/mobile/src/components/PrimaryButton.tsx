@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors, fonts, fontSizes, shadows } from '../theme';
+import { colors, fonts, fontSizes, shadows, borderRadius, layout } from '../theme';
 
 interface Props {
   label: string;
@@ -36,8 +36,8 @@ export function PrimaryButton({ label, onPress, loading, disabled, variant = 'fi
 
 const styles = StyleSheet.create({
   button: {
-    height: 56,
-    borderRadius: 16,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',

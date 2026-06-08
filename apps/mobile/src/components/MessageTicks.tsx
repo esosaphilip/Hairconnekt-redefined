@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function MessageTicks({ isRead }: Props) {
-  const tickColor = isRead ? colors.teal : '#AAAAAA';
+  const tickColor = isRead ? colors.teal : colors.textTertiary;
   return (
     <View style={styles.container}>
       <Feather name="check" size={12} color={tickColor} style={styles.firstTick} />

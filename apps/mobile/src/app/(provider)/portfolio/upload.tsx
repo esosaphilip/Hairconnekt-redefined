@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Ima
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { apiFetch } from '@/services/apiClient';
@@ -270,17 +270,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 40 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xl2 },
 
   imagePickerZone: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     marginBottom: spacing.xl,
   },
   imagePickerZoneEmpty: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
+    borderRadius: borderRadius.pill,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -310,22 +310,22 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.sm },
   
   textArea: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
     padding: spacing.md,
-    height: 100,
+    height: layout.textAreaHeight - spacing.lg,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
-  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: 4 },
+  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xxs },
 
   tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tagChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.s,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -336,19 +336,19 @@ const styles = StyleSheet.create({
   customTagRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, gap: spacing.sm },
   customTagInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 22,
+    height: layout.inputHeight - spacing.xxs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg - borderRadius.xs,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
   addTagButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F5F5F5',
+    width: layout.inputHeight - spacing.xxs,
+    height: layout.inputHeight - spacing.xxs,
+    borderRadius: borderRadius.lg - borderRadius.xs,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },

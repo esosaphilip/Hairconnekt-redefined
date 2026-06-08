@@ -435,7 +435,7 @@ export default function SharedChatScreen() {
                 name="file-text"
                 size={20}
                 color={isOwn ? colors.background : colors.teal}
-                style={{ marginRight: 8 }}
+                style={{ marginRight: spacing.xs }}
               />
               <Text
                 style={[
@@ -450,7 +450,7 @@ export default function SharedChatScreen() {
                 name="download"
                 size={16}
                 color={isOwn ? colors.background : colors.teal}
-                style={{ marginLeft: 4 }}
+                style={{ marginLeft: spacing.xxs }}
               />
             </TouchableOpacity>
           ) : null}
@@ -458,7 +458,7 @@ export default function SharedChatScreen() {
         <View style={[styles.metaRow, isOwn ? styles.metaRowOwn : styles.metaRowOther]}>
           <Text style={styles.timestamp}>{formatTime(msg.createdAt)}</Text>
           {isOwn && (
-            <View style={{ marginLeft: 4 }}>
+            <View style={{ marginLeft: spacing.xxs }}>
               <MessageTicks isRead={msg.isRead} />
             </View>
           )}
@@ -772,15 +772,15 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
     borderRadius: 12,
-    marginTop: 4,
+    marginTop: spacing.xxs,
   },
   mediaBubbleDoc: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 8,
-    padding: 8,
-    marginTop: 4,
+    padding: spacing.xs,
+    marginTop: spacing.xxs,
     maxWidth: 220,
   },
   mediaBubbleDocName: {

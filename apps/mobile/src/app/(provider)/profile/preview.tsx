@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
@@ -131,7 +131,7 @@ export default function ProfilePreviewScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxxxl }}>
         
         {/* HERO SECTION */}
         <View style={styles.heroContainer}>
@@ -260,7 +260,7 @@ export default function ProfilePreviewScreen() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: 2}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
                 <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('cardReviews')}</Text>
               </View>
@@ -318,20 +318,20 @@ const styles = StyleSheet.create({
   bannerAction: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.background, padding: spacing.xs },
   bannerIcon: { padding: spacing.xs },
 
-  heroContainer: { height: 220, position: 'relative', marginBottom: 50 },
+  heroContainer: { height: layout.heroHeight, position: 'relative', marginBottom: spacing.xxl + spacing.xxxs },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroImagePlaceholder: { width: '100%', height: '100%', backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  avatarWrapper: { position: 'absolute', bottom: -48, alignSelf: 'center', width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.gold, backgroundColor: colors.surface, padding: 2, ...shadows.card },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 44 },
+  avatarWrapper: { position: 'absolute', bottom: -spacing.xxl, alignSelf: 'center', width: layout.avatarLg, height: layout.avatarLg, borderRadius: layout.avatarMd - spacing.xs, borderWidth: spacing.xxs, borderColor: colors.gold, backgroundColor: colors.surface, padding: spacing.xxxs, ...shadows.card },
+  avatarImage: { width: '100%', height: '100%', borderRadius: layout.avatarMd - spacing.lg },
   avatarPlaceholder: { backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: fonts.heading, fontSize: 32, color: colors.primary },
+  avatarText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
   
   infoSection: { alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
-  businessName: { fontFamily: fonts.heading, fontSize: 24, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
+  businessName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
-  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: 4 },
+  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
 
   tabsScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   tabsContainer: { paddingHorizontal: spacing.lg, gap: spacing.md },
@@ -341,10 +341,10 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.primary, fontFamily: fonts.bodyBold },
   
   tabContentContainer: { padding: spacing.lg },
-  bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: 22, marginBottom: spacing.xl },
+  bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: spacing.lg - spacing.xxxs, marginBottom: spacing.xl },
   sectionHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.xl },
-  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: 6, paddingHorizontal: 12, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
   tagText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
@@ -352,10 +352,10 @@ const styles = StyleSheet.create({
 
   serviceCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   serviceInfo: { flex: 1 },
-  serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: 4 },
-  serviceDetail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, marginBottom: 4 },
+  serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxs },
+  serviceDetail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, marginBottom: spacing.xxs },
   servicePrice: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  selectButton: { backgroundColor: colors.primaryLight, paddingVertical: 8, paddingHorizontal: 16, borderRadius: borderRadius.sm },
+  selectButton: { backgroundColor: colors.primaryLight, paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: borderRadius.sm },
   selectButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
 
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -363,16 +363,16 @@ const styles = StyleSheet.create({
   galleryImage: { width: '100%', height: '100%', resizeMode: 'cover' },
 
   overallRatingBox: { alignItems: 'center', backgroundColor: colors.surface, padding: spacing.xl, borderRadius: borderRadius.md, marginBottom: spacing.xl, ...shadows.card },
-  overallRatingNumber: { fontFamily: fonts.heading, fontSize: 48, color: colors.primary },
+  overallRatingNumber: { fontFamily: fonts.heading, fontSize: layout.inputHeight, color: colors.primary },
   overallStars: { flexDirection: 'row', marginBottom: spacing.sm },
   totalReviewsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   reviewCard: { backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  reviewerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  reviewerAvatar: { width: layout.iconButton, height: layout.iconButton, borderRadius: borderRadius.pill, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   reviewerAvatarText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
   reviewerInfo: { flex: 1 },
-  reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: 2 },
+  reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
 
@@ -387,11 +387,11 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: colors.borderStrong,
-    borderRadius: 12,
-    height: 56,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
+    height: layout.buttonHeight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   disabledButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
-  disabledButtonSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: 2 },
+  disabledButtonSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: spacing.xxxs },
 });

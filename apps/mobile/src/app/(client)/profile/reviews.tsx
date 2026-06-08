@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -58,7 +58,7 @@ export default function ClientReviewsScreen() {
     return (
       <View style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map(star => (
-          <Feather key={star} name="star" size={14} color={star <= rating ? colors.gold : '#E0E0E0'} style={{ marginRight: 2 }} />
+          <Feather key={star} name="star" size={14} color={star <= rating ? colors.gold : colors.starEmpty} style={{ marginRight: spacing.xxxs }} />
         ))}
       </View>
     );
@@ -116,7 +116,7 @@ export default function ClientReviewsScreen() {
     );
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="star" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
+        <Feather name="star" size={64} color={colors.iconDisabled} style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>{t('myReviewsEmpty')}</Text>
         <Text style={styles.emptySub}>{t('myReviewsEmptySub')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(client)/appointments/' as any)}>
@@ -133,7 +133,7 @@ export default function ClientReviewsScreen() {
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('myReviewsTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       {isLoading ? (
@@ -166,59 +166,59 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  listContent: { padding: spacing.xl, paddingBottom: 100 },
+  listContent: { padding: spacing.xl, paddingBottom: spacing.xxxxxl },
 
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadows.card,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: colors.border,
   },
   cardHeader: { marginBottom: spacing.sm },
   providerRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.sm },
+  avatar: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, borderWidth: spacing.xxxs, borderColor: colors.gold, marginRight: spacing.sm },
   avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F5F5F5',
+    width: layout.inputHeight,
+    height: layout.inputHeight,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.gold,
     marginRight: spacing.sm,
   },
-  providerName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
+  providerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary },
 
   ratingDateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   starsRow: { flexDirection: 'row' },
-  dateText: { fontFamily: fonts.body, fontSize: 12, color: '#AAAAAA' },
+  dateText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
 
-  serviceChip: { backgroundColor: '#F5F5F5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start', marginBottom: spacing.sm },
-  serviceChipText: { fontFamily: fonts.body, fontSize: 12, color: '#6B6B6B' },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, alignSelf: 'flex-start', marginBottom: spacing.sm },
+  serviceChipText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
 
-  commentText: { fontFamily: fonts.body, fontSize: 16, color: '#1A1A1A', lineHeight: 22 },
+  commentText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: spacing.lg - spacing.xxxs },
 
   responseBox: {
-    backgroundColor: '#FFF0ED',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: colors.coralTintAlt,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
+    padding: spacing.sm,
     marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.coral
   },
-  responseLabel: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#1A1A1A', marginBottom: 4 },
-  responseText: { fontFamily: fonts.body, fontSize: 14, color: '#555555', lineHeight: 20 },
+  responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.textPrimary, marginBottom: spacing.xxs },
+  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: spacing.l },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
   emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
-  emptyButton: { backgroundColor: colors.coral, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: 24 },
+  emptyButton: { backgroundColor: colors.coral, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.lg },
   emptyButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
 });

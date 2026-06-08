@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { colors, fonts, fontSizes, spacing } from '../theme';
+import { colors, fonts, fontSizes, spacing, layout } from '../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
@@ -67,27 +67,27 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'relative',
-    marginBottom: 4,
+    marginBottom: spacing.xxs,
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: -spacing.xxs,
+    right: -spacing.xs,
     backgroundColor: colors.coral,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+    borderRadius: spacing.s,
+    minWidth: layout.badgeSm,
+    height: layout.badgeSm,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xxs,
   },
   badgeText: {
     color: colors.surface,
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
+    fontSize: fontSizes.xxs,
   },
   label: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 10,
+    fontSize: fontSizes.xxs,
   },
 });

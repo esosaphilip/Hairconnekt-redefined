@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getSafeNotificationRoute } from '@/utils/safe-navigation';
@@ -232,28 +232,28 @@ export default function NotificationsScreen() {
   const getIconConfig = (type: string): NotificationIconConfig => {
     switch (type) {
       case 'new_booking':
-        return { name: 'calendar', color: '#FFFFFF', bg: colors.coral };
+        return { name: 'calendar', color: colors.background, bg: colors.coral };
       case 'booking_confirmed':
-        return { name: 'check-circle', color: '#FFFFFF', bg: '#4CAF50' };
+        return { name: 'check-circle', color: colors.background, bg: colors.successAlt };
       case 'booking_declined':
-        return { name: 'x-circle', color: '#FFFFFF', bg: colors.error };
+        return { name: 'x-circle', color: colors.background, bg: colors.error };
       case 'booking_cancelled_by_client':
       case 'booking_cancelled_by_provider':
-        return { name: 'x-circle', color: '#FFFFFF', bg: colors.error };
+        return { name: 'x-circle', color: colors.background, bg: colors.error };
       case 'booking_rescheduled':
-        return { name: 'refresh-cw', color: '#FFFFFF', bg: '#F5A623' };
+        return { name: 'refresh-cw', color: colors.background, bg: colors.amber };
       case 'booking_started':
-        return { name: 'play-circle', color: '#FFFFFF', bg: '#4CAF50' };
+        return { name: 'play-circle', color: colors.background, bg: colors.successAlt };
       case 'booking_completed':
-        return { name: 'star', color: '#FFFFFF', bg: colors.gold };
+        return { name: 'star', color: colors.background, bg: colors.gold };
       case 'review_received':
-        return { name: 'star', color: '#FFFFFF', bg: colors.gold };
+        return { name: 'star', color: colors.background, bg: colors.gold };
       case 'message_received':
-        return { name: 'message-circle', color: '#FFFFFF', bg: colors.coral };
+        return { name: 'message-circle', color: colors.background, bg: colors.coral };
       case 'provider_approved':
-        return { name: 'check-circle', color: '#FFFFFF', bg: '#4CAF50' };
+        return { name: 'check-circle', color: colors.background, bg: colors.successAlt };
       default:
-        return { name: 'bell', color: '#FFFFFF', bg: colors.borderStrong };
+        return { name: 'bell', color: colors.background, bg: colors.borderStrong };
     }
   };
 
@@ -314,7 +314,7 @@ export default function NotificationsScreen() {
         </View>
       ) : flattenedData.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Feather name="bell" size={64} color="#DDD" style={{ marginBottom: spacing.md }} />
+          <Feather name="bell" size={64} color={colors.iconDisabled} style={{ marginBottom: spacing.md }} />
           <Text style={styles.emptyTitle}>{t('notificationsEmpty')}</Text>
           <Text style={styles.emptySub}>{t('notificationsEmptySub')}</Text>
         </View>
@@ -354,7 +354,7 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: '#FAF9F7' },
+  safeContainer: { flex: 1, backgroundColor: colors.warmBackground },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
 
   header: {
@@ -365,14 +365,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: '#FAF9F7'
+    backgroundColor: colors.warmBackground
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
-  readAllText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.primary },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'flex-start' },
+  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
+  readAllText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
   readAllTextDisabled: { color: colors.borderStrong },
 
-  listContent: { paddingBottom: 40 },
+  listContent: { paddingBottom: spacing.xl2 },
 
   filterRow: {
     flexDirection: 'row',
@@ -383,22 +383,22 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: 999,
+    borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   filterPillActive: {
     borderColor: colors.coral,
-    backgroundColor: '#FFF5F4',
+    backgroundColor: colors.coralTint,
   },
-  filterText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.textSecondary },
+  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs + spacing.unit, color: colors.textSecondary },
   filterTextActive: { color: colors.coral },
 
   sectionHeader: {
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: '#888888',
+    fontSize: fontSizes.sm,
+    color: colors.textMuted3,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -410,32 +410,32 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
   },
   notificationRowRead: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
   notificationRowUnread: {
-    backgroundColor: '#FFF5F4',
+    backgroundColor: colors.coralTint,
     borderLeftWidth: 3,
     borderLeftColor: colors.coral,
     paddingLeft: spacing.md - 3,
   },
 
-  iconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  iconCircle: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
 
   contentCol: { flex: 1, paddingRight: spacing.sm, justifyContent: 'center' },
-  title: { fontFamily: fonts.bodyBold, fontSize: 16, marginBottom: 4 },
-  titleUnread: { color: '#1A1A1A' },
-  titleRead: { color: '#888888' },
+  title: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, marginBottom: spacing.xxs },
+  titleUnread: { color: colors.textPrimary },
+  titleRead: { color: colors.textMuted3 },
 
-  bodyText: { fontFamily: fonts.body, fontSize: 14, color: '#555555', lineHeight: 20, marginBottom: 6 },
-  timeText: { fontFamily: fonts.body, fontSize: 12, color: '#AAAAAA' },
+  bodyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: spacing.l, marginBottom: spacing.xxs + spacing.xxxs },
+  timeText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
 
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral },
+  unreadDot: { width: spacing.xs, height: spacing.xs, borderRadius: borderRadius.xs + spacing.xxxs, backgroundColor: colors.coral },
 
-  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
-  emptySub: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
+  emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center' },
 });

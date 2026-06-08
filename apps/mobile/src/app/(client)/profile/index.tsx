@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '@/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '@/theme';
 import { AuthService } from '../../../services/authService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
@@ -250,39 +250,39 @@ function MenuItem({ icon, title, rightComponent, onPress }: { icon: any, title: 
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
-  settingsButton: { width: 40, alignItems: 'flex-end', justifyContent: 'center' },
+  settingsButton: { width: layout.iconButton, alignItems: 'flex-end', justifyContent: 'center' },
   
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: spacing.xl2 },
   
   profileSection: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.xl },
-  avatarContainer: { width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md, position: 'relative' },
-  avatar: { width: 116, height: 116, borderRadius: 58 },
-  avatarPlaceholder: { width: 116, height: 116, borderRadius: 58, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontFamily: fonts.bodyBold, fontSize: 40, color: colors.textSecondary },
-  avatarLoader: { width: 116, height: 116, borderRadius: 58, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
-  cameraIconContainer: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.surface },
+  avatarContainer: { width: layout.avatarXl, height: layout.avatarXl, borderRadius: layout.buttonHeight + borderRadius.xs, borderWidth: spacing.xxxs, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md, position: 'relative' },
+  avatar: { width: layout.avatarXl - spacing.xxs, height: layout.avatarXl - spacing.xxs, borderRadius: layout.buttonHeight + borderRadius.xs - spacing.unit },
+  avatarPlaceholder: { width: layout.avatarXl - spacing.xxs, height: layout.avatarXl - spacing.xxs, borderRadius: layout.buttonHeight + borderRadius.xs - spacing.unit, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontFamily: fonts.bodyBold, fontSize: spacing.xl2, color: colors.textSecondary },
+  avatarLoader: { width: layout.avatarXl - spacing.xxs, height: layout.avatarXl - spacing.xxs, borderRadius: layout.buttonHeight + borderRadius.xs - spacing.unit, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
+  cameraIconContainer: { position: 'absolute', bottom: 0, right: 0, width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: spacing.xxxs, borderColor: colors.surface },
   
-  fullName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: 4 },
-  contactText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: 2 },
+  fullName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xxs },
+  contactText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxxs },
   
-  verificationRow: { flexDirection: 'row', gap: 12, marginTop: spacing.sm },
-  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
-  badgeText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.green },
+  verificationRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenLight, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, gap: spacing.xxs },
+  badgeText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.green },
 
-  menuContainer: { paddingHorizontal: spacing.lg, gap: 12, marginBottom: spacing.xl },
-  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, paddingHorizontal: spacing.md, height: 56, borderRadius: borderRadius.md, ...shadows.card },
-  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuItemTitle: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
-  menuItemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badgeCount: { backgroundColor: colors.surfaceCard, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeCountText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
+  menuContainer: { paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.xl },
+  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, paddingHorizontal: spacing.md, height: layout.buttonHeight, borderRadius: borderRadius.md, ...shadows.card },
+  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  menuItemTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
+  menuItemRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  badgeCount: { backgroundColor: colors.surfaceCard, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  badgeCountText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textSecondary },
 
   providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.tealLight, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.teal, marginBottom: spacing.xl },
-  providerEmojiCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, ...shadows.card },
-  providerCardText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.teal, flex: 1 },
+  providerEmojiCircle: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, ...shadows.card },
+  providerCardText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.teal, flex: 1 },
 
-  logoutRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, gap: 12 },
-  logoutText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.error }
+  logoutRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, gap: spacing.sm },
+  logoutText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.error }
 });

@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import type {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
@@ -39,6 +40,7 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email?: string }>();
   const { lang, t } = useLanguage();
+  const emailString = typeof email === 'string' ? email : '';
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +64,25 @@ export default function VerifyEmailScreen() {
   useEffect(() => {
     setTimeout(() => otpRefs.current[0]?.focus(), 150);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const token = await tokenStorage.getAccessToken();
+      const role = await tokenStorage.getUserRole();
+      if (cancelled) return;
+
+      if (!token || !emailString) {
+        const roleParam = role === 'provider' ? 'provider' : 'client';
+        router.replace(`/(auth)/login?role=${roleParam}` as any);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [emailString, router]);
 
   const handleOtpChange = (text: string, index: number) => {
     const cleaned = text.replace(/\D/g, '');
@@ -111,17 +132,17 @@ export default function VerifyEmailScreen() {
       setErrorVisible(false);
 
       await apiJson<unknown>('/auth/verify-email', {
+        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: String(email ?? ''), code }),
+        body: JSON.stringify({ email: emailString, code }),
       });
 
       try {
         const me = await apiJson<CurrentUserResponse>('/users/me', { auth: true });
         await tokenStorage.setUser(me);
       } catch (error) {
-        // Verification succeeds even if refreshing local user cache fails.
-        void error;
+        Sentry.captureException(error);
       }
 
       const role = await tokenStorage.getUserRole();
@@ -147,22 +168,18 @@ export default function VerifyEmailScreen() {
       }
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      const message =
-        error instanceof ApiError &&
-        typeof error.body === 'object' &&
-        error.body !== null &&
-        'message' in error.body &&
-        typeof (error.body as { message?: unknown }).message === 'string'
-          ? (error.body as { message: string }).message
-          : undefined;
-
-      if (typeof message === 'string') {
-        showError(message, status);
-      } else if (error instanceof Error && !(error instanceof ApiError)) {
-        showError(error.message, status);
+      if (status === 401) {
+        const role = await tokenStorage.getUserRole();
+        const roleParam = role === 'provider' ? 'provider' : 'client';
+        router.replace(`/(auth)/login?role=${roleParam}` as any);
+      } else if (status === 400) {
+        showError(t('verifyEmailInvalidCode'), status);
+      } else if (status === 410) {
+        showError(t('verifyEmailExpiredCode'), status);
       } else if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
       } else {
+        if (error instanceof Error) Sentry.captureException(error);
         showError(mapHttpError(status, undefined, lang), status);
       }
     } finally {
@@ -177,17 +194,23 @@ export default function VerifyEmailScreen() {
       setErrorVisible(false);
 
       await apiJson<unknown>('/auth/resend-verification', {
+        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: String(email ?? '') }),
+        body: JSON.stringify({ email: emailString }),
       });
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      if (status === 429) {
+      if (status === 401) {
+        const role = await tokenStorage.getUserRole();
+        const roleParam = role === 'provider' ? 'provider' : 'client';
+        router.replace(`/(auth)/login?role=${roleParam}` as any);
+      } else if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
-      } else if (error instanceof Error && !(error instanceof ApiError)) {
-        showError(error.message, status);
+      } else if (status === 410) {
+        showError(t('verifyEmailExpiredCode'), status);
       } else {
+        if (error instanceof Error) Sentry.captureException(error);
         showError(mapHttpError(status, undefined, lang), status);
       }
     } finally {
@@ -195,7 +218,7 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const subtitleEmail = typeof email === 'string' && email.length > 0 ? email : t('yourEmailAddress');
+  const subtitleEmail = emailString.length > 0 ? emailString : t('yourEmailAddress');
 
   return (
     <SafeAreaView style={styles.safeArea}>

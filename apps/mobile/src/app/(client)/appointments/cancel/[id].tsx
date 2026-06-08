@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   
   policyCard: { backgroundColor: colors.orangeLight, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: spacing.xl },
   policyCardUrgent: { backgroundColor: colors.errorLight, borderBottomColor: colors.border },
-  policyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  policyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xxs + spacing.xxxs },
   policyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.orange, marginLeft: spacing.xs },
   policyTitleUrgent: { color: colors.error },
   policyText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.orange, lineHeight: 20 },
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.textPrimary, marginBottom: spacing.lg },
   
-  reasonsList: { gap: 12, marginBottom: spacing.xl },
+  reasonsList: { gap: spacing.sm, marginBottom: spacing.xl },
   radioRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md },
   radioRowActive: { backgroundColor: colors.primaryLight },
   radioCircle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.borderStrong, marginRight: spacing.sm, alignItems: 'center', justifyContent: 'center' },

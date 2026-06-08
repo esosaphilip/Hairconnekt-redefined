@@ -2,26 +2,92 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
+import { ApiError, apiJson } from '@/services/apiClient';
 
+type ProviderProfile = {
+  businessName?: string | null;
+  user?: {
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
+};
+
+type ProviderService = {
+  id: string;
+  name: string;
+};
+
+type ProviderResponse = ProviderProfile | { data?: ProviderProfile | null };
+type ProviderServicesResponse = ProviderService[] | { data?: ProviderService[] | null };
+
+type BookingResult = {
+  id: string;
+  bookingNumber?: string;
+};
+
+type BookingCreateResponse =
+  | BookingResult
+  | {
+      booking?: BookingResult | null;
+      data?: BookingResult | { booking?: BookingResult | null } | null;
+    };
+
+const normalizeParam = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] ?? '' : value ?? '';
+
+const isProviderProfile = (value: unknown): value is ProviderProfile =>
+  typeof value === 'object' && value !== null;
+
+const isBookingResult = (value: unknown): value is BookingResult =>
+  typeof value === 'object' &&
+  value !== null &&
+  'id' in value &&
+  typeof value.id === 'string';
+
+const extractProvider = (payload: ProviderResponse): ProviderProfile | null => {
+  if ('data' in payload) {
+    return isProviderProfile(payload.data) ? payload.data : null;
+  }
+  return isProviderProfile(payload) ? payload : null;
+};
+
+const extractServices = (payload: ProviderServicesResponse): ProviderService[] =>
+  Array.isArray(payload) ? payload : payload.data ?? [];
+
+const extractBookingResult = (
+  payload: BookingCreateResponse,
+): BookingResult | null => {
+  if ('booking' in payload && payload.booking) {
+    return payload.booking;
+  }
+  if ('data' in payload) {
+    const data = payload.data;
+    if (!data) {
+      return null;
+    }
+    if ('booking' in data && data.booking) {
+      return data.booking;
+    }
+    return isBookingResult(data) ? data : null;
+  }
+  return isBookingResult(payload) ? payload : null;
+};
 
 export default function BookingDetails() {
   const router = useRouter();
   const { providerId, selectedServiceIds, totalPrice, date, time } = useLocalSearchParams();
   const { t, lang } = useLanguage();
 
-  const providerIdValue = (Array.isArray(providerId) ? providerId[0] : providerId) as string;
-  const selectedServiceIdsValue = (Array.isArray(selectedServiceIds) ? selectedServiceIds[0] : selectedServiceIds) as string;
-  const dateValue = (Array.isArray(date) ? date[0] : date) as string;
-  const timeValue = (Array.isArray(time) ? time[0] : time) as string;
-  const totalPriceValue = (Array.isArray(totalPrice) ? totalPrice[0] : totalPrice) as string;
+  const providerIdValue = normalizeParam(providerId);
+  const selectedServiceIdsValue = normalizeParam(selectedServiceIds);
+  const dateValue = normalizeParam(date);
+  const timeValue = normalizeParam(time);
+  const totalPriceValue = normalizeParam(totalPrice);
   
   const [ids, setIds] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -46,19 +112,30 @@ export default function BookingDetails() {
     // Fetch names for UI gracefully
     const fetchNames = async () => {
       try {
-        const token = await tokenStorage.getAccessToken();
-        const [providerRes, servicesRes] = await Promise.all([
-          axios.get(`${API}/providers/${providerIdValue}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/providers/${providerIdValue}/services`, { headers: { Authorization: `Bearer ${token}` } })
+        const [providerPayload, servicesPayload] = await Promise.all([
+          apiJson<ProviderResponse>(`/providers/${providerIdValue}`, {
+            auth: true,
+            retryCount: 1,
+          }),
+          apiJson<ProviderServicesResponse>(
+            `/providers/${providerIdValue}/services`,
+            {
+              auth: true,
+              retryCount: 1,
+            },
+          ),
         ]);
+
+        const provData = extractProvider(providerPayload);
+        const servData = extractServices(servicesPayload);
         
-        const provData = providerRes.data.data || providerRes.data;
-        const servData = servicesRes.data.data || servicesRes.data;
-        
-        if (provData && provData.businessName) {
+        if (provData?.businessName) {
           setProviderName(provData.businessName);
-        } else if (provData && provData.user) {
-          setProviderName(`${provData.user.firstName} ${provData.user.lastName}`);
+        } else if (provData?.user) {
+          const firstName = provData.user.firstName ?? '';
+          const lastName = provData.user.lastName ?? '';
+          const fullName = `${firstName} ${lastName}`.trim();
+          setProviderName(fullName || t('providerGeneric'));
         } else {
           setProviderName(t('providerGeneric'));
         }
@@ -66,9 +143,11 @@ export default function BookingDetails() {
         const activeIds = typeof selectedServiceIdsValue === 'string'
           ? selectedServiceIdsValue.split(',').map((s) => s.trim()).filter(Boolean)
           : [];
-        const matchedServices = servData.filter((s: any) => activeIds.includes(s.id));
+        const matchedServices = servData.filter((service) =>
+          activeIds.includes(service.id),
+        );
         if (matchedServices.length > 0) {
-          setServiceNames(matchedServices.map((s: any) => s.name).join(', '));
+          setServiceNames(matchedServices.map((service) => service.name).join(', '));
         } else {
           setServiceNames(t('selectedServicesGeneric'));
         }
@@ -92,37 +171,47 @@ export default function BookingDetails() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      
-      const token = await tokenStorage.getAccessToken();
-      
-      // Ensure all data is properly converted to strings
+
       const bookingData = {
-        providerId: String(providerIdValue),
+        providerId: providerIdValue,
         serviceIds: ids,
-        scheduledDate: String(dateValue),
-        scheduledTime: String(timeValue),
+        scheduledDate: dateValue,
+        scheduledTime: timeValue,
         isMobile,
         clientNotes
       };
-      
-      const response = await axios.post(`${API}/bookings`, bookingData, {
-        headers: { Authorization: `Bearer ${token}` }
+
+      const payload = await apiJson<BookingCreateResponse>('/bookings', {
+        auth: true,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
       });
-      
-      const resData = response.data.data || response.data;
-      const bookingResult = resData.booking || resData;
+
+      const bookingResult = extractBookingResult(payload);
+      if (!bookingResult) {
+        throw new ApiError('Booking response invalid', 500, payload);
+      }
       
       router.replace({ 
         pathname: '/(client)/booking/confirmation', 
         params: { booking: JSON.stringify(bookingResult) }
       });
       
-    } catch (err: any) {
-      const status = err.response?.status;
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
       if (status === 409) {
         setErrorMessage(t('bookingSlotTaken'));
       } else if (status === 400) {
-        const backendMessage = err.response?.data?.message;
+        const backendMessage =
+          error instanceof ApiError &&
+          error.body &&
+          typeof error.body === 'object' &&
+          'message' in error.body
+            ? (error.body as { message?: string | string[] }).message
+            : undefined;
         setErrorMessage(
           Array.isArray(backendMessage)
             ? backendMessage[0]
@@ -191,7 +280,7 @@ export default function BookingDetails() {
 
             <View style={styles.divider} />
 
-            <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: 0 }]}>
+            <View style={[styles.summaryRow, { justifyContent: 'space-between', marginTop: spacing.none }]}>
               <Text style={styles.totalLabel}>{t('bookingTotal')}</Text>
               <Text style={styles.totalValue}>€{formatAmount(totalPriceValue, lang)}</Text>
             </View>
@@ -262,8 +351,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.textPrimary },
   headerSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
-  stepContainer: { flexDirection: 'row', gap: 6, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  stepBar: { flex: 1, height: 4, backgroundColor: colors.border, borderRadius: 2 },
+  stepContainer: { flexDirection: 'row', gap: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  stepBar: { flex: 1, height: spacing.xxs, backgroundColor: colors.border, borderRadius: borderRadius.xs },
   stepActive: { backgroundColor: colors.coral },
   
   keyboardContainer: { flex: 1 },
@@ -280,14 +369,14 @@ const styles = StyleSheet.create({
   cardProviderTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xs },
   cardServicesText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.sm },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: 10 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.s },
   summaryText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   totalValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary },
   
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   toggleTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
-  toggleSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: 2 },
+  toggleSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: spacing.xxxs },
   
   notesContainer: { marginBottom: spacing.lg },
   inputLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.sm },
@@ -297,7 +386,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    height: 120,
+    height: layout.textAreaHeight,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,

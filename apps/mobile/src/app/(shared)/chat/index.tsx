@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
 
   contentCol: { flex: 1, justifyContent: 'center' },
-  nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xxxs },
   nameText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, flex: 1, marginRight: spacing.sm },
   timeText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   timeTextUnread: { color: colors.coral, fontFamily: fonts.bodyBold },

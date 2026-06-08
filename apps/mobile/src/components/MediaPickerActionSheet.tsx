@@ -42,7 +42,7 @@ export function MediaPickerActionSheet({
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.option} onPress={onPickDocument}>
-            <View style={[styles.iconCircle, { backgroundColor: '#E8F5F4' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: colors.tealLight }]}>
               <Feather name="file-text" size={22} color={colors.teal} />
             </View>
             <View style={styles.optionText}>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: spacing.lg,
-    paddingBottom: 34,
+    paddingBottom: spacing.xl + spacing.xxxs,
   },
   title: {
     fontFamily: fonts.bodyBold,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: spacing.xxxs,
   },
   optionSub: {
     fontFamily: fonts.body,
@@ -118,4 +118,3 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
 });
-

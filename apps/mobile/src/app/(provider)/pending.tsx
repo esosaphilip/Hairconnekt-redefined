@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout, lineHeights } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
@@ -77,7 +77,7 @@ export default function ProviderPendingScreen() {
         {/* Error Banner */}
         {!!error && (
           <View style={styles.errorBanner}>
-            <Feather name="wifi-off" size={16} color="#C62828" />
+            <Feather name="wifi-off" size={16} color={colors.error} />
             <Text style={styles.errorBannerText}>{error}</Text>
           </View>
         )}
@@ -123,13 +123,13 @@ export default function ProviderPendingScreen() {
               <View style={[styles.timelineLine, styles.timelineLineGrey]} />
             </View>
             <View style={styles.timelineRight}>
-              <Text style={[styles.timelineTitle, { marginTop: -2 }]}>{t('providerPendingStep2Title')}</Text>
+              <Text style={[styles.timelineTitle, { marginTop: -spacing.xxxs }]}>{t('providerPendingStep2Title')}</Text>
               <Text style={styles.timelineSub}>{t('providerPendingStep2Sub')}</Text>
             </View>
           </View>
 
           {/* Step 3 */}
-          <View style={[styles.timelineRow, { marginBottom: 0 }]}>
+          <View style={[styles.timelineRow, styles.timelineRowLast]}>
             <View style={styles.timelineLeft}>
               <View style={[styles.timelineIcon, styles.timelineIconGrey]}>
                 <Feather name="mail" size={16} color={colors.textSecondary} />
@@ -184,22 +184,22 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: colors.errorLightSolid,
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    gap: 8,
+    gap: spacing.xs,
   },
   errorBannerText: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
-    color: '#C62828',
+    color: colors.error,
     flex: 1,
   },
   scrollContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxl,
-    paddingBottom: 40,
+    paddingBottom: spacing.xl2,
     alignItems: 'center',
   },
 
@@ -208,9 +208,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: layout.avatarXl - layout.iconButton,
+    height: layout.avatarXl - layout.iconButton,
+    borderRadius: layout.iconButton,
     backgroundColor: colors.orangeLight,
     justifyContent: 'center',
     alignItems: 'center',
@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: spacing.lg,
+    height: spacing.lg,
+    borderRadius: spacing.sm,
     backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: lineHeights.md,
     marginBottom: spacing.xl,
   },
 
@@ -261,15 +261,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: spacing.md,
   },
+  timelineRowLast: { marginBottom: spacing.none },
   timelineLeft: {
     alignItems: 'center',
-    width: 32,
+    width: spacing.xl,
     marginRight: spacing.md,
   },
   timelineIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -279,29 +280,29 @@ const styles = StyleSheet.create({
   timelineIconGrey: { backgroundColor: colors.borderStrong },
   timelineLine: {
     width: 2,
-    height: 40,
-    marginTop: -4,
-    marginBottom: -4,
+    height: layout.iconButton,
+    marginTop: -spacing.xxs,
+    marginBottom: -spacing.xxs,
     zIndex: 1,
   },
   timelineLineGreen: { backgroundColor: colors.green },
   timelineLineGrey: { backgroundColor: colors.borderStrong },
   timelineRight: {
     flex: 1,
-    paddingTop: 4,
+    paddingTop: spacing.xxs,
   },
   timelineTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacing.xxs,
   },
   timelineTitleGrey: { color: colors.textSecondary },
   timelineSub: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: lineHeights.sm,
   },
 
   infoCard: {
@@ -319,10 +320,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   infoIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E3F2FD', // light blue from design
+    width: layout.iconButton,
+    height: layout.iconButton,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.infoLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.sm,
@@ -341,13 +342,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: lineHeights.sm,
   },
 
   footer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: 40,
+    paddingBottom: spacing.xl2,
     backgroundColor: colors.background,
   },
 });

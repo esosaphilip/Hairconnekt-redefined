@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   backButton: { padding: spacing.xs, marginLeft: -spacing.xs },
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
-  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: 4, marginBottom: spacing.md },
+  progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
   progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   

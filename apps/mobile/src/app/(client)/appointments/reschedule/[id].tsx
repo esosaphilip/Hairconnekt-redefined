@@ -332,10 +332,10 @@ export default function RescheduleAppointment() {
             <Text style={styles.currentBookingProvider}>{providerName}</Text>
             <Text style={styles.currentBookingServices}>{serviceNames}</Text>
             <View style={styles.currentBookingDateTime}>
-              <Feather name="calendar" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Feather name="calendar" size={14} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
               <Text style={styles.currentBookingDot}> • </Text>
-              <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>
                 {booking?.scheduledTime}
                 {timeSuffix}
@@ -456,11 +456,11 @@ const styles = StyleSheet.create({
   // Current Booking
   currentBookingCard: { backgroundColor: colors.surfaceCard, borderRadius: 12, padding: spacing.md, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
   currentBookingTitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.sm },
-  currentBookingProvider: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: 2 },
+  currentBookingProvider: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: spacing.xxxs },
   currentBookingServices: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textPrimary, marginBottom: spacing.sm },
   currentBookingDateTime: { flexDirection: 'row', alignItems: 'center' },
   currentBookingText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
-  currentBookingDot: { color: colors.textTertiary, marginHorizontal: 4 },
+  currentBookingDot: { color: colors.textTertiary, marginHorizontal: spacing.xxs },
 
   // Calendar
   calendarCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.lg, ...shadows.card },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   slotsSection: { marginTop: spacing.sm, marginBottom: spacing.lg },
   slotsHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  slotButton: { width: '31%', paddingVertical: 12, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   slotButtonActive: { backgroundColor: colors.coralLight, borderColor: colors.coral },
   slotText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   slotTextActive: { color: colors.coral },

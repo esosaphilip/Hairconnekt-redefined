@@ -1,6 +1,12 @@
 import { Link } from 'react-router';
 import { ArrowLeft, ChevronRight, User, Lock, Bell, Globe, Shield, FileText, LogOut, Trash2 } from 'lucide-react';
 
+const LEGAL_LINKS = {
+  terms: 'https://hairconnekt-terms-of-use.netlify.app',
+  privacy: 'https://hairconnekt-privacy.netlify.app',
+  imprint: 'https://hairconnekt-imprint.netlify.app',
+} as const;
+
 export default function Settings() {
   return (
     <div className="min-h-screen bg-white">
@@ -62,17 +68,23 @@ export default function Settings() {
           <h2 className="text-sm font-bold mb-3" style={{ color: '#555555' }}>Rechtliches</h2>
           <div className="bg-white rounded-xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
             {[
-              { icon: FileText, label: 'AGB', path: '#' },
-              { icon: Shield, label: 'Datenschutzerklärung', path: '#' },
-              { icon: FileText, label: 'Impressum', path: '#' },
+              { icon: FileText, label: 'AGB', path: LEGAL_LINKS.terms },
+              { icon: Shield, label: 'Datenschutzerklärung', path: LEGAL_LINKS.privacy },
+              { icon: FileText, label: 'Impressum', path: LEGAL_LINKS.imprint },
             ].map((item, idx) => (
-              <Link key={idx} to={item.path} className="flex items-center justify-between p-4 border-b last:border-0 border-[#EEEEEE]">
+              <a
+                key={idx}
+                href={item.path}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 border-b last:border-0 border-[#EEEEEE]"
+              >
                 <div className="flex items-center gap-3">
                   <item.icon size={20} style={{ color: '#8B4513' }} />
                   <span style={{ color: '#1A1A1A' }}>{item.label}</span>
                 </div>
                 <ChevronRight size={20} style={{ color: '#AAAAAA' }} />
-              </Link>
+              </a>
             ))}
           </div>
         </div>

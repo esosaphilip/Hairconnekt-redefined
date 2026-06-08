@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Alert, Switch, ScrollView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../theme';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
@@ -179,7 +179,7 @@ export default function AddressesScreen() {
           <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
             <Feather name="edit-2" size={18} color={colors.teal} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeletePress(item.id)} style={[styles.iconButton, { marginLeft: 12 }]}>
+          <TouchableOpacity onPress={() => handleDeletePress(item.id)} style={[styles.iconButton, { marginLeft: spacing.sm }]}>
             <Feather name="trash-2" size={18} color={colors.error} />
           </TouchableOpacity>
         </View>
@@ -389,30 +389,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  listContent: { padding: spacing.xl, paddingBottom: 100 },
+  listContent: { padding: spacing.xl, paddingBottom: spacing.xxxxxl },
 
   card: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadows.card,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: colors.surfaceAlt,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  cardLabel: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginRight: spacing.sm },
-  defaultBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  defaultBadgeText: { color: '#2E7D32', fontFamily: fonts.bodyBold, fontSize: 10 },
+  cardLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginRight: spacing.sm },
+  defaultBadge: { backgroundColor: colors.greenLight, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  defaultBadgeText: { color: colors.green, fontFamily: fonts.bodyBold, fontSize: fontSizes.xxs },
   
   actionsRow: { flexDirection: 'row' },
-  iconButton: { padding: 4 },
+  iconButton: { padding: spacing.xxs },
 
-  addressText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: 2 },
+  addressText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxxs },
 
   setDefaultButton: { marginTop: spacing.md },
   setDefaultText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.teal },
@@ -421,9 +421,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: spacing.xl,
     right: spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: layout.fabSize,
+    height: layout.fabSize,
+    borderRadius: layout.fabSize / 2,
     backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
   emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
-  emptyButton: { backgroundColor: colors.coral, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: 24 },
+  emptyButton: { backgroundColor: colors.coral, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.lg },
   emptyButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
 
   // Modal Styles
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
+  modalTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   modalContent: { flex: 1 },
   modalContentContainer: { padding: spacing.lg },
   
@@ -455,10 +455,10 @@ const styles = StyleSheet.create({
   
   inputLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md },
   switchLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
 
-  modalFooter: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? 40 : spacing.lg },
-  saveButton: { backgroundColor: colors.coral, paddingVertical: spacing.md, borderRadius: 24, alignItems: 'center' },
+  modalFooter: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? layout.iconButton : spacing.lg },
+  saveButton: { backgroundColor: colors.coral, paddingVertical: spacing.md, borderRadius: borderRadius.lg, alignItems: 'center' },
   saveButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
 });

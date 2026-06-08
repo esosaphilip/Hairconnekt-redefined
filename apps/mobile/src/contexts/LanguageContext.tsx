@@ -1,5 +1,6 @@
 // apps/mobile/src/contexts/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { tokenStorage } from '@/utils/token-storage';
 
 // ─── Translation dictionary ───────────────────────────────────────────────────
@@ -743,7 +744,20 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('de');
 
   useEffect(() => {
-    tokenStorage.getLanguage().then((saved) => setLangState(saved)).catch(() => {});
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const saved = await tokenStorage.getLanguage();
+        if (!cancelled) setLangState(saved);
+      } catch (error) {
+        Sentry.captureException(error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setLang = useCallback(async (newLang: Lang) => {
@@ -759,7 +773,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [lang],
   );
 
-  return <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>;
+  return React.createElement(LanguageContext.Provider, { value: { lang, setLang, t } }, children);
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

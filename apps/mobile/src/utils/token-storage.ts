@@ -3,6 +3,7 @@
 // Non-sensitive preferences remain in AsyncStorage.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const KEYS = {
@@ -12,6 +13,7 @@ const KEYS = {
   USER_JSON: 'hc_user',
   APP_LANGUAGE: 'hc_app_language',
   LANGUAGE: 'hc_language',
+  DISCOVERY_OVERRIDE: 'hc_discovery_override',
 } as const;
 
 export const tokenStorage = {
@@ -53,6 +55,46 @@ export const tokenStorage = {
 
   async setLanguage(lang: 'de' | 'en'): Promise<void> {
     await AsyncStorage.setItem(KEYS.APP_LANGUAGE, lang);
+  },
+
+  async getDiscoveryOverride(): Promise<{ city: string; lat: number; lng: number } | null> {
+    const raw = await AsyncStorage.getItem(KEYS.DISCOVERY_OVERRIDE);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'city' in parsed &&
+        'lat' in parsed &&
+        'lng' in parsed &&
+        typeof (parsed as any).city === 'string' &&
+        typeof (parsed as any).lat === 'number' &&
+        typeof (parsed as any).lng === 'number'
+      ) {
+        return {
+          city: (parsed as any).city,
+          lat: (parsed as any).lat,
+          lng: (parsed as any).lng,
+        };
+      }
+      await AsyncStorage.removeItem(KEYS.DISCOVERY_OVERRIDE);
+      return null;
+    } catch (error) {
+      Sentry.captureException(error);
+      await AsyncStorage.removeItem(KEYS.DISCOVERY_OVERRIDE);
+      return null;
+    }
+  },
+
+  async setDiscoveryOverride(
+    override: { city: string; lat: number; lng: number } | null,
+  ): Promise<void> {
+    if (!override) {
+      await AsyncStorage.removeItem(KEYS.DISCOVERY_OVERRIDE);
+      return;
+    }
+    await AsyncStorage.setItem(KEYS.DISCOVERY_OVERRIDE, JSON.stringify(override));
   },
 
   async clear(): Promise<void> {

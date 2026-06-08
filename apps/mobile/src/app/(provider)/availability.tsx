@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: spacing.xl2 + spacing.xl2 + spacing.l,
     zIndex: 9999,
     pointerEvents: 'none',
   },
   toast: {
     backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm + 4,
+    paddingVertical: spacing.sm + spacing.xxs,
     borderRadius: 24,
   },
   toastText: {
@@ -316,16 +316,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 40 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xl2 },
 
   section: { marginBottom: spacing.xl },
 
   dayRow: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -341,15 +341,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   timeInput: { flex: 1 },
-  timeLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginBottom: 4 },
+  timeLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginBottom: spacing.xxs },
   timeValueBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
-    height: 44,
-    borderRadius: 12,
+    height: layout.inputHeight - spacing.xxs,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -361,10 +361,10 @@ const styles = StyleSheet.create({
   bufferLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   bufferScroll: { gap: spacing.sm },
   bufferChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: spacing.l,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },

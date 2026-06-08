@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -311,10 +311,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 40 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xl2 },
 
   section: { marginBottom: spacing.xl },
   sectionLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
@@ -325,8 +325,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   reasonCard: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
@@ -339,20 +339,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coralLight,
     borderColor: colors.coral,
   },
-  reasonIcon: { fontSize: 20, marginRight: spacing.sm },
+  reasonIcon: { fontSize: fontSizes.xl, marginRight: spacing.sm },
   reasonLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary, flex: 1 },
   reasonLabelSelected: { color: colors.coral },
 
   dateInputsContainer: { flexDirection: 'row', gap: spacing.md },
   inputWrapper: { flex: 1 },
-  inputLabel: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: 4 },
+  inputLabel: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxs },
   dateInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
-    height: 48,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    height: layout.inputHeight,
+    borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
   },
   dateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
@@ -365,13 +365,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     padding: spacing.lg,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginBottom: spacing.xl,
   },
   repeatingInfo: { flex: 1 },
-  repeatingTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: 2 },
+  repeatingTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxxs },
   repeatingSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   footer: {

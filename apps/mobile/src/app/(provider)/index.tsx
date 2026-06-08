@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
@@ -231,12 +231,12 @@ export default function ProviderDashboardScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(provider)/reviews')}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#FFF8E1' }]}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.warningBg }]}>
               <Feather name="star" size={20} color={colors.gold} />
             </View>
             <View style={styles.ratingContainer}>
               <Text style={styles.statValue}>{stats?.avgRating ? `${stats.avgRating}` : '—'}</Text>
-              <Feather name="star" size={16} color={colors.gold} style={{ marginLeft: 4, marginTop: 4 }} />
+              <Feather name="star" size={16} color={colors.gold} style={{ marginLeft: spacing.xxs, marginTop: spacing.xxs }} />
             </View>
             <Text style={styles.statLabel}>{t('dashboardRating')}</Text>
           </TouchableOpacity>
@@ -337,14 +337,14 @@ export default function ProviderDashboardScreen() {
         <View style={styles.quickLinksRow}>
           <TouchableOpacity style={styles.quickLinkCard} onPress={() => router.push('/(provider)/services')}>
             <View style={[styles.quickLinkIcon, { backgroundColor: colors.primaryLight }]}>
-              <Text style={{ fontSize: 24 }}>💼</Text>
+              <Text style={styles.quickLinkEmoji}>💼</Text>
             </View>
             <Text style={styles.quickLinkLabel}>{t('profileTabServices')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quickLinkCard} onPress={() => router.push('/(provider)/calendar')}>
             <View style={[styles.quickLinkIcon, { backgroundColor: colors.primaryLight }]}>
-              <Text style={{ fontSize: 24 }}>📅</Text>
+              <Text style={styles.quickLinkEmoji}>📅</Text>
             </View>
             <Text style={styles.quickLinkLabel}>{t('tabCalendar')}</Text>
           </TouchableOpacity>
@@ -370,13 +370,13 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   headerLeft: { flex: 1 },
-  greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: 2 },
+  greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.xxxs },
   date: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   headerRight: { flexDirection: 'row', gap: spacing.sm },
-  iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  badge: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral },
+  iconButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  badge: { position: 'absolute', top: spacing.xs, right: spacing.xs, width: spacing.xs, height: spacing.xs, borderRadius: borderRadius.xs + spacing.xxxs, backgroundColor: colors.coral },
 
-  scrollContainer: { padding: spacing.lg, paddingBottom: 100 },
+  scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
 
   availabilityCard: {
     flexDirection: 'row',
@@ -390,9 +390,9 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   availabilityOnline: { backgroundColor: colors.greenLight, borderLeftColor: colors.green },
-  availabilityOffline: { backgroundColor: '#FFEBEE', borderLeftColor: colors.error },
+  availabilityOffline: { backgroundColor: colors.errorLightSolid, borderLeftColor: colors.error },
   availabilityInfo: { flex: 1, paddingRight: spacing.md },
-  availabilityTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, marginBottom: 2 },
+  availabilityTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, marginBottom: spacing.xxxs },
   availabilitySub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
 
   statsGrid: {
@@ -409,15 +409,15 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: layout.iconButton,
+    height: layout.iconButton,
+    borderRadius: borderRadius.pill,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
   statValue: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.textPrimary },
-  statLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: 4 },
+  statLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: spacing.xxs },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
 
   sectionHeader: {
@@ -440,13 +440,13 @@ const styles = StyleSheet.create({
   },
   bookingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   bookingTime: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontFamily: fonts.bodyBold, fontSize: 10 },
-  clientName: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: 2 },
+  statusBadge: { paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm },
+  statusText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xxs },
+  clientName: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxxs },
   serviceName: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.md },
   
   bookingActions: { flexDirection: 'row' },
-  actionBtnContainer: { flex: 1, height: 40 }, // Using container to restrict button height if needed
+  actionBtnContainer: { flex: 1, height: layout.iconButton }, // Using container to restrict button height if needed
 
   emptySlotCard: {
     borderWidth: 1,
@@ -469,12 +469,13 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   quickLinkIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: layout.inputHeight,
+    height: layout.inputHeight,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  quickLinkEmoji: { fontSize: fontSizes.xxl },
   quickLinkLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
 });

@@ -366,8 +366,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.surface,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + spacing.xxxs,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
@@ -375,11 +375,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   inputDisabled: { opacity: 0.5, backgroundColor: colors.surface, borderColor: colors.border },
-  hintText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: 4 },
+  hintText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: spacing.xxs },
 
   footer: {
     padding: spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 40 : spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl2 : spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

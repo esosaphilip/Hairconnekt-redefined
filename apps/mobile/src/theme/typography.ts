@@ -12,6 +12,7 @@ export const fonts = {
 };
 
 export const fontSizes = {
+  xxs:  10, // tiny badges, helper labels
   xs:   12, // chip text, tags, badge counters
   sm:   14, // labels, sub-info
   md:   16, // input values, body text, button text

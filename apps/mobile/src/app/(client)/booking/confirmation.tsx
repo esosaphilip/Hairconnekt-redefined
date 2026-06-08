@@ -246,7 +246,7 @@ export default function BookingConfirmation() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, paddingBottom: 150 },
+  content: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxxxxxl },
   
   header: { alignItems: 'center', marginBottom: spacing.xl },
   successCircle: {
@@ -271,8 +271,8 @@ const styles = StyleSheet.create({
   },
   providerInfoRow: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.md },
-  providerNameText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  providerNameText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxxs },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
   locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   stepNumber: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
   stepTexts: { flex: 1 },
   stepMainText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
-  stepSubText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: 2 },
+  stepSubText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: spacing.xxxs },
   
   footer: {
     position: 'absolute',

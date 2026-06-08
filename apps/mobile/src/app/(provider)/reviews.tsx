@@ -170,7 +170,7 @@ export default function ReviewsScreen() {
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('providerReviewsTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       {summary && (
@@ -273,7 +273,7 @@ export default function ReviewsScreen() {
   );
 
   const renderEmpty = () => {
-    if (isLoading) return <ActivityIndicator size="large" color={colors.coral} style={{ marginTop: 40 }} />;
+    if (isLoading) return <ActivityIndicator size="large" color={colors.coral} style={{ marginTop: spacing.xl2 }} />;
     const activeLabel =
       activeFilter === 'all'
         ? t('providerReviewsAll')
@@ -424,13 +424,13 @@ const styles = StyleSheet.create({
   
   dateText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, marginBottom: spacing.xxs },
   serviceText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginBottom: spacing.sm },
-  commentText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: 22, marginBottom: spacing.md },
+  commentText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: spacing.lg - spacing.xxxs, marginBottom: spacing.md },
 
   responseBox: { backgroundColor: colors.surface, borderRadius: spacing.sm, padding: spacing.md },
   responseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.primary },
   editLink: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.teal },
-  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
+  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: spacing.l, },
 
   replyButton: {
     borderWidth: 1,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   replyButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, marginTop: spacing.xl },
-  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: 4 },
+  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.xxs },
   emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
-  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: 4, marginBottom: spacing.lg },
+  charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xxs, marginBottom: spacing.lg },
   sheetActions: { flexDirection: 'row', alignItems: 'center' },
   cancelBtn: { flex: 1, height: layout.buttonHeight, borderRadius: spacing.sm, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
   cancelBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },

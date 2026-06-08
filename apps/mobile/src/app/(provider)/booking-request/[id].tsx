@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
@@ -279,9 +279,9 @@ export default function BookingRequestScreen() {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('appointmentsDate')}</Text>
             <View style={styles.detailValueRow}>
-              <Feather name="calendar" size={14} color={colors.textPrimary} style={{ marginRight: 4 }} />
+              <Feather name="calendar" size={14} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
               <Text style={styles.detailValue}>{dateStr} · </Text>
-              <Feather name="clock" size={14} color={colors.textPrimary} style={{ marginRight: 4 }} />
+              <Feather name="clock" size={14} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
               <Text style={styles.detailValue}>{timeStr}{t('timeSuffix')}</Text>
             </View>
           </View>
@@ -341,10 +341,10 @@ export default function BookingRequestScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: '#FAFAFA' },
+  safeContainer: { flex: 1, backgroundColor: colors.surfaceCard },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   errorText: { fontFamily: fonts.body, color: colors.error, marginBottom: spacing.md },
-  backButtonCenter: { padding: spacing.md, backgroundColor: '#F5F5F5', borderRadius: 8 },
+  backButtonCenter: { padding: spacing.md, backgroundColor: colors.surface, borderRadius: borderRadius.sm },
   backButtonText: { fontFamily: fonts.bodyBold },
 
   header: {
@@ -356,93 +356,93 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { flex: 1, fontFamily: fonts.heading, fontSize: 18, color: colors.primary },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
+  headerTitle: { flex: 1, fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.primary },
   
-  badgePending: { backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgePendingText: { color: '#E65100', fontFamily: fonts.bodyBold, fontSize: 12 },
-  badgeConfirmed: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeConfirmedText: { color: '#2E7D32', fontFamily: fonts.bodyBold, fontSize: 12 },
-  badgeCancelled: { backgroundColor: '#FFEBEE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeCancelledText: { color: '#C62828', fontFamily: fonts.bodyBold, fontSize: 12 },
-  badgeDefault: { backgroundColor: '#F5F5F5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeDefaultText: { color: '#666', fontFamily: fonts.bodyBold, fontSize: 12 },
+  badgePending: { backgroundColor: colors.orangeLight, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  badgePendingText: { color: colors.orange, fontFamily: fonts.bodyBold, fontSize: fontSizes.xs },
+  badgeConfirmed: { backgroundColor: colors.greenLight, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  badgeConfirmedText: { color: colors.green, fontFamily: fonts.bodyBold, fontSize: fontSizes.xs },
+  badgeCancelled: { backgroundColor: colors.errorLightSolid, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  badgeCancelledText: { color: colors.error, fontFamily: fonts.bodyBold, fontSize: fontSizes.xs },
+  badgeDefault: { backgroundColor: colors.surface, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
+  badgeDefaultText: { color: colors.textMuted2, fontFamily: fonts.bodyBold, fontSize: fontSizes.xs },
 
   scrollContent: { flex: 1 },
-  scrollInner: { padding: spacing.lg, paddingBottom: 40 },
+  scrollInner: { padding: spacing.lg, paddingBottom: spacing.xl2 },
 
   alertBanner: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: colors.orangeLight,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+    borderLeftColor: colors.warningBorder,
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     marginBottom: spacing.lg,
   },
-  alertBannerTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#E65100', marginBottom: 2 },
-  alertBannerSub: { fontFamily: fonts.body, fontSize: 14, color: '#6B6B6B' },
+  alertBannerTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.orange, marginBottom: spacing.xxxs },
+  alertBannerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   card: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     ...shadows.card,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: colors.surfaceAlt,
   },
-  cardTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: spacing.md },
+  cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary, marginBottom: spacing.md },
 
   clientProfileRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   clientAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
+    width: layout.avatarMd,
+    height: layout.avatarMd,
+    borderRadius: layout.iconButton - spacing.xxxs,
+    borderWidth: spacing.xxxs,
     borderColor: colors.gold,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
-  clientAvatarText: { fontFamily: fonts.heading, fontSize: 24, color: colors.primary },
+  clientAvatarText: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary },
   clientInfoCol: { flex: 1 },
-  clientName: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary, marginBottom: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  locationText: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
-  bookingsCount: { fontFamily: fonts.body, fontSize: 14, color: '#6B6B6B' },
+  clientName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxxs },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xxxs },
+  locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
+  bookingsCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   actionButtonsRow: { flexDirection: 'row' },
   actionBtn: {
     flex: 1,
-    height: 40,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    height: layout.iconButton,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.pill,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionBtnIcon: { marginRight: 6 },
-  actionBtnText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.primary },
+  actionBtnIcon: { marginRight: spacing.xxxs + spacing.xxs },
+  actionBtnText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
 
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
-  detailLabel: { fontFamily: fonts.body, fontSize: 14, color: '#6B6B6B', flex: 1 },
-  detailValue: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textPrimary, flex: 2, textAlign: 'right' },
+  detailLabel: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, flex: 1 },
+  detailValue: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary, flex: 2, textAlign: 'right' },
   detailValueRow: { flexDirection: 'row', alignItems: 'center', flex: 2, justifyContent: 'flex-end' },
   
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
   
-  totalLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary },
-  totalValue: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary },
+  totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
+  totalValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary },
 
   notesCard: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  notesLabel: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#6B6B6B', marginBottom: 4 },
-  notesText: { fontFamily: fonts.body, fontStyle: 'italic', fontSize: 14, color: '#555' },
+  notesLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxs },
+  notesText: { fontFamily: fonts.body, fontStyle: 'italic', fontSize: fontSizes.sm, color: colors.textMuted },
 
   bottomActions: {
     padding: spacing.lg,
@@ -452,31 +452,31 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     backgroundColor: colors.coral,
-    height: 56,
-    borderRadius: 28,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.lg + borderRadius.xs + spacing.xxxs,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  acceptBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.background },
+  acceptBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
   declineBtn: {
-    height: 48,
-    borderRadius: 24,
+    height: layout.inputHeight,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  declineBtnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.error },
+  declineBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.error },
 
   statusCard: {
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
   },
-  statusCardConfirmed: { backgroundColor: '#E8F5E9' },
-  statusCardCancelled: { backgroundColor: '#FFEBEE' },
-  statusCardText: { fontFamily: fonts.bodyBold, fontSize: 14 },
-  statusCardTextConfirmed: { color: '#2E7D32' },
-  statusCardTextCancelled: { color: '#C62828' },
+  statusCardConfirmed: { backgroundColor: colors.greenLight },
+  statusCardCancelled: { backgroundColor: colors.errorLightSolid },
+  statusCardText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm },
+  statusCardTextConfirmed: { color: colors.green },
+  statusCardTextCancelled: { color: colors.error },
 });

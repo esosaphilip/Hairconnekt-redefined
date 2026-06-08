@@ -39,4 +39,26 @@ export const colors = {
   // Error / Destructive
   error:         '#C62828',
   errorLight:    'rgba(198, 40, 40, 0.1)',
+  errorLightSolid: '#FFEBEE',
+
+  // Info / Links
+  blue:          '#1976D2',
+
+  // Extra neutrals used in UI
+  warmBackground: '#FAF9F7',
+  coralTint:     '#FFF5F4',
+  coralTintSoft: '#FFF9F8',
+  coralTintAlt:  '#FFF0ED',
+  textMuted:     '#555555',
+  textMuted2:    '#666666',
+  textMuted3:    '#888888',
+  iconDisabled:  '#DDDDDD',
+  starEmpty:     '#E0E0E0',
+  surfaceAlt:    '#F0F0F0',
+  warningIcon:   '#BF6000',
+  warningBorder: '#FF9800',
+  warningBg:     '#FFF8E1',
+  successAlt:    '#4CAF50',
+  amber:         '#F5A623',
+  infoLight:     '#E3F2FD',
 };

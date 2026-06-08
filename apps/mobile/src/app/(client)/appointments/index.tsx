@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg, 
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: colors.border,
   },
   headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
   
@@ -264,14 +264,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabPillActive: { backgroundColor: colors.primary },
-  tabPillInactive: { backgroundColor: '#F5F5F5' },
+  tabPillInactive: { backgroundColor: colors.surface },
   tabPillText: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   tabPillTextActive: { color: colors.surface },
-  tabPillTextInactive: { color: '#555' },
+  tabPillTextInactive: { color: colors.textMuted },
   
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxxxl },
   loader: { marginTop: spacing.xxl },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: spacing.xxxxxl },
   emptyStateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textSecondary },
   
   card: {
@@ -285,17 +285,17 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   avatar: { width: 48, height: 48, borderRadius: 24, marginRight: spacing.sm },
-  avatarFallback: { backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' },
+  avatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   providerName: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  statusBadge: { paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: 999 },
   statusBadgeText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.surface },
   
   serviceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  serviceChip: { backgroundColor: '#F5F5F5', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 999, flexShrink: 1, marginRight: spacing.sm },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: 999, flexShrink: 1, marginRight: spacing.sm },
   serviceChipText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textPrimary },
   priceText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary },
   
-  dateTimeText: { fontFamily: fonts.body, fontSize: 14, color: '#555', marginBottom: spacing.md },
+  dateTimeText: { fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
   
   actionsRow: { flexDirection: 'row', gap: spacing.sm },
   actionButton: {
@@ -308,6 +308,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: borderRadius.md,
   },
-  actionIcon: { marginRight: 6 },
+  actionIcon: { marginRight: spacing.xxs + spacing.xxxs },
   actionButtonText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.primary },
 });

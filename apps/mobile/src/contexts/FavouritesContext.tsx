@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { getFavouriteIds, addFavourite, removeFavourite } from '../utils/favourites';
+import { debugLog } from '../utils/logger';
 
 interface FavouritesContextType {
   favouriteIds: string[];
@@ -26,7 +27,9 @@ export function FavouritesProvider({ children }: { children: React.ReactNode }) 
       setIsLoading(true);
       const ids = await getFavouriteIds();
       setFavouriteIds(ids);
-    } catch {
+    } catch (error) {
+      debugLog('Failed to refresh favourites:', error);
+      setFavouriteIds([]);
     } finally {
       setIsLoading(false);
     }

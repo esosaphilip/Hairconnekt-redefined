@@ -14,14 +14,32 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-import { API } from '../../utils/api';
+import { tokenStorage } from '../../utils/token-storage';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ApiError, apiJson } from '@/services/apiClient';
+import type { User } from '@/types/user';
+
+type CurrentUserResponse = Pick<
+  User,
+  'id' | 'email' | 'role' | 'firstName' | 'lastName'
+>;
+
+type ProviderProfileResponse = {
+  status?: string | null;
+};
+
+const normalizeProviderStatus = (status?: string | null): string =>
+  status?.trim().toLowerCase() ?? '';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email?: string }>();
+  const { lang, t } = useLanguage();
+  const emailString = typeof email === 'string' ? email : '';
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +47,7 @@ export default function VerifyEmailScreen() {
   const [resendCountdown, setResendCountdown] = useState(120);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>();
 
   const otpRefs = useRef<Array<TextInput | null>>([]);
 
@@ -44,6 +63,20 @@ export default function VerifyEmailScreen() {
   useEffect(() => {
     setTimeout(() => otpRefs.current[0]?.focus(), 150);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const token = await tokenStorage.getAccessToken();
+      if (cancelled) return;
+      if (!token || !emailString) {
+        router.replace('/(auth)/login?role=provider' as any);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [emailString, router]);
 
   const handleOtpChange = (text: string, index: number) => {
     const cleaned = text.replace(/\D/g, '');
@@ -77,7 +110,8 @@ export default function VerifyEmailScreen() {
     Keyboard.dismiss();
     const code = otp.join('');
     if (code.length < 6) {
-      setErrorMessage('Bitte gib den vollständigen 6-stelligen Code ein.');
+      setErrorMessage(t('otpEnter6Digits'));
+      setErrorStatus(400);
       setErrorVisible(true);
       return;
     }
@@ -85,24 +119,57 @@ export default function VerifyEmailScreen() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
+      setErrorStatus(undefined);
 
-      const res = await fetch(`${API}/auth/verify-email`, {
+      await apiJson<unknown>('/auth/verify-email', {
+        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: String(email ?? ''), code }),
+        body: JSON.stringify({ email: emailString, code }),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const msg = (body as any)?.message;
-        setErrorMessage(typeof msg === 'string' ? msg : mapHttpError(res.status));
-        setErrorVisible(true);
-        return;
+      try {
+        const me = await apiJson<CurrentUserResponse>('/users/me', { auth: true });
+        await tokenStorage.setUser(me);
+      } catch (error) {
+        Sentry.captureException(error);
       }
 
-      router.replace('/(provider)/pending');
-    } catch {
-      setErrorMessage(mapHttpError(500));
+      try {
+        const provider = await apiJson<ProviderProfileResponse>('/providers/me', { auth: true });
+        if (normalizeProviderStatus(provider.status) === 'approved') {
+          router.replace('/(provider)' as any);
+        } else {
+          router.replace('/(provider)/pending' as any);
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          router.replace('/(provider)/register/type' as any);
+        } else if (error instanceof ApiError && error.status === 401) {
+          router.replace('/(auth)/login?role=provider' as any);
+        } else {
+          if (error instanceof Error) Sentry.captureException(error);
+          router.replace('/(provider)/pending' as any);
+        }
+      }
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      setErrorStatus(status);
+
+      if (status === 401) {
+        router.replace('/(auth)/login?role=provider' as any);
+        return;
+      }
+      if (status === 400) {
+        setErrorMessage(t('verifyEmailInvalidCode'));
+      } else if (status === 410) {
+        setErrorMessage(t('verifyEmailExpiredCode'));
+      } else if (status === 429) {
+        setErrorMessage(t('verifyEmailTooManyRequests'));
+      } else {
+        if (error instanceof Error) Sentry.captureException(error);
+        setErrorMessage(mapHttpError(status, undefined, lang));
+      }
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -115,30 +182,33 @@ export default function VerifyEmailScreen() {
     try {
       setIsResending(true);
       setErrorVisible(false);
+      setErrorStatus(undefined);
       setOtp(Array(6).fill(''));
       otpRefs.current[0]?.focus();
 
-      const res = await fetch(`${API}/auth/resend-verification`, {
+      await apiJson<unknown>('/auth/resend-verification', {
+        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: String(email ?? '') }),
+        body: JSON.stringify({ email: emailString }),
       });
-
-      if (res.status === 429) {
-        setErrorMessage('Bitte warte 2 Minuten vor dem erneuten Senden.');
-        setErrorVisible(true);
-        return;
-      }
-
-      if (!res.ok) {
-        setErrorMessage(mapHttpError(res.status));
-        setErrorVisible(true);
-        return;
-      }
-
       setResendCountdown(120);
-    } catch {
-      setErrorMessage('Code konnte nicht gesendet werden.');
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      setErrorStatus(status);
+
+      if (status === 401) {
+        router.replace('/(auth)/login?role=provider' as any);
+        return;
+      }
+      if (status === 429) {
+        setErrorMessage(t('verifyEmailTooManyRequests'));
+      } else if (status === 410) {
+        setErrorMessage(t('verifyEmailExpiredCode'));
+      } else {
+        if (error instanceof Error) Sentry.captureException(error);
+        setErrorMessage(mapHttpError(status, undefined, lang));
+      }
       setErrorVisible(true);
     } finally {
       setIsResending(false);
@@ -159,17 +229,16 @@ export default function VerifyEmailScreen() {
         >
           <View style={styles.header}>
             <Feather name="mail" size={layout.inputHeight} color={colors.coral} />
-            <Text style={styles.title}>E-Mail bestätigen</Text>
+            <Text style={styles.title}>{t('verifyEmailTitle')}</Text>
             <Text style={styles.subtitle}>
-              Wir haben einen 6-stelligen Code an{'\n'}
-              <Text style={styles.emailText}>{String(email ?? '')}</Text>
-              {'\n'}gesendet. Bitte prüfe auch deinen Spam-Ordner.
+              {t('verifyEmailBody').replace('{email}', emailString || t('yourEmailAddress'))}
             </Text>
           </View>
 
           <GermanErrorBanner
             visible={errorVisible}
             message={errorMessage}
+            statusCode={errorStatus}
             onDismiss={() => setErrorVisible(false)}
           />
 
@@ -202,7 +271,7 @@ export default function VerifyEmailScreen() {
             {isLoading ? (
               <ActivityIndicator color={colors.background} />
             ) : (
-              <Text style={styles.verifyButtonText}>E-Mail bestätigen</Text>
+              <Text style={styles.verifyButtonText}>{t('confirm')}</Text>
             )}
           </TouchableOpacity>
 
@@ -218,8 +287,8 @@ export default function VerifyEmailScreen() {
               ]}
             >
               {resendCountdown > 0
-                ? `Code erneut senden (${resendCountdown}s)`
-                : 'Code erneut senden'}
+                ? `${t('verifyEmailResend')} (${resendCountdown}s)`
+                : t('verifyEmailResend')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
