@@ -299,8 +299,21 @@ export class BookingsService {
       // month format: YYYY-MM
       where.scheduledDate = Raw(alias => `${alias} >= '${month}-01' AND ${alias} < '${month}-01'::date + INTERVAL '1 month'`);
     } else if (statusStr) {
-      const statuses = statusStr.split(',').map(s => s.trim());
-      where.status = In(statuses);
+      const rawStatuses = statusStr
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const allowed = new Set<string>(Object.values(BookingStatus));
+      const normalized = rawStatuses
+        .map((s) => s.toUpperCase())
+        .filter((s) => allowed.has(s));
+
+      if (normalized.length === 0) {
+        throw new BadRequestException('Invalid booking status filter');
+      }
+
+      where.status = In(normalized as BookingStatus[]);
     }
 
     const [data, total] = await this.bookingRepo.findAndCount({
@@ -344,7 +357,7 @@ export class BookingsService {
     }
 
     // Only PENDING and CONFIRMED bookings can be rescheduled
-    const allowedStatuses = ['pending', 'confirmed', 'PENDING', 'CONFIRMED'];
+    const allowedStatuses: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
     if (!allowedStatuses.includes(booking.status)) {
       throw new BadRequestException(
         'Dieser Termin kann nicht verschoben werden.'

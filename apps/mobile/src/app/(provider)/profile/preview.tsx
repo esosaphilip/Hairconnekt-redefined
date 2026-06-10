@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
+import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
@@ -112,8 +112,13 @@ export default function ProfilePreviewScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* PREVIEW BANNER (Sticky Top) */}
       <View style={styles.previewBanner}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.bannerBackButton}>
-          <Feather name="arrow-left" size={20} color={colors.background} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.bannerBackButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xl} color={colors.background} />
         </TouchableOpacity>
         <Text style={styles.bannerText}>
           {t('previewBanner')} {(provider.businessName?.charAt(0) ?? 'P')}
@@ -122,7 +127,7 @@ export default function ProfilePreviewScreen() {
           <FontAwesome5 
             name="heart" 
             solid={false}
-            size={16} 
+            size={fontSizes.md} 
             color={colors.background}
           />
         </View>
@@ -139,7 +144,7 @@ export default function ProfilePreviewScreen() {
             <Image source={{ uri: coverImage }} style={styles.heroImage} />
           ) : (
             <View style={styles.heroImagePlaceholder}>
-              <Feather name="image" size={40} color={colors.textTertiary} />
+              <Feather name="image" size={layout.iconButton} color={colors.textTertiary} />
             </View>
           )}
 
@@ -159,11 +164,11 @@ export default function ProfilePreviewScreen() {
         <View style={styles.infoSection}>
           <Text style={styles.businessName}>{provider.businessName || t('providerGeneric')}</Text>
           <View style={styles.statsRow}>
-            <FontAwesome5 name="star" solid size={14} color={colors.gold} />
+            <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
             <Text style={styles.statsText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
           </View>
           <View style={styles.locationRow}>
-            <Feather name="map-pin" size={14} color={colors.textSecondary} />
+            <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
             <Text style={styles.locationText}>{provider.city || t('notAvailable')} {distance ? `• ${distance}` : ''}</Text>
           </View>
         </View>
@@ -203,20 +208,20 @@ export default function ProfilePreviewScreen() {
 
               <Text style={styles.sectionHeader}>{t('profileInfo')}</Text>
               <View style={styles.infoRow}>
-                <Feather name="map-pin" size={16} color={colors.textSecondary} />
+                <Feather name="map-pin" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{provider.city || t('countryDefault')}</Text>
               </View>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="star" solid size={14} color={colors.gold} />
+                <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
                 <Text style={styles.infoText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
               </View>
               <View style={styles.infoRow}>
-                <Feather name="clock" size={16} color={colors.textSecondary} />
+                <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
               {provider.isVerified && (
                 <View style={styles.infoRow}>
-                  <Feather name="check-circle" size={16} color={colors.teal} />
+                  <Feather name="check-circle" size={fontSizes.md} color={colors.teal} />
                   <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
                 </View>
               )}
@@ -260,7 +265,7 @@ export default function ProfilePreviewScreen() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={fontSizes.md} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
                 <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('cardReviews')}</Text>
               </View>
@@ -273,7 +278,7 @@ export default function ProfilePreviewScreen() {
                     </View>
                     <View style={styles.reviewerInfo}>
                       <Text style={styles.reviewerName}>{rev.clientName || t('clientNameDefault')}</Text>
-                      <View style={{flexDirection: 'row'}}>{[...Array(rev.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
+                      <View style={{flexDirection: 'row'}}>{[...Array(rev.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={fontSizes.xxs} color={colors.gold} />)}</View>
                     </View>
                     <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE') : ''}</Text>
                   </View>
@@ -333,9 +338,9 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
 
-  tabsScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabsScroll: { flexGrow: 0, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   tabsContainer: { paddingHorizontal: spacing.lg, gap: spacing.md },
-  tabButton: { paddingBottom: spacing.sm, paddingHorizontal: spacing.sm, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabButton: { paddingBottom: spacing.sm, paddingHorizontal: spacing.sm, borderBottomWidth: spacing.xxxs, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: colors.primary },
   tabText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textSecondary },
   tabTextActive: { color: colors.primary, fontFamily: fonts.bodyBold },
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
   bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: spacing.lg - spacing.xxxs, marginBottom: spacing.xl },
   sectionHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.xl },
-  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: spacing.unit, borderColor: colors.border },
   tagText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
@@ -374,7 +379,7 @@ const styles = StyleSheet.create({
   reviewerInfo: { flex: 1 },
   reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
-  reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
+  reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: lineHeights.sm },
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 
@@ -382,7 +387,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   },
   disabledButton: {

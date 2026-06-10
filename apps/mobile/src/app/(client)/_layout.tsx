@@ -23,7 +23,7 @@ export default function ClientLayout() {
           tabBarStyle: {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            borderTopWidth: 1,
+            borderTopWidth: spacing.unit,
             height: (layout.tabBarHeight - spacing.sm) + (insets.bottom > 0 ? insets.bottom : spacing.xs),
             paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.xs,
             paddingTop: spacing.xs,

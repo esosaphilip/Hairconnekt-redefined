@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../../utils/token-storage';
-import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout, lineHeights } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { API } from '../../../../utils/api';
@@ -96,11 +96,16 @@ export default function CancelAppointment() {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('cancelTitle')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
       </SafeAreaView>
@@ -123,11 +128,16 @@ export default function CancelAppointment() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('cancelTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <KeyboardAvoidingView
@@ -146,7 +156,7 @@ export default function CancelAppointment() {
             <View style={styles.policyHeader}>
               <Feather
                 name="alert-triangle"
-                size={20}
+                size={fontSizes.xl}
                 color={isShortNotice ? colors.error : colors.orange}
               />
               <Text style={[styles.policyTitle, isShortNotice && styles.policyTitleUrgent]}>
@@ -218,37 +228,37 @@ export default function CancelAppointment() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   keyboardContainer: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: 20, color: colors.primary },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
+  backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
+  headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: fontSizes.xl, color: colors.primary },
   
   scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
-  policyCard: { backgroundColor: colors.orangeLight, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: spacing.xl },
+  policyCard: { backgroundColor: colors.orangeLight, padding: spacing.lg, borderBottomWidth: spacing.unit, borderBottomColor: colors.border, marginBottom: spacing.xl },
   policyCardUrgent: { backgroundColor: colors.errorLight, borderBottomColor: colors.border },
   policyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xxs + spacing.xxxs },
-  policyTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.orange, marginLeft: spacing.xs },
+  policyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.orange, marginLeft: spacing.xs },
   policyTitleUrgent: { color: colors.error },
-  policyText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.orange, lineHeight: 20 },
+  policyText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.orange, lineHeight: lineHeights.sm },
   policyTextUrgent: { color: colors.error },
   
-  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.textPrimary, marginBottom: spacing.lg },
+  sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xl, color: colors.textPrimary, marginBottom: spacing.lg },
   
   reasonsList: { gap: spacing.sm, marginBottom: spacing.xl },
   radioRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md },
   radioRowActive: { backgroundColor: colors.primaryLight },
-  radioCircle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.borderStrong, marginRight: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  radioCircle: { width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.md - spacing.xxs, borderWidth: spacing.xxxs, borderColor: colors.borderStrong, marginRight: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   radioCircleActive: { borderColor: colors.primary },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary },
-  radioText: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary },
+  radioInner: { width: spacing.sm, height: spacing.sm, borderRadius: spacing.sm / 2, backgroundColor: colors.primary },
+  radioText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   
   notesSection: { marginBottom: spacing.xl },
-  notesLabel: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xs },
-  textInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: 128, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border },
+  notesLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xs },
+  textInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: layout.textAreaHeight + spacing.xs, fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, borderWidth: spacing.unit, borderColor: colors.border },
   
   cancelButton: { backgroundColor: colors.error, height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   cancelButtonDisabled: { backgroundColor: colors.borderStrong },
-  cancelButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.background },
+  cancelButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
   
-  footerText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary, textAlign: 'center' }
+  footerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textSecondary, textAlign: 'center' }
 });

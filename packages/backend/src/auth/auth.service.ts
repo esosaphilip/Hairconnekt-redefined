@@ -372,7 +372,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      throw new UnauthorizedException('Ungültiger Code.');
+      throw new BadRequestException('Ungültiger Code.');
     }
 
     if (!user.emailVerificationCode || !user.emailVerificationExpires) {
@@ -380,12 +380,12 @@ export class AuthService {
     }
 
     if (user.emailVerificationExpires < new Date()) {
-      throw new UnauthorizedException('Code abgelaufen. Bitte fordere einen neuen an.');
+      throw new GoneException('Code abgelaufen. Bitte fordere einen neuen an.');
     }
 
     const ok = await bcrypt.compare(code, user.emailVerificationCode);
     if (!ok) {
-      throw new UnauthorizedException('Ungültiger Code.');
+      throw new BadRequestException('Ungültiger Code.');
     }
 
     await this.userRepo.update(

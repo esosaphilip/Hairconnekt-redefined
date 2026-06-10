@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
@@ -142,7 +142,7 @@ export default function AppointmentsList() {
             <Image source={{ uri: avatarUri }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarFallback]}>
-              <Feather name="user" size={24} color={colors.textTertiary} />
+              <Feather name="user" size={fontSizes.xxl} color={colors.textTertiary} />
             </View>
           )}
           <Text style={styles.providerName} numberOfLines={1}>{providerName}</Text>
@@ -168,12 +168,12 @@ export default function AppointmentsList() {
         <View style={styles.actionsRow}>
           {!!address && (
             <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(address)}>
-              <Feather name="map-pin" size={16} color={colors.primary} style={styles.actionIcon} />
+              <Feather name="map-pin" size={fontSizes.md} color={colors.primary} style={styles.actionIcon} />
               <Text style={styles.actionButtonText}>{t('appointmentsRoute')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.actionButton} onPress={() => openChat(provider.userId || provider.user?.id)}>
-            <Feather name="message-circle" size={16} color={colors.primary} style={styles.actionIcon} />
+            <Feather name="message-circle" size={fontSizes.md} color={colors.primary} style={styles.actionIcon} />
             <Text style={styles.actionButtonText}>{t('profileMessage')}</Text>
           </TouchableOpacity>
         </View>
@@ -227,7 +227,7 @@ export default function AppointmentsList() {
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
       ) : bookings.length === 0 ? (
         <View style={styles.emptyState}>
-          <Feather name="calendar" size={48} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
+          <Feather name="calendar" size={spacing.xxl} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
           <Text style={styles.emptyStateText}>{emptyText()}</Text>
         </View>
       ) : (
@@ -249,23 +249,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, 
     paddingTop: spacing.lg, 
     paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
-  headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
+  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   
   tabsContainer: { paddingVertical: spacing.md },
   tabsScrollContent: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   tabPill: { 
-    height: 36, 
-    borderRadius: 999, 
+    height: layout.buttonHeightSm, 
+    borderRadius: borderRadius.full, 
     paddingHorizontal: spacing.md, 
     justifyContent: 'center', 
     alignItems: 'center',
   },
   tabPillActive: { backgroundColor: colors.primary },
   tabPillInactive: { backgroundColor: colors.surface },
-  tabPillText: { fontFamily: fonts.bodyMedium, fontSize: 14 },
+  tabPillText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm },
   tabPillTextActive: { color: colors.surface },
   tabPillTextInactive: { color: colors.textMuted },
   
@@ -276,26 +276,26 @@ const styles = StyleSheet.create({
   
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xxs,
     ...shadows.card,
-    elevation: 4,
+    elevation: spacing.xxs,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  avatar: { width: 48, height: 48, borderRadius: 24, marginRight: spacing.sm },
+  avatar: { width: spacing.xxl, height: spacing.xxl, borderRadius: borderRadius.lg, marginRight: spacing.sm },
   avatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  providerName: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textPrimary },
-  statusBadge: { paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: 999 },
-  statusBadgeText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.surface },
+  providerName: { flex: 1, fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary },
+  statusBadge: { paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: borderRadius.full },
+  statusBadgeText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.surface },
   
   serviceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: 999, flexShrink: 1, marginRight: spacing.sm },
-  serviceChipText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textPrimary },
-  priceText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: borderRadius.full, flexShrink: 1, marginRight: spacing.sm },
+  serviceChipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textPrimary },
+  priceText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
   
-  dateTimeText: { fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
+  dateTimeText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: spacing.md },
   
   actionsRow: { flexDirection: 'row', gap: spacing.sm },
   actionButton: {
@@ -303,11 +303,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 40,
-    borderWidth: 1,
+    height: layout.iconButton,
+    borderWidth: spacing.unit,
     borderColor: colors.primary,
     borderRadius: borderRadius.md,
   },
   actionIcon: { marginRight: spacing.xxs + spacing.xxxs },
-  actionButtonText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.primary },
+  actionButtonText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
 });

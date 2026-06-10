@@ -7,7 +7,6 @@ import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '@/theme
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-import { tokenStorage } from '../../utils/token-storage';
 import { useFavourites } from '../../contexts/FavouritesContext';
 import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, setDiscoveryOverride } from '../../utils/discovery-location';
 import { NoBraidersNearby } from '../../components/NoBraidersNearby';
@@ -22,58 +21,76 @@ interface PopularStyle {
   emoji: string;
   colorHex: string;
   sortOrder: number;
+  searchQuery?: string;
 }
 
-const BELIEBTE_STYLES: PopularStyle[] = [
-  {
-    id: '1',
-    name: 'Knotless Braids',
-    imageUrl: null,
-    colorHex: colors.gold,
-    emoji: '✨',
-    sortOrder: 1,
-  },
-  {
-    id: '2',
-    name: 'Box Braids',
-    imageUrl: null,
-    colorHex: colors.primary,
-    emoji: '💫',
-    sortOrder: 2,
-  },
-  {
-    id: '3',
-    name: 'Cornrows',
-    imageUrl: null,
-    colorHex: colors.teal,
-    emoji: '🌿',
-    sortOrder: 3,
-  },
-  {
-    id: '4',
-    name: 'Goddess Locs',
-    imageUrl: null,
-    colorHex: colors.coral,
-    emoji: '👑',
-    sortOrder: 4,
-  },
-  {
-    id: '5',
-    name: 'Twists',
-    imageUrl: null,
-    colorHex: colors.primaryDark,
-    emoji: '🌀',
-    sortOrder: 5,
-  },
-  {
-    id: '6',
-    name: 'Fades',
-    imageUrl: null,
-    colorHex: colors.green,
-    emoji: '✂️',
-    sortOrder: 6,
-  },
-];
+const getFallbackPopularStyles = (lang: 'de' | 'en'): PopularStyle[] => {
+  const names =
+    lang === 'en'
+      ? ['Knotless Braids', 'Box Braids', 'Cornrows', 'Goddess Locs', 'Twists', 'Fades']
+      : ['Knotless Zöpfe', 'Box Braids', 'Cornrows', 'Goddess Locs', 'Twists', 'Fades'];
+
+  return [
+    {
+      id: '1',
+      name: names[0],
+      searchQuery: 'Knotless Braids',
+      imageUrl: null,
+      colorHex: colors.gold,
+      emoji: '✨',
+      sortOrder: 1,
+    },
+    {
+      id: '2',
+      name: names[1],
+      searchQuery: 'Box Braids',
+      imageUrl: null,
+      colorHex: colors.primary,
+      emoji: '💫',
+      sortOrder: 2,
+    },
+    {
+      id: '3',
+      name: names[2],
+      searchQuery: 'Cornrows',
+      imageUrl: null,
+      colorHex: colors.teal,
+      emoji: '🌿',
+      sortOrder: 3,
+    },
+    {
+      id: '4',
+      name: names[3],
+      searchQuery: 'Goddess Locs',
+      imageUrl: null,
+      colorHex: colors.coral,
+      emoji: '👑',
+      sortOrder: 4,
+    },
+    {
+      id: '5',
+      name: names[4],
+      searchQuery: 'Twists',
+      imageUrl: null,
+      colorHex: colors.primaryDark,
+      emoji: '🌀',
+      sortOrder: 5,
+    },
+    {
+      id: '6',
+      name: names[5],
+      searchQuery: 'Fades',
+      imageUrl: null,
+      colorHex: colors.green,
+      emoji: '✂️',
+      sortOrder: 6,
+    },
+  ];
+};
+
+const isFallbackPopularStyles = (styles: PopularStyle[]): boolean =>
+  styles.length === 6 &&
+  styles.every((style, index) => style.id === String(index + 1) && style.imageUrl === null);
 
 export default function ClientHome() {
   const router = useRouter();
@@ -81,11 +98,10 @@ export default function ClientHome() {
   const { isFavourite, toggleFavourite } = useFavourites();
   
   const [firstName, setFirstName] = useState('');
-  const [profileCity, setProfileCity] = useState<string>('');
   const [userCity, setUserCity] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
-  const [popularStyles, setPopularStyles] = useState<PopularStyle[]>(BELIEBTE_STYLES);
+  const [popularStyles, setPopularStyles] = useState<PopularStyle[]>(() => getFallbackPopularStyles(lang));
   const [failedPopularStyleImages, setFailedPopularStyleImages] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -117,6 +133,10 @@ export default function ClientHome() {
     fetchPopularStyles();
   }, []);
 
+  useEffect(() => {
+    setPopularStyles((prev) => (isFallbackPopularStyles(prev) ? getFallbackPopularStyles(lang) : prev));
+  }, [lang]);
+
   const bootstrapDiscovery = async () => {
     const coords = await getDiscoveryCoordinates();
     setDiscoveryLocation(coords);
@@ -129,7 +149,6 @@ export default function ClientHome() {
       const user = u.data ?? u;
       setFirstName(user.firstName ?? '');
       const city = user.city ?? t('countryDefault');
-      setProfileCity(city);
       const override = await getDiscoveryOverride().catch(() => null);
       setUserCity(override?.city ?? city);
       setUserAvatar(user.avatarUrl ?? null);
@@ -145,7 +164,7 @@ export default function ClientHome() {
         setPopularStyles(data);
       }
     } catch {
-      /* keep defaults */
+      setPopularStyles(getFallbackPopularStyles(lang));
     }
   };
 
@@ -249,7 +268,16 @@ export default function ClientHome() {
               <Feather name="chevron-down" size={12} color={colors.primary} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.bellButton} onPress={() => router.push('/(shared)/notifications')}>
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => router.push('/(shared)/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadNotificationsCount > 0
+                ? `${t('notificationsTitle')} (${unreadNotificationsCount})`
+                : t('notificationsTitle')
+            }
+          >
             <Feather name="bell" size={24} color={colors.primary} />
             {unreadNotificationsCount > 0 && <View style={styles.bellBadge} />}
           </TouchableOpacity>
@@ -300,7 +328,7 @@ export default function ClientHome() {
               onPress={() => router.push({
                 pathname: '/(client)/search',
                 params: {
-                  query: style.name,
+                  query: style.searchQuery ?? style.name,
                   ...(discoveryLocation ? { sort: 'entfernung' } : {}),
                 },
               } as any)}
@@ -321,7 +349,7 @@ export default function ClientHome() {
                 </View>
               ) : (
                 <View style={[styles.styleImagePlaceholder, { backgroundColor: style.colorHex }]}>
-                  <Text style={{ fontSize: 36 }}>{style.emoji}</Text>
+                  <Text style={{ fontSize: fontSizes.hero + borderRadius.sm }}>{style.emoji}</Text>
                 </View>
               )}
               <Text style={styles.styleName} numberOfLines={2}>
@@ -368,7 +396,7 @@ export default function ClientHome() {
           ))
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: layout.iconButton }} />
       </ScrollView>
 
       <Modal
@@ -439,7 +467,7 @@ const styles = StyleSheet.create({
   container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
   avatarContainer: { marginRight: spacing.md },
-  avatarRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  avatarRing: { width: layout.iconButton + spacing.s, height: layout.iconButton + spacing.s, borderRadius: (layout.iconButton + spacing.s) / 2, borderWidth: spacing.xxxs, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   headerTitles: { flex: 1 },
   greeting: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.xxxs },
   locationPill: {
@@ -458,8 +486,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   bellButton: { position: 'relative', padding: spacing.xs },
-  bellBadge: { position: 'absolute', top: 4, right: 6, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.coral },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: 50, paddingHorizontal: spacing.md, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.border },
+  bellBadge: { position: 'absolute', top: spacing.xxs, right: spacing.sm / 2, width: spacing.s, height: spacing.s, borderRadius: spacing.s / 2, backgroundColor: colors.coral },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: layout.inputHeightMd, paddingHorizontal: spacing.md, marginBottom: spacing.xl, borderWidth: spacing.unit, borderColor: colors.border },
   searchIcon: { marginRight: spacing.md },
   searchText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, marginTop: spacing.md },
@@ -474,8 +502,8 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.lg,
   },
   styleCard: {
-    width: 130,
-    height: 170,
+    width: layout.avatarXl + spacing.s,
+    height: layout.avatarXl + spacing.xl2 + spacing.s,
     borderRadius: borderRadius.md,
     marginRight: spacing.md,
     overflow: 'hidden',
@@ -496,10 +524,10 @@ const styles = StyleSheet.create({
   },
   styleEmojiOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 30,
+    top: spacing.none,
+    left: spacing.none,
+    right: spacing.none,
+    bottom: spacing.l + spacing.s,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -510,7 +538,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colors.overlaySoft,
     position: 'absolute',
-    bottom: 0,
+    bottom: spacing.none,
     width: '100%',
     textAlign: 'center',
   },

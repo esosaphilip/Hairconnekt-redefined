@@ -10,7 +10,23 @@ import { apiFetch } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError, debugLog } from '@/utils/logger';
 
-const PRESET_TAGS = ['Knotless', 'Box Braids', 'Cornrows', 'Twists', 'Locs', 'Fades'];
+const PRESET_TAGS: {
+  value: string;
+  labelKey:
+    | 'portfolioTagKnotless'
+    | 'portfolioTagBoxBraids'
+    | 'portfolioTagCornrows'
+    | 'portfolioTagTwists'
+    | 'portfolioTagLocs'
+    | 'portfolioTagFades';
+}[] = [
+  { value: 'Knotless', labelKey: 'portfolioTagKnotless' },
+  { value: 'Box Braids', labelKey: 'portfolioTagBoxBraids' },
+  { value: 'Cornrows', labelKey: 'portfolioTagCornrows' },
+  { value: 'Twists', labelKey: 'portfolioTagTwists' },
+  { value: 'Locs', labelKey: 'portfolioTagLocs' },
+  { value: 'Fades', labelKey: 'portfolioTagFades' },
+];
 
 export default function PortfolioUploadScreen() {
   const router = useRouter();
@@ -132,11 +148,16 @@ export default function PortfolioUploadScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/(provider)/portfolio')} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.replace('/(provider)/portfolio')}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('portfolioUploadTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage} actionLabel={t('appointmentsRetry')} onAction={handleUpload} />
@@ -151,6 +172,8 @@ export default function PortfolioUploadScreen() {
             style={[styles.imagePickerZone, !imageUri && styles.imagePickerZoneEmpty]}
             onPress={pickImage}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={imageUri ? t('portfolioUploadChange') : t('portfolioUploadPick')}
           >
             {imageUri ? (
               <>
@@ -162,13 +185,13 @@ export default function PortfolioUploadScreen() {
                   onError={() => debugLog('Portfolio preview failed')}
                 />
                 <View style={styles.changeImageOverlay}>
-                  <Feather name="camera" size={24} color={colors.background} />
+                  <Feather name="camera" size={fontSizes.xxl} color={colors.background} />
                   <Text style={styles.changeImageText}>{t('portfolioUploadChange')}</Text>
                 </View>
               </>
             ) : (
               <View style={styles.emptyPickerContent}>
-                <Feather name="camera" size={48} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
+                <Feather name="camera" size={spacing.xxl} color={colors.textTertiary} style={{ marginBottom: spacing.md }} />
                 <Text style={styles.emptyPickerText}>{t('portfolioUploadPick')}</Text>
               </View>
             )}
@@ -196,14 +219,19 @@ export default function PortfolioUploadScreen() {
             <Text style={styles.label}>{t('portfolioUploadStyleTags')}</Text>
             <View style={styles.tagsContainer}>
               {PRESET_TAGS.map((tag) => {
-                const isSelected = styleTags.includes(tag);
+                const isSelected = styleTags.includes(tag.value);
                 return (
                   <TouchableOpacity
-                    key={tag}
+                    key={tag.value}
                     style={[styles.tagChip, isSelected && styles.tagChipSelected]}
-                    onPress={() => toggleTag(tag)}
+                    onPress={() => toggleTag(tag.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(tag.labelKey)}
+                    accessibilityState={{ selected: isSelected }}
                   >
-                    <Text style={[styles.tagChipText, isSelected && styles.tagChipTextSelected]}>{tag}</Text>
+                    <Text style={[styles.tagChipText, isSelected && styles.tagChipTextSelected]}>
+                      {t(tag.labelKey)}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -219,23 +247,30 @@ export default function PortfolioUploadScreen() {
                 onSubmitEditing={addCustomTag}
                 returnKeyType="done"
               />
-              <TouchableOpacity style={styles.addTagButton} onPress={addCustomTag}>
-                <Feather name="plus" size={20} color={colors.primary} />
+              <TouchableOpacity
+                style={styles.addTagButton}
+                onPress={addCustomTag}
+                accessibilityRole="button"
+                accessibilityLabel={t('portfolioUploadAddTag')}
+              >
+                <Feather name="plus" size={fontSizes.xl} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
-            {styleTags.filter((t) => !PRESET_TAGS.includes(t)).length > 0 && (
+            {styleTags.filter((t) => !PRESET_TAGS.some((p) => p.value === t)).length > 0 && (
               <View style={[styles.tagsContainer, { marginTop: spacing.md }]}>
                 {styleTags
-                  .filter((t) => !PRESET_TAGS.includes(t))
+                  .filter((t) => !PRESET_TAGS.some((p) => p.value === t))
                   .map((tag) => (
                     <TouchableOpacity
                       key={tag}
                       style={[styles.tagChip, styles.tagChipSelected]}
                       onPress={() => toggleTag(tag)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('delete')}: ${tag}`}
                     >
                       <Text style={styles.tagChipTextSelected}>
-                        {tag} <Feather name="x" size={12} />
+                        {tag} <Feather name="x" size={fontSizes.xs} />
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -267,7 +302,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
@@ -284,7 +319,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   imagePickerZoneEmpty: {
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.borderStrong,
     borderStyle: 'dashed',
     justifyContent: 'center',
@@ -324,9 +359,9 @@ const styles = StyleSheet.create({
   tagChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.s,
-    borderRadius: 20,
+    borderRadius: borderRadius.pill,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   tagChipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -357,7 +392,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   }
 });

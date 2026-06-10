@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { tokenStorage } from '../../../utils/token-storage';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout, lineHeights } from '../../../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
 
@@ -19,6 +19,38 @@ type ReactNativeFile = Blob & {
   name: string;
 };
 
+const LANGUAGE_LABEL_KEY_MAP = {
+  de: 'languageGerman',
+  en: 'languageEnglish',
+  fr: 'languageFrench',
+  ar: 'languageArabic',
+  tr: 'languageTurkish',
+  ha: 'languageHausa',
+  yo: 'languageYoruba',
+  ig: 'languageIgbo',
+  Deutsch: 'languageGerman',
+  Englisch: 'languageEnglish',
+  Französisch: 'languageFrench',
+  Arabisch: 'languageArabic',
+  Türkisch: 'languageTurkish',
+  Hausa: 'languageHausa',
+  Yoruba: 'languageYoruba',
+  Igbo: 'languageIgbo',
+} as const;
+
+const inferMimeType = (uri: string): string => {
+  const normalized = uri.toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  return 'image/jpeg';
+};
+
+const buildFilename = (fallbackName: string, uri: string): string => {
+  const raw = uri.split('?')[0]?.split('/').pop();
+  return raw && raw.includes('.') ? raw : fallbackName;
+};
+
 export default function RegisterStep5Screen() {
   const router = useRouter();
   const { form, reset } = useRegistration();
@@ -29,24 +61,21 @@ export default function RegisterStep5Screen() {
   const [error, setError] = useState<string | null>(null);
 
   const languageLabel = (value: string): string => {
-    if (value === 'Deutsch') return t('languageGerman');
-    if (value === 'Englisch') return t('languageEnglish');
-    if (value === 'Französisch') return t('languageFrench');
-    if (value === 'Arabisch') return t('languageArabic');
-    if (value === 'Türkisch') return t('languageTurkish');
+    const labelKey = LANGUAGE_LABEL_KEY_MAP[value as keyof typeof LANGUAGE_LABEL_KEY_MAP];
+    if (labelKey) return t(labelKey);
     return value;
   };
 
   const createImageFormData = (
     fieldName: 'avatar' | 'idDocument' | 'portfolio',
     uri: string,
-    filename: string,
+    fallbackFilename: string,
   ): FormData => {
     const formData = new FormData();
     const file: ReactNativeFile = {
       uri,
-      type: 'image/jpeg',
-      name: filename,
+      type: inferMimeType(uri),
+      name: buildFilename(fallbackFilename, uri),
     } as ReactNativeFile;
     formData.append(fieldName, file);
     return formData;
@@ -77,11 +106,14 @@ export default function RegisterStep5Screen() {
       setProgressText(t('providerRegisterUploadingProfilePhoto'));
       if (form.profilePhotoUri) {
         const fd = createImageFormData('avatar', form.profilePhotoUri, 'avatar.jpg');
-        await apiFetch('/users/me/avatar', {
+        const avatarRes = await apiFetch('/users/me/avatar', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         });
+        if (!avatarRes.ok) {
+          throw new Error(`${t('errorUnknown')} (${avatarRes.status})`);
+        }
       }
 
       // STEP 3: Create provider profile record
@@ -114,22 +146,28 @@ export default function RegisterStep5Screen() {
       setProgressText(t('providerRegisterUploadingId'));
       if (form.idDocumentUri) {
         const fd = createImageFormData('idDocument', form.idDocumentUri, 'id-doc.jpg');
-        await apiFetch('/providers/me/id-document', {
+        const idRes = await apiFetch('/providers/me/id-document', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         });
+        if (!idRes.ok) {
+          throw new Error(`${t('errorUnknown')} (${idRes.status})`);
+        }
       }
 
       // STEP 5: Upload portfolio images
       setProgressText(t('providerRegisterUploadingPortfolio'));
       for (const uri of form.portfolioUris) {
         const fd = createImageFormData('portfolio', uri, 'portfolio.jpg');
-        await apiFetch('/providers/me/portfolio', {
+        const portfolioRes = await apiFetch('/providers/me/portfolio', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         });
+        if (!portfolioRes.ok) {
+          throw new Error(`${t('errorUnknown')} (${portfolioRes.status})`);
+        }
       }
 
       setProgressText(t('done'));
@@ -158,11 +196,13 @@ export default function RegisterStep5Screen() {
           style={styles.backButton} 
           onPress={() => !isSubmitting && router.back()}
           disabled={isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
         >
-          <Feather name="arrow-left" size={24} color={isSubmitting ? colors.textTertiary : colors.textPrimary} />
+          <Feather name="arrow-left" size={fontSizes.xxl} color={isSubmitting ? colors.textTertiary : colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '5').replace('{total}', '5')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
       
       <View style={styles.progressBar}>
@@ -180,7 +220,7 @@ export default function RegisterStep5Screen() {
         {error && (
           <View style={styles.errorBanner}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
-              <Feather name="alert-circle" size={20} color={colors.error} style={{ marginTop: spacing.xxxs }} />
+              <Feather name="alert-circle" size={fontSizes.xl} color={colors.error} style={{ marginTop: spacing.xxxs }} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
             <TouchableOpacity onPress={handleSubmit} style={styles.retryBtn}>
@@ -305,7 +345,7 @@ const styles = StyleSheet.create({
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
   progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  progressSegment: { flex: 1, height: spacing.xxs, borderRadius: borderRadius.xs, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
   scrollContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
@@ -315,9 +355,9 @@ const styles = StyleSheet.create({
   errorBanner: { 
     flexDirection: 'column', backgroundColor: colors.errorLightSolid, padding: spacing.md, 
     borderRadius: borderRadius.md, marginBottom: spacing.lg,
-    borderLeftWidth: 4, borderLeftColor: colors.error 
+    borderLeftWidth: spacing.xxs, borderLeftColor: colors.error 
   },
-  errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginLeft: spacing.sm, flexShrink: 1, lineHeight: 20 },
+  errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginLeft: spacing.sm, flexShrink: 1, lineHeight: lineHeights.sm },
   retryBtn: { alignSelf: 'flex-end', marginTop: spacing.sm, backgroundColor: 'rgba(255,255,255,0.8)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.sm },
   retryBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.error },
   
@@ -327,7 +367,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: spacing.unit, borderColor: colors.border,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
@@ -341,14 +381,14 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.md, textTransform: 'uppercase' },
   
   nextStepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.md },
-  goldCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  goldCircle: { width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
   goldCircleText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
   nextStepContent: { flex: 1, paddingTop: spacing.xxs + spacing.xxxs },
   nextStepTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxxs },
   nextStepSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
-  submitButton: { backgroundColor: colors.coral, borderRadius: borderRadius.md, height: 56, justifyContent: 'center', alignItems: 'center' },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
+  submitButton: { backgroundColor: colors.coral, borderRadius: borderRadius.md, height: layout.buttonHeight, justifyContent: 'center', alignItems: 'center' },
   submitButtonDisabled: { opacity: 0.7 },
   submitButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.background },
   

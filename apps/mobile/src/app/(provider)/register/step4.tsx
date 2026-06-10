@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -60,11 +60,16 @@ export default function RegisterStep4Screen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '4').replace('{total}', '5')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
       
       <View style={styles.progressBar}>
@@ -86,12 +91,12 @@ export default function RegisterStep4Screen() {
                 <>
                   <Image source={{ uri: form.profilePhotoUri }} style={styles.profileImage} />
                   <View style={styles.editIconOverlay}>
-                    <Feather name="edit-2" size={16} color={colors.background} />
+                    <Feather name="edit-2" size={fontSizes.md} color={colors.background} />
                   </View>
                 </>
               ) : (
                 <View style={styles.profilePhotoEmpty}>
-                  <Feather name="camera" size={32} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
+                  <Feather name="camera" size={fontSizes.hero} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
                   <Text style={styles.emptyText}>{t('providerRegisterStep4AddPhoto')}</Text>
                 </View>
               )}
@@ -105,7 +110,7 @@ export default function RegisterStep4Screen() {
           <TouchableOpacity style={styles.documentCard} onPress={handlePickIdDocument}>
             {form.idDocumentUri ? (
               <View style={styles.documentFilled}>
-                <Feather name="check-circle" size={24} color={colors.green} style={{ marginRight: spacing.sm }} />
+                <Feather name="check-circle" size={fontSizes.xxl} color={colors.green} style={{ marginRight: spacing.sm }} />
                 <Text style={styles.documentSuccessText}>{t('providerRegisterStep4IdUploaded')}</Text>
                 <TouchableOpacity onPress={handlePickIdDocument} style={styles.changeDocBtn}>
                   <Text style={styles.changeDocText}>{t('providerRegisterStep4Change')}</Text>
@@ -113,7 +118,7 @@ export default function RegisterStep4Screen() {
               </View>
             ) : (
               <View style={styles.documentEmpty}>
-                <Feather name="file-text" size={24} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
+                <Feather name="file-text" size={fontSizes.xxl} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
                 <Text style={styles.documentEmptyTitle}>{t('providerRegisterStep4UploadId')}</Text>
                 <Text style={styles.documentEmptySub}>{t('providerRegisterStep4IdSubtitle')}</Text>
               </View>
@@ -131,14 +136,21 @@ export default function RegisterStep4Screen() {
                 <TouchableOpacity 
                   style={styles.portfolioRemoveBtn} 
                   onPress={() => removePortfolioImage(uri)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('portfolioDeleteTitle')}
                 >
-                  <Feather name="x" size={14} color={colors.background} />
+                  <Feather name="x" size={fontSizes.sm} color={colors.background} />
                 </TouchableOpacity>
               </View>
             ))}
             
-            <TouchableOpacity style={styles.addPortfolioCard} onPress={handlePickPortfolio}>
-              <Feather name="plus" size={24} color={colors.coral} style={{ marginBottom: spacing.xs }} />
+            <TouchableOpacity
+              style={styles.addPortfolioCard}
+              onPress={handlePickPortfolio}
+              accessibilityRole="button"
+              accessibilityLabel={t('providerRegisterStep4AddPhoto')}
+            >
+              <Feather name="plus" size={fontSizes.xxl} color={colors.coral} style={{ marginBottom: spacing.xs }} />
               <Text style={styles.addPortfolioText}>{t('providerRegisterStep4AddPhoto')}</Text>
             </TouchableOpacity>
           </View>
@@ -168,7 +180,7 @@ const styles = StyleSheet.create({
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
   progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  progressSegment: { flex: 1, height: spacing.xxs, borderRadius: borderRadius.xs, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
   scrollContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
@@ -181,7 +193,7 @@ const styles = StyleSheet.create({
   
   profilePhotoContainer: { alignItems: 'center', paddingVertical: spacing.md },
   profilePhotoCircle: {
-    width: 120, height: 120, borderRadius: 60,
+    width: layout.avatarXl, height: layout.avatarXl, borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
@@ -189,18 +201,18 @@ const styles = StyleSheet.create({
   },
   profilePhotoEmpty: { alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textSecondary },
-  profileImage: { width: 120, height: 120, borderRadius: 60 },
+  profileImage: { width: layout.avatarXl, height: layout.avatarXl, borderRadius: borderRadius.full },
   editIconOverlay: {
-    position: 'absolute', bottom: 0, right: 0,
-    backgroundColor: colors.coral, width: 32, height: 32, borderRadius: 16,
+    position: 'absolute', bottom: spacing.none, right: spacing.none,
+    backgroundColor: colors.coral, width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: colors.background,
+    borderWidth: spacing.xxxs, borderColor: colors.background,
   },
   
   documentCard: {
-    width: '100%', height: 100,
+    width: '100%', height: spacing.xxxxxl,
     borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.borderStrong,
+    borderWidth: spacing.unit, borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center',
     borderStyle: 'dashed',
@@ -216,16 +228,16 @@ const styles = StyleSheet.create({
   portfolioGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   portfolioItemContainer: { width: '47%', aspectRatio: 1, position: 'relative', borderRadius: borderRadius.md, overflow: 'hidden' },
   portfolioImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  portfolioRemoveBtn: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  portfolioRemoveBtn: { position: 'absolute', top: spacing.xs, right: spacing.xs, width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.md - spacing.xxs, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   
   addPortfolioCard: {
     width: '47%', aspectRatio: 1,
     borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.coral, borderStyle: 'dashed',
+    borderWidth: spacing.unit, borderColor: colors.coral, borderStyle: 'dashed',
     backgroundColor: colors.coralTint,
     justifyContent: 'center', alignItems: 'center',
   },
   addPortfolioText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.coral },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

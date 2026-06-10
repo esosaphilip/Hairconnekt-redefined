@@ -182,16 +182,24 @@ export default function ProviderDashboardScreen() {
         <View style={styles.headerRight}>
           <Pressable
             onPress={() => router.push('/(shared)/notifications')}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
             style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadNotificationsCount > 0
+                ? `${t('notificationsTitle')} (${unreadNotificationsCount})`
+                : t('notificationsTitle')
+            }
           >
             <Feather name="bell" size={22} color={colors.textPrimary} />
             {unreadNotificationsCount > 0 && <View style={styles.badge} />}
           </Pressable>
           <Pressable
             onPress={() => router.push('/(shared)/settings')}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
             style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('settingsTitle')}
           >
             <Feather name="settings" size={22} color={colors.textPrimary} />
           </Pressable>
@@ -366,7 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   headerLeft: { flex: 1 },
@@ -385,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: spacing.md,
     borderRadius: borderRadius.md,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xxs,
     marginBottom: spacing.xl,
     ...shadows.card,
   },
@@ -434,7 +442,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xxs,
     borderLeftColor: colors.green,
     ...shadows.card,
   },
@@ -449,7 +457,7 @@ const styles = StyleSheet.create({
   actionBtnContainer: { flex: 1, height: layout.iconButton }, // Using container to restrict button height if needed
 
   emptySlotCard: {
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.borderStrong,
     borderStyle: 'dashed',
     borderRadius: borderRadius.md,

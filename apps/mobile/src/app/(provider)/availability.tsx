@@ -164,11 +164,16 @@ export default function AvailabilityScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('availabilityTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <GermanErrorBanner
@@ -208,7 +213,7 @@ export default function AvailabilityScreen() {
                       <Text style={styles.timeLabel}>{t('availabilityFrom')}</Text>
                       <View style={styles.timeValueBox}>
                         <Text style={styles.timeValue}>{dayData.openTime}</Text>
-                        <Feather name="clock" size={16} color={colors.textSecondary} />
+                        <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                       </View>
                     </TouchableOpacity>
 
@@ -221,7 +226,7 @@ export default function AvailabilityScreen() {
                       <Text style={styles.timeLabel}>{t('availabilityTo')}</Text>
                       <View style={styles.timeValueBox}>
                         <Text style={styles.timeValue}>{dayData.closeTime}</Text>
-                        <Feather name="clock" size={16} color={colors.textSecondary} />
+                        <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm + spacing.xxs,
-    borderRadius: 24,
+    borderRadius: borderRadius.lg,
   },
   toastText: {
     fontFamily: fonts.bodyBold,
@@ -313,7 +318,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     height: layout.inputHeight - spacing.xxs,
     borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   timeValue: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
@@ -365,7 +370,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.lg,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   bufferChipSelected: {
@@ -379,7 +384,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   }
 });

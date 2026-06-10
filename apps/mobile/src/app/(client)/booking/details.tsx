@@ -230,7 +230,12 @@ export default function BookingDetails() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
   },
   cardProviderTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xs },
   cardServicesText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.sm },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.md },
   summaryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.s },
   summaryText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
@@ -382,7 +387,7 @@ const styles = StyleSheet.create({
   inputLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.sm },
   textArea: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
@@ -395,7 +400,7 @@ const styles = StyleSheet.create({
   
   paymentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg },
+  footer: { padding: spacing.lg, backgroundColor: colors.surface, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg },
   primaryButton: {
     backgroundColor: colors.coral,
     height: layout.buttonHeight,

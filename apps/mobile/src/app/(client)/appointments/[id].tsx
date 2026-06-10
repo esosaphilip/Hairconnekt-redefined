@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { tokenStorage } from '../../../utils/token-storage';
@@ -24,11 +24,7 @@ export default function AppointmentDetails() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    fetchBookingDetails();
-  }, [id]);
-
-  const fetchBookingDetails = async () => {
+  const fetchBookingDetails = useCallback(async () => {
     if (!id) return;
     try {
       setIsLoading(true);
@@ -44,7 +40,13 @@ export default function AppointmentDetails() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, lang]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookingDetails();
+    }, [fetchBookingDetails]),
+  );
 
   const formatDate = (d: string) => {
     try {
@@ -72,7 +74,7 @@ export default function AppointmentDetails() {
       <View style={styles.timelineRow}>
         <View style={styles.timelineGraphic}>
           <View style={[styles.timelineCircle, reached ? styles.timelineCircleReached : styles.timelineCirclePending]}>
-            <Feather name="check" size={14} color={reached ? colors.surface : colors.textTertiary} />
+            <Feather name="check" size={fontSizes.sm} color={reached ? colors.surface : colors.textTertiary} />
           </View>
           {!isLast && <View style={[styles.timelineLine, reached ? styles.timelineLineReached : styles.timelineLinePending]} />}
         </View>
@@ -93,11 +95,16 @@ export default function AppointmentDetails() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
       </SafeAreaView>
@@ -108,11 +115,16 @@ export default function AppointmentDetails() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <GermanErrorBanner visible={true} message={errorMessage || t('appointmentsNotFound')} />
         <TouchableOpacity style={styles.retryButton} onPress={fetchBookingDetails}>
@@ -160,11 +172,16 @@ export default function AppointmentDetails() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>{t('appointmentsDetail')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <GermanErrorBanner visible={errorVisible} message={errorMessage} />
@@ -180,14 +197,14 @@ export default function AppointmentDetails() {
               <Image source={{ uri: avatarUri }} style={styles.providerAvatar} />
             ) : (
               <View style={[styles.providerAvatar, styles.providerAvatarFallback]}>
-                <Feather name="user" size={28} color={colors.textTertiary} />
+                <Feather name="user" size={fontSizes.xxxl} color={colors.textTertiary} />
               </View>
             )}
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>{providerName}</Text>
               {!!city && (
                 <View style={styles.locationRow}>
-                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                  <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
                   <Text style={styles.locationText}>{city}</Text>
                 </View>
               )}
@@ -199,7 +216,7 @@ export default function AppointmentDetails() {
               style={styles.providerBtn} 
               onPress={() => openChat(provider.userId || provider.user?.id)}
             >
-              <Feather name="message-circle" size={18} color={colors.primary} />
+              <Feather name="message-circle" size={fontSizes.lg} color={colors.primary} />
               <Text style={styles.providerBtnText}>{t('profileMessage')}</Text>
             </TouchableOpacity>
             <View style={styles.btnDivider} />
@@ -219,7 +236,7 @@ export default function AppointmentDetails() {
                 }
               }}
             >
-              <Feather name="phone" size={18} color={colors.primary} />
+              <Feather name="phone" size={fontSizes.lg} color={colors.primary} />
               <Text style={styles.providerBtnText}>{t('appointmentsCall')}</Text>
             </TouchableOpacity>
           </View>
@@ -237,10 +254,10 @@ export default function AppointmentDetails() {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>{t('appointmentsDate')}</Text>
             <View style={styles.dateValueRow}>
-              <Feather name="calendar" size={14} color={colors.textPrimary} style={styles.mr} />
+              <Feather name="calendar" size={fontSizes.sm} color={colors.textPrimary} style={styles.mr} />
               <Text style={styles.infoValue}>{formatDate(booking.scheduledDate)}</Text>
               <Text style={styles.infoValueDecorator}> • </Text>
-              <Feather name="clock" size={14} color={colors.textPrimary} style={styles.mr} />
+              <Feather name="clock" size={fontSizes.sm} color={colors.textPrimary} style={styles.mr} />
               <Text style={styles.infoValue}>{booking.scheduledTime}</Text>
             </View>
           </View>
@@ -333,7 +350,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceCard,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     marginBottom: spacing.xl,
   },
@@ -378,7 +395,7 @@ const styles = StyleSheet.create({
   dateValueRow: { flexDirection: 'row', alignItems: 'center' },
   infoValueDecorator: { color: colors.textTertiary, marginHorizontal: spacing.xxs },
   
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm, marginBottom: spacing.md },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.sm, marginBottom: spacing.md },
   
   totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
   totalValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
@@ -388,13 +405,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xl + spacing.l,
     backgroundColor: colors.surface,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   },
   outlineBtn: {
     height: layout.buttonHeight,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

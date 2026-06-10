@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
@@ -135,7 +135,7 @@ export default function BookingConfirmation() {
         {/* Success Header */}
         <View style={styles.header}>
           <View style={styles.successCircle}>
-            <Feather name="check" size={40} color={colors.surface} />
+            <Feather name="check" size={layout.iconButton} color={colors.surface} />
           </View>
           <Text style={styles.successTitle}>{t('bookingConfirmed')}</Text>
           <Text style={styles.bookingNumberText}>#{bookingNumber}</Text>
@@ -148,7 +148,7 @@ export default function BookingConfirmation() {
             <View>
               <Text style={styles.providerNameText}>{providerName}</Text>
               <View style={styles.locationRow}>
-                <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
                 <Text style={styles.locationText}>{city}</Text>
               </View>
             </View>
@@ -250,15 +250,15 @@ const styles = StyleSheet.create({
   
   header: { alignItems: 'center', marginBottom: spacing.xl },
   successCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: spacing.xxxxl,
+    height: spacing.xxxxl,
+    borderRadius: spacing.xl2,
     backgroundColor: colors.green,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  successTitle: { fontFamily: fonts.heading, fontSize: 28, color: colors.primary, textAlign: 'center', marginBottom: spacing.xs },
+  successTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xxxl, color: colors.primary, textAlign: 'center', marginBottom: spacing.xs },
   bookingNumberText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center' },
   
   card: {
@@ -270,12 +270,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   providerInfoRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.gold, marginRight: spacing.md },
+  avatar: { width: spacing.xxl, height: spacing.xxl, borderRadius: borderRadius.lg, borderWidth: spacing.xxxs, borderColor: colors.gold, marginRight: spacing.md },
   providerNameText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxxs },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
   locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.md },
   
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md },
   infoLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textSecondary, flex: 1 },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   nextStepsTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.lg },
   
   stepItem: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  stepCircle: { width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
   stepNumber: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
   stepTexts: { flex: 1 },
   stepMainText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
@@ -298,22 +298,22 @@ const styles = StyleSheet.create({
   
   footer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: spacing.none,
+    left: spacing.none,
+    right: spacing.none,
     backgroundColor: colors.surface,
     padding: spacing.lg,
     paddingBottom: spacing.xl,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
     flexDirection: 'row',
     gap: spacing.md,
   },
   outlineButton: {
     flex: 1,
-    height: 56,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.md,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   outlineButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   primaryButton: {
     flex: 1,
-    height: 56,
+    height: layout.buttonHeight,
     borderRadius: borderRadius.md,
     backgroundColor: colors.coral,
     justifyContent: 'center',

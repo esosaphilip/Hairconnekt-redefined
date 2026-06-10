@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardTypeOptions, TextInputProps } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing } from '../theme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   label: string;
@@ -45,6 +46,7 @@ export const FormInput = React.forwardRef<TextInput, Props>(function FormInput(
   },
   ref
 ) {
+  const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(!secureText);
 
   return (
@@ -72,7 +74,12 @@ export const FormInput = React.forwardRef<TextInput, Props>(function FormInput(
           inputMode={inputMode}
         />
         {secureText && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={styles.eyeIcon}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? t('hidePassword') : t('showPassword')}
+          >
             <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}

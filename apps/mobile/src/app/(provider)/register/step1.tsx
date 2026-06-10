@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Tex
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../theme';
+import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -81,11 +81,16 @@ export default function RegisterStep1Screen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '1').replace('{total}', '5')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: fontSizes.xxl }} />
       </View>
       
       <View style={styles.progressBar}>
@@ -188,8 +193,13 @@ export default function RegisterStep1Screen() {
                 blurOnSubmit={false}
                 onSubmitEditing={() => confirmPasswordRef.current?.focus()}
               />
-              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
-                <Feather name={showPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? t('hidePassword') : t('showPassword')}
+              >
+                <Feather name={showPassword ? "eye" : "eye-off"} size={fontSizes.xl} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -209,8 +219,13 @@ export default function RegisterStep1Screen() {
                 returnKeyType="done"
                 onSubmitEditing={handleNext}
               />
-              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={20} color={colors.textSecondary} />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirmPassword ? t('hidePassword') : t('showPassword')}
+              >
+                <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={fontSizes.xl} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
@@ -251,7 +266,7 @@ const styles = StyleSheet.create({
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
   progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  progressSegment: { flex: 1, height: spacing.xxs, borderRadius: borderRadius.xs, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
   scrollContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
@@ -262,7 +277,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
     fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong,
+    backgroundColor: colors.surface, borderWidth: spacing.unit, borderColor: colors.borderStrong,
     borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md,
   },
   inputError: { borderColor: colors.error },
@@ -270,11 +285,11 @@ const styles = StyleSheet.create({
   
   passwordContainer: { position: 'relative', justifyContent: 'center' },
   passwordInput: { paddingRight: spacing.xxl },
-  eyeIcon: { position: 'absolute', right: 0, paddingHorizontal: spacing.md, height: '100%', justifyContent: 'center' },
+  eyeIcon: { position: 'absolute', right: spacing.none, paddingHorizontal: spacing.md, height: '100%', justifyContent: 'center' },
   
   termsContainer: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.xs, paddingRight: spacing.xl },
-  termsText: { flex: 1, marginLeft: spacing.md, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
+  termsText: { flex: 1, marginLeft: spacing.md, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: lineHeights.sm },
   linkText: { color: colors.teal, textDecorationLine: 'underline' },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

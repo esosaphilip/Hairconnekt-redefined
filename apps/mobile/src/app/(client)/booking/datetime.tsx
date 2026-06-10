@@ -226,8 +226,13 @@ export default function ClientBookingDateTime() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bookingSelectDate')}</Text>
         <View style={{ width: layout.iconButton }} />
@@ -247,14 +252,24 @@ export default function ClientBookingDateTime() {
         {/* Native Calendar Card */}
         <View style={styles.calendarCard}>
           <View style={styles.monthHeader}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-              <Feather name="chevron-left" size={20} color={colors.textPrimary} />
+            <TouchableOpacity
+              onPress={handlePrevMonth}
+              style={styles.monthButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('calendarPreviousMonth')}
+            >
+              <Feather name="chevron-left" size={fontSizes.xl} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.monthTitle}>
               {currentMonth.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' })}
             </Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-              <Feather name="chevron-right" size={20} color={colors.textPrimary} />
+            <TouchableOpacity
+              onPress={handleNextMonth}
+              style={styles.monthButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('calendarNextMonth')}
+            >
+              <Feather name="chevron-right" size={fontSizes.xl} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
           
@@ -325,7 +340,7 @@ export default function ClientBookingDateTime() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
   
@@ -341,7 +356,7 @@ const styles = StyleSheet.create({
   monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   monthTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   monthButton: { padding: spacing.xs },
-  weekDaysRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: spacing.sm, marginBottom: spacing.sm },
+  weekDaysRow: { flexDirection: 'row', borderBottomWidth: spacing.unit, borderBottomColor: colors.border, paddingBottom: spacing.sm, marginBottom: spacing.sm },
   weekDayText: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary },
   calendarRow: { flexDirection: 'row', marginBottom: spacing.xs },
   calendarDay: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
@@ -353,13 +368,13 @@ const styles = StyleSheet.create({
   slotsSection: { marginTop: spacing.sm },
   slotsHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: spacing.unit, borderColor: colors.border, alignItems: 'center' },
   slotButtonActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
   slotText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   slotTextActive: { color: colors.primary },
   emptySlotsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, fontStyle: 'italic' },
   
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs, ...shadows.card },
+  footer: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs, ...shadows.card },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   footerDateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   footerTimeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },

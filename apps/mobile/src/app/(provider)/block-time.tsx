@@ -142,11 +142,16 @@ export default function BlockTimeScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('blockTimeTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <GermanErrorBanner visible={errorVisible} message={errorMessage} />
@@ -189,7 +194,7 @@ export default function BlockTimeScreen() {
                 <Text style={[styles.dateText, !startDate && styles.placeholderText]}>
                   {formatDate(startDate)}
                 </Text>
-                <Feather name="calendar" size={20} color={colors.textSecondary} />
+                <Feather name="calendar" size={fontSizes.xl} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -202,7 +207,7 @@ export default function BlockTimeScreen() {
                 <Text style={[styles.dateText, !endDate && styles.placeholderText]}>
                   {formatDate(endDate)}
                 </Text>
-                <Feather name="calendar" size={20} color={colors.textSecondary} />
+                <Feather name="calendar" size={fontSizes.xl} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -233,7 +238,7 @@ export default function BlockTimeScreen() {
                   <Text style={[styles.dateText, !startTime && styles.placeholderText]}>
                     {formatTime(startTime)}
                   </Text>
-                  <Feather name="clock" size={20} color={colors.textSecondary} />
+                  <Feather name="clock" size={fontSizes.xl} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -246,7 +251,7 @@ export default function BlockTimeScreen() {
                   <Text style={[styles.dateText, !endTime && styles.placeholderText]}>
                     {formatTime(endTime)}
                   </Text>
-                  <Feather name="clock" size={20} color={colors.textSecondary} />
+                  <Feather name="clock" size={fontSizes.xl} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -308,7 +313,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
@@ -332,7 +337,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '48%',
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: 'transparent',
   },
   reasonCardSelected: {
@@ -378,7 +383,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   }
 });

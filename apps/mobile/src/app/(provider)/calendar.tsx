@@ -30,12 +30,17 @@ interface BlockItem {
   reason: string;
 }
 
-const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-
 export default function ProviderCalendarScreen() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const days = lang === 'en'
+    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const addBlockLabel = t('calendarAddBlockedTime');
+  const previousMonthLabel = t('calendarPreviousMonth');
+  const nextMonthLabel = t('calendarNextMonth');
+  const removeBlockLabel = t('calendarDeleteBlockedTime');
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -175,6 +180,8 @@ export default function ProviderCalendarScreen() {
               key={`cell-${cellKey++}`} 
               style={styles.dayCell}
               onPress={() => setSelectedDate(date)}
+              accessibilityRole="button"
+              accessibilityLabel={date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
             >
               <View style={[
                 styles.dayCircle,
@@ -223,13 +230,13 @@ export default function ProviderCalendarScreen() {
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('calendarTitle')}</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(provider)/block-time')}>
+        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(provider)/block-time')} accessibilityRole="button" accessibilityLabel={addBlockLabel}>
           <Feather name="plus" size={24} color={colors.coral} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.monthHeader}>
-        <TouchableOpacity onPress={handlePrevMonth} style={styles.chevronBtn}>
+        <TouchableOpacity onPress={handlePrevMonth} style={styles.chevronBtn} accessibilityRole="button" accessibilityLabel={previousMonthLabel}>
           <Feather name="chevron-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.monthText}>
@@ -239,14 +246,14 @@ export default function ProviderCalendarScreen() {
           <TouchableOpacity onPress={handleJumpToToday} style={styles.todayPill}>
             <Text style={styles.todayPillText}>{t('calendarToday')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleNextMonth} style={styles.chevronBtn}>
+          <TouchableOpacity onPress={handleNextMonth} style={styles.chevronBtn} accessibilityRole="button" accessibilityLabel={nextMonthLabel}>
             <Feather name="chevron-right" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.daysHeaderRow}>
-        {DAYS.map((d, i) => <Text key={i} style={styles.dayHeaderText}>{d}</Text>)}
+        {days.map((d, i) => <Text key={i} style={styles.dayHeaderText}>{d}</Text>)}
       </View>
 
       <View style={styles.calendarGrid}>
@@ -280,9 +287,11 @@ export default function ProviderCalendarScreen() {
                   <TouchableOpacity
                     onPress={() => handleDeleteBlock(block.id, block.reason || '')}
                     style={styles.blockDeleteButton}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
+                    accessibilityRole="button"
+                    accessibilityLabel={removeBlockLabel}
                   >
-                    <Feather name="trash-2" size={16} color={colors.warningIcon} />
+                    <Feather name="trash-2" size={fontSizes.md} color={colors.warningIcon} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -336,8 +345,10 @@ export default function ProviderCalendarScreen() {
         style={styles.fab}
         onPress={() => router.push('/(provider)/block-time')}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={addBlockLabel}
       >
-        <Feather name="plus" size={28} color={colors.background} />
+        <Feather name="plus" size={fontSizes.xxxl} color={colors.background} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -363,52 +374,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
   },
-  monthText: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.primary },
+  monthText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xl, color: colors.primary },
   chevronBtn: { padding: spacing.xs },
   monthRightRow: { flexDirection: 'row', alignItems: 'center' },
   todayPill: {
     backgroundColor: colors.tealLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xxs + spacing.xxxs,
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     marginRight: spacing.sm,
   },
-  todayPillText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.teal },
+  todayPillText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.teal },
 
   daysHeaderRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xs,
   },
-  dayHeaderText: { flex: 1, textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textTertiary },
+  dayHeaderText: { flex: 1, textAlign: 'center', fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
 
-  calendarGrid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  calendarLoader: { height: 200, justifyContent: 'center', alignItems: 'center' },
+  calendarGrid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
+  calendarLoader: { height: layout.heroHeight - spacing.l, justifyContent: 'center', alignItems: 'center' },
   weekRow: { flexDirection: 'row', marginBottom: spacing.xs },
-  dayCell: { flex: 1, alignItems: 'center', height: 44 },
-  dayCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  dayCell: { flex: 1, alignItems: 'center', height: layout.inputHeight - spacing.xxs },
+  dayCircle: { width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center' },
   todayCircle: { backgroundColor: colors.coral },
   selectedCircle: { backgroundColor: colors.primary },
-  dayText: { fontFamily: fonts.body, fontSize: 14, color: colors.textPrimary },
+  dayText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textPrimary },
   pastDayText: { color: colors.textTertiary },
   activeDayText: { color: colors.background, fontFamily: fonts.bodyBold },
   
-  dotsRow: { flexDirection: 'row', marginTop: spacing.xxxs, height: 4 },
-  dot: { width: 4, height: 4, borderRadius: 2, marginHorizontal: spacing.unit },
+  dotsRow: { flexDirection: 'row', marginTop: spacing.xxxs, height: spacing.xxs },
+  dot: { width: spacing.xxs, height: spacing.xxs, borderRadius: borderRadius.xs, marginHorizontal: spacing.unit },
 
   agendaContainer: { flex: 1, backgroundColor: colors.surfaceCard },
   agendaContent: { padding: spacing.lg, paddingBottom: spacing.xxxxl },
-  agendaDateHeading: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.primary, marginBottom: spacing.xxs },
-  earningsText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.teal, marginBottom: spacing.lg },
+  agendaDateHeading: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary, marginBottom: spacing.xxs },
+  earningsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.teal, marginBottom: spacing.lg },
 
   emptyText: { textAlign: 'center', fontFamily: fonts.body, color: colors.textSecondary, marginTop: spacing.xl },
 
   blockCard: {
     backgroundColor: colors.orangeLight,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.orange,
     borderStyle: 'dashed',
-    borderRadius: 16,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
   },

@@ -140,7 +140,12 @@ export default function ProviderServiceEditScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isNew ? t('servicesAdd') : t('servicesEdit')}</Text>
@@ -301,28 +306,28 @@ export default function ProviderServiceEditScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   keyboardContainer: { flex: 1 },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backBtn: { padding: spacing.xs },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
   scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs, marginTop: spacing.md },
   required: { color: colors.error },
-  inputContainer: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, backgroundColor: colors.surfaceCard },
-  input: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md, padding: spacing.md, backgroundColor: colors.surfaceCard, fontFamily: fonts.body, fontSize: fontSizes.md },
+  inputContainer: { borderWidth: spacing.unit, borderColor: colors.borderStrong, borderRadius: borderRadius.md, backgroundColor: colors.surfaceCard },
+  input: { borderWidth: spacing.unit, borderColor: colors.borderStrong, borderRadius: borderRadius.md, padding: spacing.md, backgroundColor: colors.surfaceCard, fontFamily: fonts.body, fontSize: fontSizes.md },
   inputError: { borderColor: colors.error, backgroundColor: colors.errorLightSolid },
   errorText: { color: colors.error, fontFamily: fonts.body, fontSize: fontSizes.xs, marginTop: spacing.xxs },
   textArea: { height: layout.textAreaHeight, textAlignVertical: 'top' },
   helperText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, marginTop: spacing.xxs },
   segmentedControl: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: borderRadius.md, padding: spacing.xxs },
-  segment: { flex: 1, paddingVertical: spacing.s, alignItems: 'center', borderRadius: borderRadius.md - 2 },
-  segmentActive: { backgroundColor: colors.background, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, elevation: 2 },
+  segment: { flex: 1, paddingVertical: spacing.s, alignItems: 'center', borderRadius: borderRadius.md - spacing.xxxs },
+  segmentActive: { backgroundColor: colors.background, shadowColor: colors.textPrimary, shadowOffset: { width: spacing.none, height: spacing.unit }, shadowOpacity: 0.1, elevation: 2 },
   segmentText: { fontFamily: fonts.bodyMedium, color: colors.textSecondary },
   segmentTextActive: { color: colors.primary },
-  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border },
   toggleLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxs },
   toggleHelper: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
-  footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.pill, backgroundColor: colors.surfaceAlt, marginRight: spacing.xs, borderWidth: 1, borderColor: 'transparent' },
+  footer: { padding: spacing.lg, borderTopWidth: spacing.unit, borderTopColor: colors.border, backgroundColor: colors.background },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.pill, backgroundColor: colors.surfaceAlt, marginRight: spacing.xs, borderWidth: spacing.unit, borderColor: 'transparent' },
   chipActive: { backgroundColor: colors.coralLight, borderColor: colors.coral },
   chipText: { fontFamily: fonts.bodyMedium, color: colors.textSecondary },
   chipTextActive: { color: colors.coral },

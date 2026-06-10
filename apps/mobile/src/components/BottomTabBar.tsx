@@ -35,6 +35,9 @@ export function BottomTabBar({ activeTab, unreadMessages = 0 }: Props) {
             key={tab.key} 
             style={styles.tab} 
             onPress={() => router.push(tab.route as any)}
+            accessibilityRole="button"
+            accessibilityLabel={tab.title}
+            accessibilityState={{ selected: isActive }}
           >
             <View style={styles.iconContainer}>
               <Feather name={tab.icon as any} size={24} color={color} />

@@ -166,8 +166,13 @@ export default function ReviewsScreen() {
   const renderHeader = () => (
     <>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('providerReviewsTitle')}</Text>
         <View style={{ width: layout.iconButton }} />
@@ -182,7 +187,7 @@ export default function ReviewsScreen() {
                 <FontAwesome 
                   key={star} 
                   name={star <= Math.round(summary.avgRating) ? 'star' : 'star-o'} 
-                  size={16} 
+                  size={fontSizes.md} 
                   color={colors.gold} 
                 />
               ))}
@@ -239,7 +244,7 @@ export default function ReviewsScreen() {
             <Image source={{ uri: item.client.avatarUrl }} style={styles.clientAvatar} />
           ) : (
             <View style={styles.clientAvatarPlaceholder}>
-              <Feather name="user" size={20} color={colors.textSecondary} />
+              <Feather name="user" size={fontSizes.xl} color={colors.textSecondary} />
             </View>
           )}
           <Text style={styles.clientName}>{item.client.name}</Text>
@@ -282,7 +287,7 @@ export default function ReviewsScreen() {
           : `${activeFilter} ★`;
     return (
       <View style={styles.emptyState}>
-        <Feather name="star" size={48} color={colors.borderStrong} />
+        <Feather name="star" size={spacing.xxl} color={colors.borderStrong} />
         <Text style={styles.emptyTitle}>{t('providerReviewsEmpty')}</Text>
         {activeFilter !== 'all' ? (
           <Text style={styles.emptySub}>
@@ -387,7 +392,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     ...shadows.card,
   },
-  overviewLeft: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: colors.border, paddingRight: spacing.md },
+  overviewLeft: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRightWidth: spacing.unit, borderRightColor: colors.border, paddingRight: spacing.md },
   avgRatingText: { fontFamily: fonts.heading, fontSize: spacing.xxl, color: colors.primary, lineHeight: layout.buttonHeight },
   starsRow: { flexDirection: 'row', gap: spacing.xxs, marginBottom: spacing.xxs },
   totalReviewsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
@@ -433,7 +438,7 @@ const styles = StyleSheet.create({
   responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: spacing.l, },
 
   replyButton: {
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.primary,
     borderRadius: borderRadius.sm,
     height: layout.buttonHeightSm,
@@ -468,7 +473,7 @@ const styles = StyleSheet.create({
   },
   charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xxs, marginBottom: spacing.lg },
   sheetActions: { flexDirection: 'row', alignItems: 'center' },
-  cancelBtn: { flex: 1, height: layout.buttonHeight, borderRadius: spacing.sm, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: { flex: 1, height: layout.buttonHeight, borderRadius: spacing.sm, borderWidth: spacing.unit, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
   cancelBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
   submitBtnWrapper: { flex: 1, marginLeft: spacing.md },
 });

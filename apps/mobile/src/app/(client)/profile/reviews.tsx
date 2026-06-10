@@ -58,7 +58,7 @@ export default function ClientReviewsScreen() {
     return (
       <View style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map(star => (
-          <Feather key={star} name="star" size={14} color={star <= rating ? colors.gold : colors.starEmpty} style={{ marginRight: spacing.xxxs }} />
+          <Feather key={star} name="star" size={fontSizes.sm} color={star <= rating ? colors.gold : colors.starEmpty} style={{ marginRight: spacing.xxxs }} />
         ))}
       </View>
     );
@@ -77,7 +77,7 @@ export default function ClientReviewsScreen() {
             <Image source={{ uri: item.provider.avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Feather name="briefcase" size={20} color={colors.textSecondary} />
+              <Feather name="briefcase" size={fontSizes.xl} color={colors.textSecondary} />
             </View>
           )}
           <Text style={styles.providerName}>{item.provider?.businessName || t('myReviewsUnknown')}</Text>
@@ -116,7 +116,7 @@ export default function ClientReviewsScreen() {
     );
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="star" size={64} color={colors.iconDisabled} style={{ marginBottom: spacing.md }} />
+        <Feather name="star" size={spacing.xxxl} color={colors.iconDisabled} style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>{t('myReviewsEmpty')}</Text>
         <Text style={styles.emptySub}>{t('myReviewsEmptySub')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(client)/appointments/' as any)}>
@@ -129,8 +129,13 @@ export default function ClientReviewsScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('myReviewsTitle')}</Text>
         <View style={{ width: layout.iconButton }} />
@@ -163,7 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
@@ -177,7 +182,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadows.card,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   cardHeader: { marginBottom: spacing.sm },
@@ -210,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
     padding: spacing.sm,
     marginTop: spacing.md,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.coral
   },
   responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.textPrimary, marginBottom: spacing.xxs },

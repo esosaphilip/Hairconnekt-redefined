@@ -243,11 +243,16 @@ export default function ClientSearch() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel={t('back')}
+            >
+              <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
             </TouchableOpacity>
             <View style={styles.searchInputContainer}>
-              <Feather name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <Feather name="search" size={fontSizes.xl} color={colors.textSecondary} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder={`${t('search')}...`}
@@ -258,16 +263,20 @@ export default function ClientSearch() {
                 returnKeyType="search"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => {
-                  Keyboard.dismiss();
-                  setSearchQuery('');
-                  setPage(1);
-                  setHasMore(true);
-                  setTotalResults(0);
-                  setProviders([]);
-                  fetchProviders(1, true, '');
-                }}>
-                  <Feather name="x" size={20} color={colors.textSecondary} />
+                <TouchableOpacity
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setSearchQuery('');
+                    setPage(1);
+                    setHasMore(true);
+                    setTotalResults(0);
+                    setProviders([]);
+                    fetchProviders(1, true, '');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('searchClear')}
+                >
+                  <Feather name="x" size={fontSizes.xl} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -286,7 +295,7 @@ export default function ClientSearch() {
                 onPress={() => setShowSortDropdown(!showSortDropdown)}
               >
                 <Text style={styles.sortButtonText}>{sortMap[sortOption]}</Text>
-                <Feather name="chevron-down" size={16} color={colors.textPrimary} />
+                <Feather name="chevron-down" size={fontSizes.md} color={colors.textPrimary} />
               </TouchableOpacity>
 
               {showSortDropdown && (
@@ -352,12 +361,12 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   backButton: { marginRight: spacing.md },
-  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border },
+  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md, borderWidth: spacing.unit, borderColor: colors.border },
   searchIcon: { marginRight: spacing.sm },
   searchInput: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, height: '100%' },
   chipsScroll: { maxHeight: layout.inputHeight, flexGrow: 0, marginTop: spacing.xs, marginBottom: spacing.md },
   chipsContent: { paddingHorizontal: spacing.lg, alignItems: 'center' },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginRight: spacing.sm },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: spacing.unit, borderColor: colors.border, backgroundColor: colors.surface, marginRight: spacing.sm },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   chipTextActive: { color: colors.surface },
@@ -366,7 +375,7 @@ const styles = StyleSheet.create({
   sortWrapper: { position: 'relative', zIndex: 10 },
   sortButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, paddingVertical: spacing.sm },
   sortButtonText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
-  dropdownModal: { position: 'absolute', top: layout.buttonHeightSm + spacing.xxs, right: 0, backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.sm, ...shadows.card, elevation: 5, minWidth: spacing.xxl * 3 },
+  dropdownModal: { position: 'absolute', top: layout.buttonHeightSm + spacing.xxs, right: spacing.none, backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.sm, ...shadows.card, elevation: 5, minWidth: spacing.xxl * 3 },
   dropdownItem: { paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
   dropdownItemText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   dropdownItemActive: { fontFamily: fonts.bodyBold, color: colors.primary },

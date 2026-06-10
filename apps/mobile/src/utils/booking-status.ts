@@ -8,6 +8,7 @@ const STATUS_LABELS: Record<'de' | 'en', Record<string, string>> = {
     in_progress: 'In Bearbeitung',
     completed: 'Abgeschlossen',
     cancelled: 'Storniert',
+    no_show: 'Nicht erschienen',
   },
   en: {
     pending: 'Pending',
@@ -15,6 +16,7 @@ const STATUS_LABELS: Record<'de' | 'en', Record<string, string>> = {
     in_progress: 'In Progress',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    no_show: 'No Show',
   },
 };
 

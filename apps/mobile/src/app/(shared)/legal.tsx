@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicat
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
-import { colors, fonts, fontSizes, spacing } from '@/theme';
+import { colors, fonts, fontSizes, spacing, layout } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getSafeLegalUrl } from '@/utils/safe-navigation';
 
@@ -22,16 +22,22 @@ export default function LegalScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const headerTitle = title || t('settingsPrivacy');
+  const openInBrowserLabel = t('legalOpenInBrowser').replace('{title}', headerTitle);
 
   if (!url) {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{headerTitle}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
 
         <View style={styles.center}>
@@ -45,12 +51,23 @@ export default function LegalScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{headerTitle}</Text>
-        <TouchableOpacity onPress={() => Linking.openURL(url)} style={styles.actionButton} activeOpacity={0.7}>
-          <Feather name="external-link" size={20} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => Linking.openURL(url)}
+          style={styles.actionButton}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={openInBrowserLabel}
+        >
+          <Feather name="external-link" size={fontSizes.xl} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -94,7 +111,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
   },
@@ -103,7 +120,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: spacing.xs,
-    width: 40,
+    width: layout.iconButton,
     alignItems: 'flex-end',
   },
   headerTitle: {

@@ -201,18 +201,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   rowUnread: {
-    borderLeftWidth: 3,
+    borderLeftWidth: spacing.xxs - spacing.unit,
     borderLeftColor: colors.coral,
   },
 
   avatarContainer: { position: 'relative', marginRight: spacing.md },
   avatar: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.full },
   avatarPlaceholder: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.full, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
-  avatarGoldRing: { borderWidth: 2, borderColor: colors.gold },
+  avatarGoldRing: { borderWidth: spacing.xxxs, borderColor: colors.gold },
   onlineDot: {
     position: 'absolute',
     bottom: spacing.xxs,
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     height: spacing.sm,
     borderRadius: borderRadius.full,
     backgroundColor: colors.green,
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.background,
   },
 

@@ -55,6 +55,14 @@ It includes:
 - [ ] Only request permissions that are required by shipping features.
 - [ ] Remove legacy storage permissions unless you truly need direct filesystem access.
 
+### App Links (Android)
+- [ ] If `autoVerify: true` is enabled, `https://hairconnekt.de/.well-known/assetlinks.json` exists and validates successfully for the production package (`de.hairconnekt.app`) and the correct signing certificate fingerprint (Play App Signing).
+- [ ] If links should also open from `https://www.hairconnekt.de/*`, ensure `assetlinks.json` exists for `www` as well (or serve the same file on both hosts).
+- [ ] Confirm the domain(s) you want handled match the app config `android.intentFilters`.
+
+### Play ADI registration (if required by your Play Console setup)
+- [ ] `PLAY_ADI_REGISTRATION_SNIPPET` is set as an EAS secret for production builds so the Expo config plugin can generate `android/app/src/main/assets/adi-registration.properties`.
+
 ### Store listing
 - [ ] App name, short description, full description
 - [ ] Feature graphic + screenshots (phone + tablet if required)

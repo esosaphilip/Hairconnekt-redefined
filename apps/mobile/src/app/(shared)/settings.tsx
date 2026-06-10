@@ -105,7 +105,7 @@ export default function SharedSettingsScreen() {
   };
 
   const renderRow = (icon: keyof typeof Feather.glyphMap, label: string, onPress: () => void, color = colors.textPrimary) => (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={label}>
       <View style={styles.rowLeft}>
         <Feather name={icon} size={20} color={color} style={{ marginRight: spacing.md }} />
         <Text style={[styles.rowText, { color }]}>{label}</Text>
@@ -132,11 +132,11 @@ export default function SharedSettingsScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('settingsTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -176,13 +176,13 @@ export default function SharedSettingsScreen() {
         <View style={styles.mainDivider} />
 
         {/* LOGOUT */}
-        <TouchableOpacity style={styles.actionRow} onPress={handleLogout} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionRow} onPress={handleLogout} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('settingsLogout')}>
           <Feather name="log-out" size={20} color={colors.coral} style={{ marginRight: spacing.md }} />
           <Text style={styles.actionTextCoral}>{t('settingsLogout')}</Text>
         </TouchableOpacity>
 
         {/* DELETE ACCOUNT */}
-        <TouchableOpacity style={styles.actionRow} onPress={openDeleteModal} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionRow} onPress={openDeleteModal} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('settingsDeleteAccount')}>
           <Feather name="trash-2" size={18} color={colors.error} style={{ marginRight: spacing.md }} />
           <Text style={styles.actionTextSmallRed}>{t('settingsDeleteAccount')}</Text>
         </TouchableOpacity>
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: layout.inputHeight,
     borderRadius: borderRadius.full,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
     backgroundColor: colors.background,
     alignItems: 'center',
@@ -339,9 +339,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   rowText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md },
-  divider: { height: 1, backgroundColor: colors.border, marginHorizontal: spacing.lg },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginHorizontal: spacing.lg },
 
-  mainDivider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md, marginHorizontal: spacing.xl },
+  mainDivider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.md, marginHorizontal: spacing.xl },
 
   actionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.sm },
   actionTextCoral: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
@@ -364,13 +364,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     marginBottom: spacing.xl,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   errorText: { color: colors.error, fontFamily: fonts.body, fontSize: fontSizes.sm, marginBottom: spacing.md, textAlign: 'center' },
 
   modalButtons: { flexDirection: 'row', width: '100%' },
-  modalBtnOutline: { flex: 1, height: layout.inputHeightMd, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
+  modalBtnOutline: { flex: 1, height: layout.inputHeightMd, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, borderWidth: spacing.unit, borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center' },
   modalBtnOutlineText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
   modalBtnSolid: { flex: 1, height: layout.inputHeightMd, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, backgroundColor: colors.coral, justifyContent: 'center', alignItems: 'center', marginLeft: spacing.md },
   modalBtnSolidText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },

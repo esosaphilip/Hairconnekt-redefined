@@ -82,11 +82,16 @@ export default function WriteReviewScreen() {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('reviewWrite')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
       </SafeAreaView>
@@ -107,11 +112,16 @@ export default function WriteReviewScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('reviewWrite')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <KeyboardAvoidingView
@@ -157,7 +167,7 @@ export default function WriteReviewScreen() {
                   >
                     <FontAwesome
                       name={isFilled ? 'star' : 'star-o'}
-                      size={40}
+                      size={spacing.xl2}
                       color={isFilled ? colors.gold : colors.borderStrong}
                     />
                   </TouchableOpacity>
@@ -210,13 +220,13 @@ const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   keyboardContainer: { flex: 1 },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: fontSizes.xl, color: colors.primary },
   
   scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
-  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.xl },
+  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: spacing.unit, borderColor: colors.border, marginBottom: spacing.xl },
   avatarImage: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.avatarMd / 2, marginRight: spacing.md },
   avatarPlaceholder: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.avatarMd / 2, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xxl, color: colors.textSecondary },
@@ -232,10 +242,10 @@ const styles = StyleSheet.create({
   ratingLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.gold },
   
   commentSection: { marginBottom: spacing.lg },
-  commentInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: layout.textAreaHeight + layout.iconButton, fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border },
+  commentInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: layout.textAreaHeight + layout.iconButton, fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, borderWidth: spacing.unit, borderColor: colors.border },
   charCounter: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xs },
 
-  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, ...shadows.card },
+  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: spacing.unit, borderTopColor: colors.border, ...shadows.card },
   submitButton: { backgroundColor: colors.coral, height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   submitButtonDisabled: { backgroundColor: colors.border },
   submitButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },

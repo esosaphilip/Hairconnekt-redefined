@@ -15,7 +15,7 @@ import type {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.sm, textAlign: 'center' },
   bodyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
   otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
-  otpInput: { width: 48, height: 55, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: 'transparent', textAlign: 'center', fontSize: fontSizes.lg, fontFamily: fonts.bodyMedium, color: colors.textPrimary },
+  otpInput: { width: layout.inputHeight, height: layout.buttonHeight - spacing.unit, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: spacing.unit, borderColor: 'transparent', textAlign: 'center', fontSize: fontSizes.lg, fontFamily: fonts.bodyMedium, color: colors.textPrimary },
   resendLink: { alignSelf: 'center', marginBottom: spacing.xl },
   resendText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.teal, textDecorationLine: 'underline' },
 });

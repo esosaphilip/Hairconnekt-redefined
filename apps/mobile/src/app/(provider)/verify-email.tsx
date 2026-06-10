@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     width: layout.inputHeight,
     height: layout.buttonHeight,
     borderRadius: borderRadius.md,
-    borderWidth: 1.5,
+    borderWidth: spacing.unit,
     borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
     textAlign: 'center',

@@ -219,8 +219,13 @@ export default function BookingRequestScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bookingRequestTitle')}</Text>
         {getStatusBadge()}
@@ -246,7 +251,7 @@ export default function BookingRequestScreen() {
               <Text style={styles.clientName}>{booking.client.firstName} {booking.client.lastName[0]}.</Text>
               {booking.isMobile && booking.address && (
                 <View style={styles.locationRow}>
-                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                  <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
                   <Text style={styles.locationText}>{booking.address.city}</Text>
                 </View>
               )}
@@ -256,12 +261,12 @@ export default function BookingRequestScreen() {
 
           <View style={styles.actionButtonsRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
-              <Feather name="message-circle" size={18} color={colors.primary} style={styles.actionBtnIcon} />
+              <Feather name="message-circle" size={fontSizes.lg} color={colors.primary} style={styles.actionBtnIcon} />
               <Text style={styles.actionBtnText}>{t('profileMessage')}</Text>
             </TouchableOpacity>
             <View style={{ width: spacing.md }} />
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-              <Feather name="phone" size={18} color={colors.primary} style={styles.actionBtnIcon} />
+              <Feather name="phone" size={fontSizes.lg} color={colors.primary} style={styles.actionBtnIcon} />
               <Text style={styles.actionBtnText}>{t('appointmentsCall')}</Text>
             </TouchableOpacity>
           </View>
@@ -279,9 +284,9 @@ export default function BookingRequestScreen() {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('appointmentsDate')}</Text>
             <View style={styles.detailValueRow}>
-              <Feather name="calendar" size={14} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
+              <Feather name="calendar" size={fontSizes.sm} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
               <Text style={styles.detailValue}>{dateStr} · </Text>
-              <Feather name="clock" size={14} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
+              <Feather name="clock" size={fontSizes.sm} color={colors.textPrimary} style={{ marginRight: spacing.xxs }} />
               <Text style={styles.detailValue}>{timeStr}{t('timeSuffix')}</Text>
             </View>
           </View>
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
@@ -373,7 +378,7 @@ const styles = StyleSheet.create({
 
   alertBanner: {
     backgroundColor: colors.orangeLight,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xxs,
     borderLeftColor: colors.warningBorder,
     padding: spacing.md,
     borderRadius: borderRadius.sm,
@@ -388,7 +393,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
     ...shadows.card,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.surfaceAlt,
   },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary, marginBottom: spacing.md },
@@ -430,7 +435,7 @@ const styles = StyleSheet.create({
   detailValue: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary, flex: 2, textAlign: 'right' },
   detailValueRow: { flexDirection: 'row', alignItems: 'center', flex: 2, justifyContent: 'flex-end' },
   
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.md },
   
   totalLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   totalValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.primary },
@@ -447,7 +452,7 @@ const styles = StyleSheet.create({
   bottomActions: {
     padding: spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   },
   acceptBtn: {
@@ -462,7 +467,7 @@ const styles = StyleSheet.create({
   declineBtn: {
     height: layout.inputHeight,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',

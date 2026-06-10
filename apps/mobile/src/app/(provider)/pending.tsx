@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ export default function ProviderPendingScreen() {
   const { t } = useLanguage();
   const [error, setError] = useState<string | null>(null);
   const consecutiveErrors = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Clear any lingering registration navigation state on mount
   useEffect(() => {
@@ -24,42 +25,56 @@ export default function ProviderPendingScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    const check = async () => {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) {
-        router.replace('/(auth)/login?role=provider');
+  const checkStatus = useCallback(async () => {
+    const token = await tokenStorage.getAccessToken();
+    if (!token) {
+      router.replace('/(auth)/login?role=provider');
+      return;
+    }
+    try {
+      const res = await fetch(
+        `${API}/providers/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.status === 404) {
+        router.replace('/(provider)/register/type');
         return;
       }
-      try {
-        const res = await fetch(
-          `${API}/providers/me`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.status === 404) {
-          router.replace('/(provider)/register/type');
-          return;
-        }
-        if (!res.ok) return;
-        const provider = await res.json();
-        consecutiveErrors.current = 0; // reset on success
-        if (provider.status?.toLowerCase() === 'approved') {
-          router.replace('/(provider)');
-        }
-      } catch (err) {
-        consecutiveErrors.current += 1;
-        if (consecutiveErrors.current >= 5) {
-          setError(t('providerPendingConnectionFailed'));
+      if (!res.ok) {
+        throw new Error(`provider-status-${res.status}`);
+      }
+      const provider = await res.json();
+      consecutiveErrors.current = 0;
+      setError(null);
+      if (provider.status?.toLowerCase() === 'approved') {
+        router.replace('/(provider)');
+      }
+    } catch (err) {
+      consecutiveErrors.current += 1;
+      if (consecutiveErrors.current >= 5) {
+        setError(t('providerPendingConnectionFailed'));
+        if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
       }
-    };
+    }
+  }, [router, t]);
 
-    const intervalRef = { current: 0 as any };
-    check();
-    intervalRef.current = setInterval(check, 30000);
-    return () => clearInterval(intervalRef.current);
-  }, []);
+  const startPolling = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    void checkStatus();
+    intervalRef.current = setInterval(() => {
+      void checkStatus();
+    }, 30000);
+  }, [checkStatus]);
+
+  useEffect(() => {
+    startPolling();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [startPolling]);
 
   const handleLogout = async () => {
     await tokenStorage.clear();
@@ -68,6 +83,12 @@ export default function ProviderPendingScreen() {
 
   const handleSupport = () => {
     Linking.openURL('mailto:support@hairconnekt.de');
+  };
+
+  const handleRetry = () => {
+    consecutiveErrors.current = 0;
+    setError(null);
+    startPolling();
   };
 
   return (
@@ -163,6 +184,16 @@ export default function ProviderPendingScreen() {
 
       {/* Footer Buttons */}
       <View style={styles.footer}>
+        {!!error && (
+          <>
+            <PrimaryButton
+              label={t('appointmentsRetry')}
+              onPress={handleRetry}
+              variant="outline"
+            />
+            <View style={{ height: spacing.md }} />
+          </>
+        )}
         <PrimaryButton 
           label={t('backToLogin')} 
           onPress={handleLogout}
@@ -185,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.errorLightSolid,
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.xs,
@@ -217,15 +248,15 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: spacing.none,
+    right: spacing.none,
     width: spacing.lg,
     height: spacing.lg,
     borderRadius: spacing.sm,
     backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.background,
   },
   badgeText: {
@@ -279,7 +310,7 @@ const styles = StyleSheet.create({
   timelineIconGold: { backgroundColor: colors.gold },
   timelineIconGrey: { backgroundColor: colors.borderStrong },
   timelineLine: {
-    width: 2,
+    width: spacing.xxxs,
     height: layout.iconButton,
     marginTop: -spacing.xxs,
     marginBottom: -spacing.xxs,
@@ -311,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     ...shadows.card,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   infoHeaderRow: {

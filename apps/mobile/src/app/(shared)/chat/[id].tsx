@@ -81,6 +81,10 @@ export default function SharedChatScreen() {
   const insets = useSafeAreaInsets();
   const { t, lang } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const backLabel = t('back');
+  const callLabel = t('chatCallContact');
+  const attachLabel = t('mediaPickerTitle');
+  const sendLabel = t('chatSendMessage');
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
@@ -433,7 +437,7 @@ export default function SharedChatScreen() {
             >
               <Feather
                 name="file-text"
-                size={20}
+                size={fontSizes.xl}
                 color={isOwn ? colors.background : colors.teal}
                 style={{ marginRight: spacing.xs }}
               />
@@ -448,7 +452,7 @@ export default function SharedChatScreen() {
               </Text>
               <Feather
                 name="download"
-                size={16}
+                size={fontSizes.md}
                 color={isOwn ? colors.background : colors.teal}
                 style={{ marginLeft: spacing.xxs }}
               />
@@ -541,7 +545,12 @@ export default function SharedChatScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={backLabel}
+        >
           <Feather name="arrow-left" size={fontSizes.xl} color={colors.primary} />
         </TouchableOpacity>
 
@@ -564,7 +573,12 @@ export default function SharedChatScreen() {
         </View>
 
         {otherUser?.phone ? (
-          <TouchableOpacity onPress={handlePhonePress} style={styles.phoneButton}>
+          <TouchableOpacity
+            onPress={handlePhonePress}
+            style={styles.phoneButton}
+            accessibilityRole="button"
+            accessibilityLabel={callLabel}
+          >
             <Feather name="phone" size={fontSizes.lg} color={colors.primary} />
           </TouchableOpacity>
         ) : (
@@ -619,6 +633,8 @@ export default function SharedChatScreen() {
             style={styles.attachButton}
             onPress={() => setShowMediaPicker(true)}
             disabled={isUploadingMedia}
+            accessibilityRole="button"
+            accessibilityLabel={attachLabel}
           >
             {isUploadingMedia ? (
               <ActivityIndicator size="small" color={colors.primary} />
@@ -641,6 +657,8 @@ export default function SharedChatScreen() {
             onPress={handleSend}
             disabled={!canSend}
             style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel={sendLabel}
           >
             <Feather name="send" size={fontSizes.sm} color={colors.background} />
           </TouchableOpacity>
@@ -667,14 +685,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
   },
   backButton: { width: layout.inputHeight, height: layout.inputHeight, justifyContent: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  headerAvatar: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, marginRight: spacing.sm, borderWidth: 2, borderColor: colors.gold },
-  headerAvatarPlaceholder: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, marginRight: spacing.sm, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.gold },
+  headerAvatar: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, marginRight: spacing.sm, borderWidth: spacing.xxxs, borderColor: colors.gold },
+  headerAvatarPlaceholder: { width: layout.avatarSm, height: layout.avatarSm, borderRadius: borderRadius.full, marginRight: spacing.sm, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: spacing.xxxs, borderColor: colors.gold },
   headerTextCol: { flex: 1 },
   headerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   headerStatus: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: spacing.xxs },
@@ -690,7 +708,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   bookingBannerText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
@@ -705,14 +723,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   connectionText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   listContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
 
-  dateSeparator: { alignSelf: 'center', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.xxs, borderRadius: borderRadius.full, marginVertical: spacing.md, borderWidth: 1, borderColor: colors.border },
+  dateSeparator: { alignSelf: 'center', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.xxs, borderRadius: borderRadius.full, marginVertical: spacing.md, borderWidth: spacing.unit, borderColor: colors.border },
   dateSeparatorText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textSecondary },
 
   messageRow: { maxWidth: '75%', marginBottom: spacing.sm },
@@ -738,7 +756,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
   },
@@ -754,7 +772,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   sendButton: {
@@ -769,19 +787,19 @@ const styles = StyleSheet.create({
   sendButtonDisabled: { backgroundColor: colors.borderStrong },
 
   mediaBubbleImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 12,
+    width: layout.heroHeight - spacing.l,
+    height: spacing.xxxxxxxl,
+    borderRadius: borderRadius.md - spacing.xxs,
     marginTop: spacing.xxs,
   },
   mediaBubbleDoc: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     padding: spacing.xs,
     marginTop: spacing.xxs,
-    maxWidth: 220,
+    maxWidth: layout.heroHeight,
   },
   mediaBubbleDocName: {
     fontFamily: fonts.bodyMedium,

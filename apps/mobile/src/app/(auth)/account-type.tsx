@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, fonts, fontSizes, spacing, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xxl },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xxl, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: 16, padding: spacing.xl, marginBottom: spacing.lg, borderWidth: 2, borderColor: 'transparent', ...shadows.card },
+  card: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.xl, marginBottom: spacing.lg, borderWidth: spacing.xxxs, borderColor: 'transparent', ...shadows.card },
   cardSelected: { borderColor: colors.coral, backgroundColor: colors.coralLight },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center' },
   cardTitleSelected: { color: colors.coral },

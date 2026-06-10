@@ -35,9 +35,12 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
     typeof provider.startingPrice === 'number' && provider.startingPrice > 0
       ? `${t('cardFrom')} €${formatAmount(provider.startingPrice, lang)}`
       : t('cardPriceOnRequest');
+  const favouriteLabel = provider.isFavourited
+    ? t('favouritesRemoveAction')
+    : t('favouritesAddAction');
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9} accessibilityRole="button">
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           {provider.avatarUrl ? (
@@ -58,7 +61,12 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
             )}
           </View>
         </View>
-        <TouchableOpacity style={styles.favouriteButton} onPress={onFavourite}>
+        <TouchableOpacity
+          style={styles.favouriteButton}
+          onPress={onFavourite}
+          accessibilityRole="button"
+          accessibilityLabel={favouriteLabel}
+        >
           <FontAwesome5 name="heart" solid={provider.isFavourited} size={20} color={provider.isFavourited ? colors.coral : colors.textTertiary} />
         </TouchableOpacity>
       </View>

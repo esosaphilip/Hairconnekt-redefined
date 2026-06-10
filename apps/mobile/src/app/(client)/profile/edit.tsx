@@ -2,13 +2,32 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Image, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../../theme';
 import { mapHttpError } from '../../../utils/error-messages';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
+
+type PickedImageAsset = {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+};
+
+const inferMimeType = (uri: string): string => {
+  const normalized = uri.toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  return 'image/jpeg';
+};
+
+const inferFileName = (uri: string, fallback: string): string => {
+  const candidate = uri.split('?')[0]?.split('/').pop();
+  return candidate && candidate.includes('.') ? candidate : fallback;
+};
 
 
 export default function ClientProfileEditScreen() {
@@ -107,7 +126,7 @@ export default function ClientProfileEditScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        uploadAvatar(result.assets[0].uri);
+        uploadAvatar(result.assets[0]);
       }
     } catch (error) {
       debugError('Client avatar selection failed', error);
@@ -116,17 +135,18 @@ export default function ClientProfileEditScreen() {
     }
   };
 
-  const uploadAvatar = async (uri: string) => {
+  const uploadAvatar = async (asset: PickedImageAsset) => {
     try {
       setIsUploadingAvatar(true);
       setErrorVisible(false);
 
       const formData = new FormData();
+      const uri = asset.uri;
 
       formData.append('avatar', {
         uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
+        type: asset.mimeType || inferMimeType(uri),
+        name: asset.fileName || inferFileName(uri, 'avatar.jpg'),
       } as any);
 
       const response = await apiFetch('/users/me/avatar', {
@@ -167,8 +187,13 @@ export default function ClientProfileEditScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('personalInfoTitle')}</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.saveButtonTextContainer}>
@@ -195,6 +220,9 @@ export default function ClientProfileEditScreen() {
               onPress={pickAvatar}
               activeOpacity={0.8}
               disabled={isUploadingAvatar}
+              accessibilityRole="button"
+              accessibilityLabel={t('avatarPick')}
+              accessibilityState={{ disabled: isUploadingAvatar }}
             >
               {avatarUri ? (
                 <>
@@ -211,11 +239,11 @@ export default function ClientProfileEditScreen() {
                 </>
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Feather name="user" size={40} color={colors.textSecondary} />
+                  <Feather name="user" size={layout.iconButton} color={colors.textSecondary} />
                 </View>
               )}
               <View style={styles.cameraIcon}>
-                <Feather name="camera" size={16} color={colors.primary} />
+                <Feather name="camera" size={fontSizes.md} color={colors.primary} />
               </View>
             </TouchableOpacity>
             <Text style={styles.avatarHint}>{t('personalInfoAvatar')}</Text>
@@ -294,9 +322,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: spacing.xxxxxl,
+    height: spacing.xxxxxl,
+    borderRadius: borderRadius.full,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     justifyContent: 'center',
@@ -306,7 +334,7 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 50,
+    borderRadius: borderRadius.full,
   },
   avatarPlaceholder: {
     width: '100%',
@@ -320,17 +348,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 50,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cameraIcon: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: spacing.none,
+    right: spacing.none,
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -350,13 +378,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontFamily: fonts.heading, fontSize: 18, color: colors.primary },
-  saveButtonTextContainer: { width: 70, alignItems: 'flex-end' },
-  saveButtonText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.teal },
+  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
+  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.primary },
+  saveButtonTextContainer: { width: spacing.xxl + spacing.lg, alignItems: 'flex-end' },
+  saveButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.teal },
 
   content: { flex: 1 },
   contentInner: { padding: spacing.xl },
@@ -365,24 +393,24 @@ const styles = StyleSheet.create({
   inputLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: borderRadius.md - spacing.xxs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + spacing.xxxs,
     fontFamily: fonts.body,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   inputDisabled: { opacity: 0.5, backgroundColor: colors.surface, borderColor: colors.border },
-  hintText: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, marginTop: spacing.xxs },
+  hintText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: spacing.xxs },
 
   footer: {
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl2 : spacing.lg,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   },
-  primaryButton: { backgroundColor: colors.coral, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-  primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.background },
+  primaryButton: { backgroundColor: colors.coral, height: layout.buttonHeight, borderRadius: layout.buttonHeight / 2, justifyContent: 'center', alignItems: 'center' },
+  primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
 });

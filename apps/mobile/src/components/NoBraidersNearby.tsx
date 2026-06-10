@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../theme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type Props = {
   radiusKm: number;
@@ -9,18 +10,20 @@ type Props = {
 };
 
 export function NoBraidersNearby({ radiusKm, onChangeRadius }: Props) {
+  const { t } = useLanguage();
+  const title = t('noBraidersNearbyTitle');
+  const subtitle = t('noBraidersNearbySubtitle').replace('{radius}', String(radiusKm));
+  const buttonLabel = t('noBraidersNearbyChangeRadius');
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
         <Feather name="map-pin" size={22} color={colors.coral} />
       </View>
-      <Text style={styles.title}>Keine Braider in deiner Nähe</Text>
-      <Text style={styles.subtitle}>
-        Im Umkreis von {radiusKm} km wurden aktuell keine Anbieter gefunden.
-      </Text>
-      <TouchableOpacity style={styles.button} onPress={onChangeRadius} activeOpacity={0.9}>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
+      <TouchableOpacity style={styles.button} onPress={onChangeRadius} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={buttonLabel}>
         <Feather name="sliders" size={16} color={colors.background} />
-        <Text style={styles.buttonText}>Suchradius ändern</Text>
+        <Text style={styles.buttonText}>{buttonLabel}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -72,4 +75,3 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
 });
-

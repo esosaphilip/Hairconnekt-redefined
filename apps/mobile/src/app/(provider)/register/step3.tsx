@@ -9,6 +9,27 @@ import { PrimaryButton } from '../../../components/PrimaryButton';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+const LANGUAGE_CODE_MAP = {
+  de: 'de',
+  en: 'en',
+  fr: 'fr',
+  ar: 'ar',
+  tr: 'tr',
+  Deutsch: 'de',
+  Englisch: 'en',
+  Französisch: 'fr',
+  Arabisch: 'ar',
+  Türkisch: 'tr',
+} as const;
+
+const normalizeLanguageValue = (value: string): string =>
+  LANGUAGE_CODE_MAP[value as keyof typeof LANGUAGE_CODE_MAP] ?? value;
+
+const normalizeLanguages = (values: string[] | undefined): string[] => {
+  const normalized = (values ?? ['de']).map(normalizeLanguageValue);
+  return Array.from(new Set(normalized));
+};
+
 export default function RegisterStep3Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
@@ -20,7 +41,7 @@ export default function RegisterStep3Screen() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>(form.serviceIds || []);
   const [experienceYears, setExperienceYears] = useState(form.experienceYears || 1);
-  const [languages, setLanguages] = useState<string[]>(form.languages || ['Deutsch']);
+  const [languages, setLanguages] = useState<string[]>(normalizeLanguages(form.languages));
   
   const policyValues = ['24h', '48h', '72h'] as const;
   type PolicyType = typeof policyValues[number];
@@ -41,11 +62,11 @@ export default function RegisterStep3Screen() {
       | 'languageArabic'
       | 'languageTurkish';
   }[] = [
-    { value: 'Deutsch', labelKey: 'languageGerman' },
-    { value: 'Englisch', labelKey: 'languageEnglish' },
-    { value: 'Französisch', labelKey: 'languageFrench' },
-    { value: 'Arabisch', labelKey: 'languageArabic' },
-    { value: 'Türkisch', labelKey: 'languageTurkish' },
+    { value: 'de', labelKey: 'languageGerman' },
+    { value: 'en', labelKey: 'languageEnglish' },
+    { value: 'fr', labelKey: 'languageFrench' },
+    { value: 'ar', labelKey: 'languageArabic' },
+    { value: 'tr', labelKey: 'languageTurkish' },
   ];
 
   useEffect(() => {
@@ -80,18 +101,29 @@ export default function RegisterStep3Screen() {
   const handleNext = () => {
     Keyboard.dismiss();
     if (languages.length === 0) return;
-    update({ serviceIds: selectedIds, experienceYears, languages, cancellationPolicy, bio: bio.trim() });
+    update({
+      serviceIds: selectedIds,
+      experienceYears,
+      languages: normalizeLanguages(languages),
+      cancellationPolicy,
+      bio: bio.trim(),
+    });
     router.push('/(provider)/register/step4');
   };
 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '3').replace('{total}', '5')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: fontSizes.xxl }} />
       </View>
       
       <View style={styles.progressBar}>
@@ -117,7 +149,7 @@ export default function RegisterStep3Screen() {
               <ActivityIndicator size="small" color={colors.coral} style={{ marginVertical: spacing.md }} />
             ) : servicesError ? (
               <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={20} color={colors.error} />
+                <Feather name="alert-circle" size={fontSizes.xl} color={colors.error} />
                 <Text style={styles.errorText}>{t('providerRegisterStep3ServicesLoadError')}</Text>
               </View>
             ) : (
@@ -199,7 +231,7 @@ export default function RegisterStep3Screen() {
             </View>
           </View>
 
-          <View style={[styles.section, { borderBottomWidth: 0 }]}>
+          <View style={[styles.section, { borderBottomWidth: spacing.none }]}>
             <Text style={styles.sectionTitle}>{t('providerRegisterStep3AboutTitle')}</Text>
             <TextInput
               style={styles.textArea}
@@ -243,7 +275,7 @@ const styles = StyleSheet.create({
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
   progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  progressSegment: { flex: 1, height: spacing.xxs, borderRadius: borderRadius.xs, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
   scrollContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
@@ -251,7 +283,7 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.xl,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xs },
@@ -261,7 +293,7 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginLeft: spacing.sm },
   
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1 },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: spacing.unit },
   chipSelected: { backgroundColor: colors.coral, borderColor: colors.coral },
   chipUnselected: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm },
@@ -283,7 +315,7 @@ const styles = StyleSheet.create({
   
   textArea: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.borderStrong,
     borderRadius: borderRadius.md,
     padding: spacing.md,
@@ -295,5 +327,5 @@ const styles = StyleSheet.create({
   },
   charCounter: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary, textAlign: 'right', marginTop: spacing.xs },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

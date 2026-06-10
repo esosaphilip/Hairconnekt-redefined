@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing } from '../theme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   visible: boolean;
@@ -16,6 +17,15 @@ export function MediaPickerActionSheet({
   onPickDocument,
   onCancel,
 }: Props) {
+  const { t } = useLanguage();
+  const copy = {
+    title: t('mediaPickerTitle'),
+    imageLabel: t('mediaPickerImageLabel'),
+    imageSub: t('mediaPickerImageSub'),
+    documentLabel: t('mediaPickerDocumentLabel'),
+    documentSub: t('mediaPickerDocumentSub'),
+    cancel: t('cancel'),
+  };
   return (
     <Modal
       visible={visible}
@@ -29,30 +39,30 @@ export function MediaPickerActionSheet({
         onPress={onCancel}
       >
         <View style={styles.sheet}>
-          <Text style={styles.title}>Anhang hinzufügen</Text>
+          <Text style={styles.title}>{copy.title}</Text>
 
-          <TouchableOpacity style={styles.option} onPress={onPickImage}>
+          <TouchableOpacity style={styles.option} onPress={onPickImage} accessibilityRole="button" accessibilityLabel={copy.imageLabel}>
             <View style={[styles.iconCircle, { backgroundColor: colors.coralLight }]}>
               <Feather name="image" size={22} color={colors.coral} />
             </View>
             <View style={styles.optionText}>
-              <Text style={styles.optionLabel}>Foto senden</Text>
-              <Text style={styles.optionSub}>Zeige deinen gewünschten Stil</Text>
+              <Text style={styles.optionLabel}>{copy.imageLabel}</Text>
+              <Text style={styles.optionSub}>{copy.imageSub}</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option} onPress={onPickDocument}>
+          <TouchableOpacity style={styles.option} onPress={onPickDocument} accessibilityRole="button" accessibilityLabel={copy.documentLabel}>
             <View style={[styles.iconCircle, { backgroundColor: colors.tealLight }]}>
               <Feather name="file-text" size={22} color={colors.teal} />
             </View>
             <View style={styles.optionText}>
-              <Text style={styles.optionLabel}>Dokument senden</Text>
-              <Text style={styles.optionSub}>PDF-Dateien</Text>
+              <Text style={styles.optionLabel}>{copy.documentLabel}</Text>
+              <Text style={styles.optionSub}>{copy.documentSub}</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelText}>Abbrechen</Text>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel} accessibilityRole="button" accessibilityLabel={copy.cancel}>
+            <Text style={styles.cancelText}>{copy.cancel}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

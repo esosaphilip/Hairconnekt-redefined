@@ -106,8 +106,13 @@ export default function ProviderServicesListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('servicesTitle')}</Text>
         <View style={{ width: layout.iconButton }} />
@@ -164,7 +169,7 @@ export default function ProviderServicesListScreen() {
                         ]);
                       }}
                     >
-                      <Feather name="more-vertical" size={20} color={colors.textSecondary} />
+                      <Feather name="more-vertical" size={fontSizes.xl} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -175,14 +180,19 @@ export default function ProviderServicesListScreen() {
 
         {Object.keys(groupedServices).length > 0 && (
           <TouchableOpacity style={styles.dashedAddBtn} onPress={() => router.push('/(provider)/services/new')}>
-            <Feather name="plus" size={20} color={colors.coral} style={{ marginRight: spacing.xs }} />
+            <Feather name="plus" size={fontSizes.xl} color={colors.coral} style={{ marginRight: spacing.xs }} />
             <Text style={styles.dashedAddText}>{t('servicesAdd')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/(provider)/services/new')}>
-        <Feather name="plus" size={24} color={colors.background} />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/(provider)/services/new')}
+        accessibilityRole="button"
+        accessibilityLabel={t('servicesAdd')}
+      >
+        <Feather name="plus" size={fontSizes.xxl} color={colors.background} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -190,7 +200,7 @@ export default function ProviderServicesListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backBtn: { padding: spacing.xs },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
   scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
@@ -206,7 +216,7 @@ const styles = StyleSheet.create({
   inactiveBadgeText: { fontSize: fontSizes.xxs, fontFamily: fonts.bodyMedium, color: colors.textSecondary },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   menuDots: { padding: spacing.sm },
-  dashedAddBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.coral, borderRadius: borderRadius.md, marginTop: spacing.md },
+  dashedAddBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, borderWidth: spacing.unit, borderStyle: 'dashed', borderColor: colors.coral, borderRadius: borderRadius.md, marginTop: spacing.md },
   dashedAddText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.coral },
   emptyState: { alignItems: 'center', marginTop: spacing.xxxxxl },
   emptyText: { fontFamily: fonts.body, color: colors.textSecondary, marginBottom: spacing.lg },

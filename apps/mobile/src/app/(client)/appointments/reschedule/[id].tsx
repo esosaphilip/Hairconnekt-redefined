@@ -293,11 +293,16 @@ export default function RescheduleAppointment() {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('rescheduleTitle')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />
       </SafeAreaView>
@@ -310,11 +315,16 @@ export default function RescheduleAppointment() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('rescheduleTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <KeyboardAvoidingView
@@ -332,10 +342,10 @@ export default function RescheduleAppointment() {
             <Text style={styles.currentBookingProvider}>{providerName}</Text>
             <Text style={styles.currentBookingServices}>{serviceNames}</Text>
             <View style={styles.currentBookingDateTime}>
-              <Feather name="calendar" size={14} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
+              <Feather name="calendar" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
               <Text style={styles.currentBookingDot}> • </Text>
-              <Feather name="clock" size={14} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
+              <Feather name="clock" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>
                 {booking?.scheduledTime}
                 {timeSuffix}
@@ -347,14 +357,24 @@ export default function RescheduleAppointment() {
 
           <View style={styles.calendarCard}>
             <View style={styles.monthHeader}>
-              <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-                <Feather name="chevron-left" size={20} color={colors.textPrimary} />
+              <TouchableOpacity
+                onPress={handlePrevMonth}
+                style={styles.monthButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('calendarPreviousMonth')}
+              >
+                <Feather name="chevron-left" size={fontSizes.xl} color={colors.textPrimary} />
               </TouchableOpacity>
               <Text style={styles.monthTitle}>
                 {monthLabel} {year}
               </Text>
-              <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-                <Feather name="chevron-right" size={20} color={colors.textPrimary} />
+              <TouchableOpacity
+                onPress={handleNextMonth}
+                style={styles.monthButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('calendarNextMonth')}
+              >
+                <Feather name="chevron-right" size={fontSizes.xl} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -446,20 +466,20 @@ export default function RescheduleAppointment() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: fonts.heading, fontSize: 20, color: colors.primary },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
+  backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
+  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   
   keyboardContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
   // Current Booking
-  currentBookingCard: { backgroundColor: colors.surfaceCard, borderRadius: 12, padding: spacing.md, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  currentBookingTitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.sm },
-  currentBookingProvider: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: spacing.xxxs },
-  currentBookingServices: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textPrimary, marginBottom: spacing.sm },
+  currentBookingCard: { backgroundColor: colors.surfaceCard, borderRadius: borderRadius.md - spacing.xxs, padding: spacing.md, marginBottom: spacing.lg, borderWidth: spacing.unit, borderColor: colors.border },
+  currentBookingTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.sm },
+  currentBookingProvider: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary, marginBottom: spacing.xxxs },
+  currentBookingServices: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.sm },
   currentBookingDateTime: { flexDirection: 'row', alignItems: 'center' },
-  currentBookingText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
+  currentBookingText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   currentBookingDot: { color: colors.textTertiary, marginHorizontal: spacing.xxs },
 
   // Calendar
@@ -467,11 +487,11 @@ const styles = StyleSheet.create({
   monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   monthTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   monthButton: { padding: spacing.xs },
-  weekDaysRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: spacing.sm, marginBottom: spacing.sm },
+  weekDaysRow: { flexDirection: 'row', borderBottomWidth: spacing.unit, borderBottomColor: colors.border, paddingBottom: spacing.sm, marginBottom: spacing.sm },
   weekDayText: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary },
   calendarRow: { flexDirection: 'row', marginBottom: spacing.xs },
   calendarDay: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
-  calendarDaySelected: { backgroundColor: colors.coral, borderRadius: 20 },
+  calendarDaySelected: { backgroundColor: colors.coral, borderRadius: borderRadius.pill },
   calendarDayText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   calendarDayTextSelected: { color: colors.surface, fontFamily: fonts.bodyBold },
   calendarDayPast: { color: colors.textTertiary },
@@ -480,7 +500,7 @@ const styles = StyleSheet.create({
   slotsSection: { marginTop: spacing.sm, marginBottom: spacing.lg },
   slotsHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.md },
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  slotButton: { width: '31%', paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm, borderWidth: spacing.unit, borderColor: colors.border, alignItems: 'center' },
   slotButtonActive: { backgroundColor: colors.coralLight, borderColor: colors.coral },
   slotText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   slotTextActive: { color: colors.coral },
@@ -488,11 +508,11 @@ const styles = StyleSheet.create({
   
   // Reason
   reasonSection: { marginBottom: spacing.xl },
-  reasonLabel: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary, marginBottom: spacing.sm },
-  reasonInput: { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.md, minHeight: 100, fontFamily: fonts.body, fontSize: 16, color: colors.textPrimary },
+  reasonLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary, marginBottom: spacing.sm },
+  reasonInput: { backgroundColor: colors.surfaceCard, borderWidth: spacing.unit, borderColor: colors.border, borderRadius: borderRadius.md - spacing.xxs, padding: spacing.md, minHeight: spacing.xxxxxl, fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary },
 
   // Footer
-  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, ...shadows.card },
+  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, ...shadows.card },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   footerDateText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   footerTimeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },

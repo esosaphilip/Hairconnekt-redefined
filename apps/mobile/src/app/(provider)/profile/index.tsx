@@ -10,6 +10,25 @@ import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
 
+type PickedImageAsset = {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+};
+
+const inferMimeType = (uri: string): string => {
+  const normalized = uri.toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  return 'image/jpeg';
+};
+
+const inferFileName = (uri: string, fallback: string): string => {
+  const candidate = uri.split('?')[0]?.split('/').pop();
+  return candidate && candidate.includes('.') ? candidate : fallback;
+};
+
 
 export default function ProviderProfileHubScreen() {
   const router = useRouter();
@@ -55,19 +74,20 @@ export default function ProviderProfileHubScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      uploadAvatar(result.assets[0].uri);
+      uploadAvatar(result.assets[0]);
     }
   };
 
-  const uploadAvatar = async (uri: string) => {
+  const uploadAvatar = async (asset: PickedImageAsset) => {
     try {
       setIsUploading(true);
+      const uri = asset.uri;
       
       const formData = new FormData();
       formData.append('avatar', {
         uri,
-        name: 'avatar.jpg',
-        type: 'image/jpeg',
+        name: asset.fileName || inferFileName(uri, 'avatar.jpg'),
+        type: asset.mimeType || inferMimeType(uri),
       } as any);
 
       const res = await apiFetch('/providers/me/avatar', {
@@ -143,10 +163,15 @@ export default function ProviderProfileHubScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* HEADER */}
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={{ width: fontSizes.xxl }} />
         <Text style={styles.headerTitle}>{t('tabProfile')}</Text>
-        <TouchableOpacity onPress={() => router.push('/(shared)/settings' as any)} style={styles.headerIcon}>
-          <Feather name="settings" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.push('/(shared)/settings' as any)}
+          style={styles.headerIcon}
+          accessibilityRole="button"
+          accessibilityLabel={t('settingsTitle')}
+        >
+          <Feather name="settings" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -159,14 +184,14 @@ export default function ProviderProfileHubScreen() {
               <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Feather name="user" size={48} color={colors.textSecondary} />
+                <Feather name="user" size={spacing.xxl} color={colors.textSecondary} />
               </View>
             )}
             <View style={styles.cameraIconBadge}>
               {isUploading ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Feather name="camera" size={16} color={colors.primary} />
+                <Feather name="camera" size={fontSizes.md} color={colors.primary} />
               )}
             </View>
           </TouchableOpacity>
@@ -174,7 +199,7 @@ export default function ProviderProfileHubScreen() {
           <Text style={styles.displayName}>{displayName}</Text>
           
           <View style={styles.locationRow}>
-            <Feather name="map-pin" size={14} color={colors.textSecondary} />
+            <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
             <Text style={styles.locationText}>{provider?.city || t('notSpecified')}</Text>
           </View>
 
@@ -197,49 +222,49 @@ export default function ProviderProfileHubScreen() {
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('providerEditTitle')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/profile/preview')}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('providerProfilePreview')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/services')}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('providerServicesPrices')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/portfolio')}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('providerPortfolio')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/availability')}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('availabilityTitle')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(provider)/reviews')}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('providerReviewsTitle')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/(shared)/settings' as any)}>
             <View style={styles.menuCardLeft}>
               <Text style={styles.menuCardText}>{t('settingsTitle')}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+            <Feather name="chevron-right" size={fontSizes.xl} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
 
@@ -273,7 +298,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
@@ -286,7 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xl,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     marginBottom: spacing.lg,
   },
@@ -341,7 +366,7 @@ const styles = StyleSheet.create({
   },
   menuCardLeft: { flexDirection: 'row', alignItems: 'center' },
   menuCardText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
-  switchModeCard: { borderWidth: 1, borderColor: colors.teal, marginTop: spacing.lg },
+  switchModeCard: { borderWidth: spacing.unit, borderColor: colors.teal, marginTop: spacing.lg },
   switchModeText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.teal },
 
   logoutButton: {

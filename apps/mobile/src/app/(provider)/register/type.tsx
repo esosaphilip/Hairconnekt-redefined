@@ -23,8 +23,13 @@ export default function ProviderTypeScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(auth)/account-type')}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.replace('/(auth)/account-type')}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
       
@@ -88,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     borderRadius: borderRadius.md,
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     backgroundColor: colors.background,
   },
   cardSelected: {
@@ -98,17 +103,17 @@ const styles = StyleSheet.create({
   cardUnselected: {
     borderColor: colors.border,
   },
-  emoji: { fontSize: 32, marginRight: spacing.md },
+  emoji: { fontSize: fontSizes.hero, marginRight: spacing.md },
   cardTextContainer: { flex: 1 },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxxs },
   cardSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   
   radioButton: {
-    width: 24, height: 24, borderRadius: 12, borderWidth: 2,
+    width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.md - spacing.xxs, borderWidth: spacing.xxxs,
     borderColor: colors.borderStrong, justifyContent: 'center', alignItems: 'center'
   },
   radioButtonSelected: { borderColor: colors.coral },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.coral },
+  radioInner: { width: spacing.sm, height: spacing.sm, borderRadius: spacing.sm / 2, backgroundColor: colors.coral },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

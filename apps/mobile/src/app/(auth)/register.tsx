@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Keyboar
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { tokenStorage } from '../../utils/token-storage';
-import { colors, fonts, fontSizes, layout, spacing } from '../../theme';
+import { colors, fonts, fontSizes, layout, spacing, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
@@ -191,10 +191,10 @@ const styles = StyleSheet.create({
   logo: { width: spacing.xxl * 4 + spacing.xs, height: layout.avatarMd, alignSelf: 'center', marginBottom: spacing.xl },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xl, textAlign: 'center' },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.sm },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },
+  checkbox: { width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.sm - spacing.xxs, borderWidth: spacing.unit, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },
   checkboxChecked: { backgroundColor: colors.coral, borderColor: colors.coral },
   checkboxText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
-  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: spacing.unit, borderTopColor: colors.border, backgroundColor: colors.background },
   footerLink: { alignItems: 'center', marginTop: spacing.md },
   footerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
 });

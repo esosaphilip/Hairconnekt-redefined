@@ -32,6 +32,7 @@ const baseConfig: ExpoConfig = {
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.POST_NOTIFICATIONS',
       'android.permission.READ_MEDIA_IMAGES',
     ],
     adaptiveIcon: {
@@ -121,6 +122,20 @@ export default (_: ConfigContext): ExpoConfig => {
     ? 'de.hairconnekt.app.staging'
     : baseConfig.ios?.bundleIdentifier ?? 'de.hairconnekt.app';
 
+  const intentFilters = (baseConfig.android?.intentFilters ?? []).map((filter: any) => {
+    const data = Array.isArray(filter?.data) ? [...filter.data] : [];
+    const hasWww = data.some((d: any) => d?.scheme === 'https' && d?.host === 'www.hairconnekt.de');
+    if (!hasWww) {
+      data.push({ scheme: 'https', host: 'www.hairconnekt.de', pathPrefix: '/' });
+    }
+
+    return {
+      ...filter,
+      autoVerify: Boolean(isProduction),
+      data,
+    };
+  });
+
   const plugins = Array.isArray(baseConfig.plugins) ? [...baseConfig.plugins] : [];
   const hasAdiPlugin = plugins.some((p) => {
     if (typeof p === 'string') return p.includes('withAdiRegistration');
@@ -138,6 +153,7 @@ export default (_: ConfigContext): ExpoConfig => {
     android: {
       ...baseConfig.android,
       package: androidPackage,
+      intentFilters,
     },
     ios: {
       ...baseConfig.ios,

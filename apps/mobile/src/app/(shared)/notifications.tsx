@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
+import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getSafeNotificationRoute } from '@/utils/safe-navigation';
@@ -85,6 +86,9 @@ export default function NotificationsScreen() {
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorStatus, setErrorStatus] = useState<number | undefined>();
+  const [errorMessage, setErrorMessage] = useState('');
 
   const BOOKING_TYPES = [
     'new_booking',
@@ -107,14 +111,12 @@ export default function NotificationsScreen() {
     'new_favourite',
   ];
 
-  useEffect(() => {
-    loadNotifications(1, true);
-  }, []);
-
-  const loadNotifications = async (pageNum: number, refresh = false) => {
+  const loadNotifications = useCallback(async (pageNum: number, refresh = false) => {
     try {
       if (refresh) setIsLoading(true);
       else setIsLoadingMore(true);
+      setErrorVisible(false);
+      setErrorStatus(undefined);
 
       const response = await apiJson<NotificationListResponse>(
         `/notifications?page=${pageNum}&limit=20`,
@@ -125,29 +127,48 @@ export default function NotificationsScreen() {
       setNotifications(prev => (refresh ? newItems : [...prev, ...newItems]));
       setHasMore(response.meta?.hasNextPage ?? false);
       setPage(pageNum);
-    } catch (error) {
+    } catch (error: any) {
       debugLog('Error loading notifications', error);
+      setErrorStatus(error?.status ?? error?.response?.status ?? 500);
+      setErrorMessage(error?.message);
+      setErrorVisible(true);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications(1, true);
+    }, [loadNotifications]),
+  );
 
   const markAsRead = async (id: string) => {
+    const previous = notifications;
     try {
       setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
       await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
-    } catch (e) {
+    } catch (e: any) {
       debugLog('Error marking as read', e);
+      setNotifications(previous);
+      setErrorStatus(e?.status ?? e?.response?.status ?? 500);
+      setErrorMessage(e?.message);
+      setErrorVisible(true);
     }
   };
 
   const markAllAsRead = async () => {
+    const previous = notifications;
     try {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
-    } catch (e) {
+    } catch (e: any) {
       debugLog('Error marking all as read', e);
+      setNotifications(previous);
+      setErrorStatus(e?.status ?? e?.response?.status ?? 500);
+      setErrorMessage(e?.message);
+      setErrorVisible(true);
     }
   };
 
@@ -276,6 +297,8 @@ export default function NotificationsScreen() {
         style={[styles.notificationRow, !notif.isRead ? styles.notificationRowUnread : styles.notificationRowRead]}
         onPress={() => handleNotificationPress(notif)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}. ${body}`}
       >
         <View style={[styles.iconCircle, { backgroundColor: iconConfig.bg }]}>
           <Feather name={iconConfig.name} size={20} color={iconConfig.color} />
@@ -299,13 +322,30 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('notificationsTitle')}</Text>
         <TouchableOpacity onPress={markAllAsRead} disabled={unreadCount === 0}>
           <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>{t('notificationsMarkAll')}</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.bannerContainer}>
+        <GermanErrorBanner
+          visible={errorVisible}
+          statusCode={errorStatus}
+          message={errorMessage}
+          actionLabel={t('appointmentsRetry')}
+          onAction={() => {
+            void loadNotifications(1, true);
+          }}
+        />
       </View>
 
       {isLoading ? (
@@ -363,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     backgroundColor: colors.warmBackground
   },
@@ -371,6 +411,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
   readAllText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
   readAllTextDisabled: { color: colors.borderStrong },
+  bannerContainer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
 
   listContent: { paddingBottom: spacing.xl2 },
 
@@ -384,7 +425,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
     backgroundColor: colors.background,
   },
@@ -414,14 +455,14 @@ const styles = StyleSheet.create({
   },
   notificationRowRead: {
     backgroundColor: colors.background,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.border,
   },
   notificationRowUnread: {
     backgroundColor: colors.coralTint,
-    borderLeftWidth: 3,
+    borderLeftWidth: spacing.xxs - spacing.unit,
     borderLeftColor: colors.coral,
-    paddingLeft: spacing.md - 3,
+    paddingLeft: spacing.md - (spacing.xxs - spacing.unit),
   },
 
   iconCircle: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },

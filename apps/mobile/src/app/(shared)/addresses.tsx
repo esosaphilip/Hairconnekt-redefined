@@ -20,7 +20,10 @@ interface Address {
 
 export default function AddressesScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const backLabel = t('back');
+  const addLabel = t('addressesAdd');
+  const closeLabel = t('close');
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -176,11 +179,11 @@ export default function AddressesScreen() {
           )}
         </View>
         <View style={styles.actionsRow}>
-          <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
-            <Feather name="edit-2" size={18} color={colors.teal} />
+          <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={`${t('edit')}: ${item.label}`}>
+            <Feather name="edit-2" size={fontSizes.lg} color={colors.teal} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeletePress(item.id)} style={[styles.iconButton, { marginLeft: spacing.sm }]}>
-            <Feather name="trash-2" size={18} color={colors.error} />
+          <TouchableOpacity onPress={() => handleDeletePress(item.id)} style={[styles.iconButton, { marginLeft: spacing.sm }]} accessibilityRole="button" accessibilityLabel={`${t('delete')}: ${item.label}`}>
+            <Feather name="trash-2" size={fontSizes.lg} color={colors.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -204,7 +207,7 @@ export default function AddressesScreen() {
     );
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="map-pin" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
+        <Feather name="map-pin" size={spacing.xxxl} color={colors.borderStrong} style={{ marginBottom: spacing.md }} />
         <Text style={styles.emptyTitle}>{t('addressesEmpty')}</Text>
         <Text style={styles.emptySub}>{t('addressesEmptySub')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={handleAddPress}>
@@ -217,11 +220,11 @@ export default function AddressesScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel={backLabel}>
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('addressesTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       {listErrorVisible && !isLoading && (
@@ -247,8 +250,8 @@ export default function AddressesScreen() {
       )}
 
       {addresses.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleAddPress}>
-          <Feather name="plus" size={24} color={colors.background} />
+        <TouchableOpacity style={styles.fab} onPress={handleAddPress} accessibilityRole="button" accessibilityLabel={addLabel}>
+          <Feather name="plus" size={fontSizes.xxl} color={colors.background} />
         </TouchableOpacity>
       )}
 
@@ -266,8 +269,8 @@ export default function AddressesScreen() {
         >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingId ? t('addressesEdit') : t('addressesAdd')}</Text>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
-              <Feather name="x" size={24} color={colors.primary} />
+            <TouchableOpacity onPress={() => setShowModal(false)} accessibilityRole="button" accessibilityLabel={closeLabel}>
+              <Feather name="x" size={fontSizes.xxl} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -386,7 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center' },
@@ -400,7 +403,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadows.card,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.surfaceAlt,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
@@ -443,7 +446,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: spacing.lg,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   modalTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
@@ -468,7 +471,7 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md },
   switchLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
 
-  modalFooter: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? layout.iconButton : spacing.lg },
+  modalFooter: { padding: spacing.lg, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: Platform.OS === 'ios' ? layout.iconButton : spacing.lg },
   saveButton: { backgroundColor: colors.coral, paddingVertical: spacing.md, borderRadius: borderRadius.lg, alignItems: 'center' },
   saveButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
 });

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { colors, fonts, spacing, borderRadius, shadows } from '../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { useFavourites } from '../../contexts/FavouritesContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
@@ -93,7 +93,7 @@ export default function FavouritesScreen() {
               );
             }}
           >
-            <FontAwesome name="heart" size={16} color={colors.coral} />
+            <FontAwesome name="heart" size={fontSizes.md} color={colors.coral} />
           </TouchableOpacity>
         </View>
 
@@ -101,7 +101,7 @@ export default function FavouritesScreen() {
           <Text style={styles.providerName} numberOfLines={1}>{item.businessName || `${item.firstName} ${item.lastName}`}</Text>
           
           <View style={styles.ratingRow}>
-            <FontAwesome name="star" size={12} color={colors.gold} />
+            <FontAwesome name="star" size={fontSizes.xs} color={colors.gold} />
             <Text style={styles.ratingText}>{item.avgRating.toFixed(1)}</Text>
             <Text style={styles.reviewCount}>({item.totalReviews})</Text>
           </View>
@@ -116,11 +116,16 @@ export default function FavouritesScreen() {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.primary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('favouritesTitle')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
       </SafeAreaView>
@@ -131,16 +136,21 @@ export default function FavouritesScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('favouritesTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       {favourites.length === 0 ? (
         <View style={styles.emptyStateContainer}>
-          <Feather name="heart" size={64} color={colors.borderStrong} style={{ marginBottom: spacing.lg }} />
+          <Feather name="heart" size={spacing.xxxl} color={colors.borderStrong} style={{ marginBottom: spacing.lg }} />
           <Text style={styles.emptyStateTitle}>{t('favouritesEmpty')}</Text>
           <Text style={styles.emptyStateSubtitle}>{t('favouritesEmptySub')}</Text>
           <TouchableOpacity 
@@ -167,31 +177,31 @@ export default function FavouritesScreen() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: 60, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backButton: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
+  backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
+  headerTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: fontSizes.xl, color: colors.primary },
   
   listContainer: { paddingHorizontal: spacing.md, paddingVertical: spacing.md, paddingBottom: spacing.xl2 },
   rowGap: { gap: spacing.sm, marginBottom: spacing.sm },
   
-  card: { flex: 1, backgroundColor: colors.surface, borderRadius: 16, ...shadows.card, overflow: 'hidden' },
-  imageContainer: { width: '100%', height: 120, position: 'relative' },
+  card: { flex: 1, backgroundColor: colors.surface, borderRadius: borderRadius.md, ...shadows.card, overflow: 'hidden' },
+  imageContainer: { width: '100%', height: layout.avatarXl, position: 'relative' },
   cardImage: { width: '100%', height: '100%' },
   imagePlaceholder: { backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
-  imagePlaceholderText: { fontFamily: fonts.bodyBold, fontSize: 32, color: colors.textSecondary },
+  imagePlaceholderText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.hero, color: colors.textSecondary },
   
-  heartButton: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255, 255, 255, 0.8)', justifyContent: 'center', alignItems: 'center' },
+  heartButton: { position: 'absolute', top: spacing.xs, right: spacing.xs, width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: 'rgba(255, 255, 255, 0.8)', justifyContent: 'center', alignItems: 'center' },
   
   cardContent: { padding: spacing.sm },
-  providerName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.textPrimary, marginBottom: spacing.xxs },
+  providerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxs },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, marginBottom: spacing.xxs },
-  ratingText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.gold },
-  reviewCount: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textTertiary },
-  priceText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary },
+  ratingText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.gold },
+  reviewCount: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary },
+  priceText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
 
   emptyStateContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xl },
-  emptyStateTitle: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textMuted, marginBottom: spacing.xxs },
-  emptyStateSubtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
-  primaryButton: { backgroundColor: colors.primary, height: 50, borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: 300 },
-  primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.surface }
+  emptyStateTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textMuted, marginBottom: spacing.xxs },
+  emptyStateSubtitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
+  primaryButton: { backgroundColor: colors.primary, height: layout.inputHeightMd, borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: 300 },
+  primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface }
 });

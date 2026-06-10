@@ -12,15 +12,61 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
 
+type PickedImageAsset = {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+};
+
+const inferMimeType = (uri: string): string => {
+  const normalized = uri.toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  return 'image/jpeg';
+};
+
+const inferFileName = (uri: string, fallback: string): string => {
+  const candidate = uri.split('?')[0]?.split('/').pop();
+  return candidate && candidate.includes('.') ? candidate : fallback;
+};
+
+const LANGUAGE_CODE_MAP = {
+  de: 'de',
+  en: 'en',
+  fr: 'fr',
+  ar: 'ar',
+  tr: 'tr',
+  ha: 'ha',
+  yo: 'yo',
+  ig: 'ig',
+  Deutsch: 'de',
+  Englisch: 'en',
+  Französisch: 'fr',
+  Arabisch: 'ar',
+  Türkisch: 'tr',
+  Hausa: 'ha',
+  Yoruba: 'yo',
+  Igbo: 'ig',
+} as const;
+
+const normalizeLanguageValue = (value: string): string =>
+  LANGUAGE_CODE_MAP[value as keyof typeof LANGUAGE_CODE_MAP] ?? value;
+
+const normalizeLanguages = (values: string[] | undefined): string[] => {
+  const normalized = (values ?? []).map(normalizeLanguageValue);
+  return Array.from(new Set(normalized));
+};
+
 const AVAILABLE_LANGUAGES = [
-  { value: 'Deutsch', labelKey: 'languageGerman' },
-  { value: 'Englisch', labelKey: 'languageEnglish' },
-  { value: 'Französisch', labelKey: 'languageFrench' },
-  { value: 'Arabisch', labelKey: 'languageArabic' },
-  { value: 'Türkisch', labelKey: 'languageTurkish' },
-  { value: 'Hausa', labelKey: 'languageHausa' },
-  { value: 'Yoruba', labelKey: 'languageYoruba' },
-  { value: 'Igbo', labelKey: 'languageIgbo' },
+  { value: 'de', labelKey: 'languageGerman' },
+  { value: 'en', labelKey: 'languageEnglish' },
+  { value: 'fr', labelKey: 'languageFrench' },
+  { value: 'ar', labelKey: 'languageArabic' },
+  { value: 'tr', labelKey: 'languageTurkish' },
+  { value: 'ha', labelKey: 'languageHausa' },
+  { value: 'yo', labelKey: 'languageYoruba' },
+  { value: 'ig', labelKey: 'languageIgbo' },
 ];
 
 type CancellationPolicy = '24h' | '48h' | '72h';
@@ -58,7 +104,7 @@ export default function EditProfileScreen() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   const [errorAction, setErrorAction] = useState<'load' | 'save' | 'avatar'>('load');
-  const [lastAvatarUploadUri, setLastAvatarUploadUri] = useState<string | null>(null);
+  const [lastAvatarUploadUri, setLastAvatarUploadUri] = useState<PickedImageAsset | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -78,7 +124,7 @@ export default function EditProfileScreen() {
         postalCode: data.postalCode || '',
         city: data.city || '',
         cancellationPolicy: (data.cancellationPolicy as CancellationPolicy) || '24h',
-        languages: data.languages || [],
+        languages: normalizeLanguages(data.languages),
         serviceRadius: data.serviceRadius || 15,
       });
       if (data.avatarUrl) {
@@ -129,7 +175,7 @@ export default function EditProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        uploadAvatar(result.assets[0].uri);
+        uploadAvatar(result.assets[0]);
       }
     } catch (error) {
       debugError('Provider avatar selection failed', error);
@@ -138,21 +184,22 @@ export default function EditProfileScreen() {
     }
   };
 
-  const uploadAvatar = async (uri: string) => {
+  const uploadAvatar = async (asset: PickedImageAsset) => {
     try {
       setIsUploadingAvatar(true);
       setErrorVisible(false);
-      setLastAvatarUploadUri(uri);
+      setLastAvatarUploadUri(asset);
       
       // Optimistically show it
-      setAvatarUri(uri);
+      setAvatarUri(asset.uri);
 
       const formData = new FormData();
+      const uri = asset.uri;
       
       formData.append('avatar', {
         uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
+        type: asset.mimeType || inferMimeType(uri),
+        name: asset.fileName || inferFileName(uri, 'avatar.jpg'),
       } as any);
 
       const response = await apiFetch('/providers/me/avatar', {
@@ -213,7 +260,12 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('providerEditTitle')}</Text>
@@ -237,7 +289,13 @@ export default function EditProfileScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.avatarSection}>
-            <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={pickAvatar}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('avatarPick')}
+            >
               {avatarUri ? (
                 <Image key={`avatar-${avatarVersion}`} source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
@@ -296,7 +354,7 @@ export default function EditProfileScreen() {
                 label={t('providerEditStreet')}
                 value={form.street}
                 onChangeText={(val) => setForm({ ...form, street: val })}
-                placeholder="Musterstr."
+                placeholder={t('providerEditStreet')}
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => houseNumberRef.current?.focus()}
@@ -451,7 +509,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
   },
   headerButton: { minWidth: layout.headerHeight, height: layout.iconButton, justifyContent: 'center' },
@@ -483,8 +541,8 @@ const styles = StyleSheet.create({
   },
   cameraIconContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: spacing.none,
+    right: spacing.none,
     width: layout.buttonHeightSm,
     height: layout.buttonHeightSm,
     borderRadius: borderRadius.lg - borderRadius.xs,
@@ -509,7 +567,7 @@ const styles = StyleSheet.create({
   },
   charCount: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xxs },
 
-  slider: { width: '100%', height: 40 },
+  slider: { width: '100%', height: layout.iconButton },
 
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
@@ -517,7 +575,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.s,
     borderRadius: borderRadius.pill,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: 'transparent',
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -529,7 +587,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.border,
     ...shadows.card,
   },
@@ -541,7 +599,7 @@ const styles = StyleSheet.create({
     width: spacing.lg,
     height: spacing.lg,
     borderRadius: borderRadius.sm,
-    borderWidth: 2,
+    borderWidth: spacing.xxxs,
     borderColor: colors.borderStrong,
     justifyContent: 'center',
     alignItems: 'center',
@@ -554,7 +612,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
+    borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
   },
   rowInputs: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm }

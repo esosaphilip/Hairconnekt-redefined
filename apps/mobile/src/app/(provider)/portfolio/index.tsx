@@ -117,9 +117,11 @@ export default function PortfolioScreen() {
         <TouchableOpacity 
           style={styles.deleteButton} 
           onPress={() => handleDelete(item.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t('portfolioDeleteTitle')}
           activeOpacity={0.8}
         >
-          <Feather name="x" size={16} color={colors.error} />
+          <Feather name="x" size={fontSizes.md} color={colors.error} />
         </TouchableOpacity>
       </View>
     );
@@ -137,25 +139,35 @@ export default function PortfolioScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.primary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Portfolio</Text>
-        <TouchableOpacity onPress={() => router.push('/(provider)/portfolio/upload')} style={styles.headerAction}>
-          <Feather name="camera" size={24} color={colors.coral} />
+        <Text style={styles.headerTitle}>{t('providerPortfolio')}</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/(provider)/portfolio/upload')}
+          style={styles.headerAction}
+          accessibilityRole="button"
+          accessibilityLabel={t('portfolioUploadTitle')}
+        >
+          <Feather name="camera" size={fontSizes.xxl} color={colors.coral} />
         </TouchableOpacity>
       </View>
 
       {images.length === 0 && !loading ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
-            <Feather name="camera" size={48} color={colors.primaryLight} />
+            <Feather name="camera" size={spacing.xxl} color={colors.primaryLight} />
           </View>
-          <Text style={styles.emptyTitle}>Noch keine Portfolio-Fotos</Text>
-          <Text style={styles.emptySub}>Zeige deine Arbeit und gewinne mehr Kunden</Text>
+          <Text style={styles.emptyTitle}>{t('profileNoPhotos')}</Text>
+          <Text style={styles.emptySub}>{t('portfolioEmptySub')}</Text>
           <View style={{ width: '100%', paddingHorizontal: spacing.xl }}>
             <PrimaryButton 
-              label="Foto hochladen" 
+              label={t('portfolioUploadTitle')} 
               onPress={() => router.push('/(provider)/portfolio/upload')}
             />
           </View>
@@ -185,7 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
   },

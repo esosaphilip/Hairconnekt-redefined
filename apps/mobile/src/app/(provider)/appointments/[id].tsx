@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
@@ -57,12 +57,6 @@ export default function ProviderAppointmentDetailScreen() {
   const [booking, setBooking] = useState<ProviderAppointment | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
-
-  useEffect(() => {
-    if (bookingId) {
-      fetchBookingDetails();
-    }
-  }, [bookingId]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -210,11 +204,15 @@ export default function ProviderAppointmentDetailScreen() {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('providerAppointmentDetailsTitle')}</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: layout.iconButton }} />
         </View>
         <View style={styles.loadingContainer}>
           <Text style={{ fontFamily: fonts.body, color: colors.textSecondary }}>{t('providerAppointmentNotFound')}</Text>
@@ -226,11 +224,15 @@ export default function ProviderAppointmentDetailScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('providerAppointmentDetailsTitle')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: layout.iconButton }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -408,7 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
   },
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
   scrollContainer: { padding: spacing.lg, paddingBottom: spacing.xxxxxl },
 
   topInfo: { alignItems: 'center', marginBottom: spacing.xl },
-  statusChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xxs + spacing.xxxs, borderRadius: 20, marginBottom: spacing.sm },
+  statusChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xxs + spacing.xxxs, borderRadius: borderRadius.pill, marginBottom: spacing.sm },
   statusChipText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.background },
   bookingNumber: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
@@ -431,8 +433,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md },
 
   clientHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  clientAvatarRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
-  clientAvatar: { width: 60, height: 60, borderRadius: 30 },
+  clientAvatarRing: { width: layout.avatarMd, height: layout.avatarMd, borderRadius: layout.iconButton - spacing.xxxs, borderWidth: spacing.xxxs, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  clientAvatar: { width: layout.headerHeight, height: layout.headerHeight, borderRadius: layout.iconButton - spacing.unit, },
   clientInfo: { flex: 1 },
   clientName: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxs },
   clientCity: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
@@ -448,24 +450,24 @@ const styles = StyleSheet.create({
   infoLabel: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   infoValue: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  divider: { height: spacing.unit, backgroundColor: colors.border, marginVertical: spacing.md },
   
   boldGreenText: { fontFamily: fonts.bodyBold, color: colors.green },
   
   paymentMethodRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
-  orangeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.orange, marginRight: spacing.xs },
+  orangeDot: { width: spacing.xs, height: spacing.xs, borderRadius: borderRadius.sm - spacing.xxs, backgroundColor: colors.orange, marginRight: spacing.xs },
   paymentMethodText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
-  actionButton: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
+  actionButton: { height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   actionButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.background },
 
   declineButton: {
-    height: 56,
-    borderRadius: 16,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: spacing.unit,
     borderColor: colors.error,
   },
   declineButtonText: {

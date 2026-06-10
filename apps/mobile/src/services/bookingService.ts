@@ -116,6 +116,7 @@ export class BookingService {
         return colors.warningIcon;
       case 'completed':
         return colors.textSecondary;
+      case 'no_show':
       case 'cancelled':
         return colors.error;
       default:
@@ -134,6 +135,8 @@ export class BookingService {
         return { bg: colors.green, text: 'Aktiv' };
       case 'completed':
         return { bg: colors.textSecondary, text: 'Abgeschlossen' };
+      case 'no_show':
+        return { bg: colors.error, text: 'Nicht erschienen' };
       case 'cancelled':
         return { bg: colors.error, text: 'Abgesagt' };
       default:

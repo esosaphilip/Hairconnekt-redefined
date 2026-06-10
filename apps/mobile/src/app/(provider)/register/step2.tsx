@@ -57,11 +57,16 @@ export default function RegisterStep2Screen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.progressText}>{t('providerRegisterProgress').replace('{step}', '2').replace('{total}', '5')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: fontSizes.xxl }} />
       </View>
       
       <View style={styles.progressBar}>
@@ -200,7 +205,7 @@ const styles = StyleSheet.create({
   progressText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary },
   
   progressBar: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.xxs, marginBottom: spacing.md },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  progressSegment: { flex: 1, height: spacing.xxs, borderRadius: borderRadius.xs, backgroundColor: colors.border },
   progressActive: { backgroundColor: colors.coral },
   
   scrollContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
@@ -212,7 +217,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xs },
   input: {
     fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong,
+    backgroundColor: colors.surface, borderWidth: spacing.unit, borderColor: colors.borderStrong,
     borderRadius: borderRadius.md, height: layout.inputHeight, paddingHorizontal: spacing.md,
   },
   inputError: { borderColor: colors.error },
@@ -221,5 +226,5 @@ const styles = StyleSheet.create({
   radiusText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary, marginBottom: spacing.xs },
   slider: { width: '100%', height: layout.inputHeight },
   
-  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

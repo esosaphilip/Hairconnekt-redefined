@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../../../theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
@@ -137,6 +137,11 @@ export default function ProviderProfile() {
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl : null;
   const providerId = id as string;
   const isFav = Boolean(providerId) && isFavourite(providerId);
+  const backLabel = t('back');
+  const shareLabel = t('shareProfileAction');
+  const favouriteLabel = isFav
+    ? t('favouritesRemoveAction')
+    : t('favouritesAddAction');
 
   if (isLoading) {
     return (
@@ -148,9 +153,26 @@ export default function ProviderProfile() {
 
   if (!provider) {
     return (
-      <View style={styles.loadingContainer}>
-        <GermanErrorBanner visible={errorVisible} message={errorMessage} />
-      </View>
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.errorHeader}>
+          <TouchableOpacity
+            style={styles.errorHeaderButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+          >
+            <Feather name="arrow-left" size={fontSizes.xxl} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.errorHeaderTitle}>{t('providerProfile')}</Text>
+          <View style={styles.errorHeaderButton} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+          <TouchableOpacity style={styles.retryFallbackButton} onPress={fetchData}>
+            <Text style={styles.retryFallbackText}>{t('appointmentsRetry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -195,18 +217,27 @@ export default function ProviderProfile() {
             <Image source={{ uri: coverImage }} style={styles.heroImage} />
           ) : (
             <View style={styles.heroImagePlaceholder}>
-              <Feather name="image" size={40} color={colors.textTertiary} />
+              <Feather name="image" size={layout.iconButton} color={colors.textTertiary} />
             </View>
           )}
 
           {/* Top Controls Overlay */}
           <View style={styles.heroControls}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-              <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel={backLabel}
+            >
+              <Feather name="arrow-left" size={fontSizes.xxl} color={colors.textPrimary} />
             </TouchableOpacity>
             <View style={styles.heroControlsRight}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Feather name="share-2" size={20} color={colors.textPrimary} />
+              <TouchableOpacity
+                style={styles.iconButton}
+                accessibilityRole="button"
+                accessibilityLabel={shareLabel}
+              >
+                <Feather name="share-2" size={fontSizes.xl} color={colors.textPrimary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconButton, { marginLeft: spacing.sm }]}
@@ -214,8 +245,10 @@ export default function ProviderProfile() {
                   if (!providerId) return;
                   void toggleFavourite(providerId);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={favouriteLabel}
               >
-                <FontAwesome5 name="heart" solid={isFav} size={20} color={isFav ? colors.coral : colors.textPrimary} />
+                <FontAwesome5 name="heart" solid={isFav} size={fontSizes.xl} color={isFav ? colors.coral : colors.textPrimary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -236,11 +269,11 @@ export default function ProviderProfile() {
         <View style={styles.infoSection}>
           <Text style={styles.businessName}>{provider.businessName}</Text>
           <View style={styles.statsRow}>
-            <FontAwesome5 name="star" solid size={14} color={colors.gold} />
+            <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
             <Text style={styles.statsText}>{avgRating} ({totalReviews} {t('profileTabReviews')})</Text>
           </View>
           <View style={styles.locationRow}>
-            <Feather name="map-pin" size={14} color={colors.textSecondary} />
+            <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
             <Text style={styles.locationText}>{provider.city || t('countryDefault')} {distance ? `• ${distance}` : ''}</Text>
           </View>
         </View>
@@ -277,20 +310,20 @@ export default function ProviderProfile() {
 
               <Text style={styles.sectionHeader}>{t('profileInfo')}</Text>
               <View style={styles.infoRow}>
-                <Feather name="map-pin" size={16} color={colors.textSecondary} />
+                <Feather name="map-pin" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{provider.city || t('countryDefault')}</Text>
               </View>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="star" solid size={14} color={colors.gold} />
+                <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
                 <Text style={styles.infoText}>{avgRating} ({totalReviews} {t('profileTabReviews')})</Text>
               </View>
               <View style={styles.infoRow}>
-                <Feather name="clock" size={16} color={colors.textSecondary} />
+                <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
               {provider.isVerified && (
                 <View style={styles.infoRow}>
-                  <Feather name="check-circle" size={16} color={colors.teal} />
+                  <Feather name="check-circle" size={fontSizes.md} color={colors.teal} />
                   <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
                 </View>
               )}
@@ -346,7 +379,7 @@ export default function ProviderProfile() {
               <View style={styles.overallRatingBox}>
                 <Text style={styles.overallRatingNumber}>{avgRating}</Text>
                 <View style={styles.overallStars}>
-                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={16} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
+                  {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={fontSizes.md} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
                 <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('profileTabReviews')}</Text>
               </View>
@@ -363,7 +396,7 @@ export default function ProviderProfile() {
                       </View>
                       <View style={styles.reviewerInfo}>
                         <Text style={styles.reviewerName}>{item.clientName || t('clientNameDefault')}</Text>
-                        <View style={{flexDirection: 'row'}}>{[...Array(item.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={10} color={colors.gold} />)}</View>
+                        <View style={{flexDirection: 'row'}}>{[...Array(item.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={fontSizes.xxs} color={colors.gold} />)}</View>
                       </View>
                       <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : ''}</Text>
                     </View>
@@ -405,36 +438,55 @@ export default function ProviderProfile() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-  heroContainer: { height: 220, position: 'relative', marginBottom: spacing.xxl + spacing.xxxs },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: spacing.unit,
+    borderBottomColor: colors.border,
+  },
+  errorHeaderButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'center' },
+  errorHeaderTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
+  retryFallbackButton: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  retryFallbackText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
+  heroContainer: { height: layout.heroHeight, position: 'relative', marginBottom: spacing.xxl + spacing.xxxs },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroImagePlaceholder: { width: '100%', height: '100%', backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  heroControls: { position: 'absolute', top: 60, left: spacing.lg, right: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' },
-  iconButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
+  heroControls: { position: 'absolute', top: layout.headerHeight, left: spacing.lg, right: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' },
+  iconButton: { width: layout.iconButton, height: layout.iconButton, borderRadius: borderRadius.pill, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   heroControlsRight: { flexDirection: 'row' },
-  avatarWrapper: { position: 'absolute', bottom: -48, alignSelf: 'center', width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.gold, backgroundColor: colors.surface, padding: spacing.xxxs, ...shadows.card },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 44 },
+  avatarWrapper: { position: 'absolute', bottom: -spacing.xxl, alignSelf: 'center', width: layout.avatarLg, height: layout.avatarLg, borderRadius: layout.avatarMd - spacing.xs, borderWidth: spacing.xxs, borderColor: colors.gold, backgroundColor: colors.surface, padding: spacing.xxxs, ...shadows.card },
+  avatarImage: { width: '100%', height: '100%', borderRadius: layout.avatarMd - spacing.lg },
   avatarPlaceholder: { backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: fonts.heading, fontSize: 32, color: colors.primary },
+  avatarText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
   
   infoSection: { alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
-  businessName: { fontFamily: fonts.heading, fontSize: 24, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
+  businessName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   locationText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
 
-  tabsScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabsScroll: { flexGrow: 0, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   tabsContainer: { paddingHorizontal: spacing.lg, gap: spacing.md },
-  tabButton: { paddingBottom: spacing.sm, paddingHorizontal: spacing.sm, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabButton: { paddingBottom: spacing.sm, paddingHorizontal: spacing.sm, borderBottomWidth: spacing.xxxs, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: colors.primary },
   tabText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textSecondary },
   tabTextActive: { color: colors.primary, fontFamily: fonts.bodyBold },
   
   tabContentContainer: { padding: spacing.lg },
-  bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: 22, marginBottom: spacing.xl },
+  bioText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, lineHeight: spacing.lg - spacing.xxxs, marginBottom: spacing.xl },
   sectionHeader: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.md },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.xl },
-  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  tagChip: { backgroundColor: colors.surface, borderRadius: borderRadius.sm, paddingVertical: spacing.xxs + spacing.xxxs, paddingHorizontal: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm, borderWidth: spacing.unit, borderColor: colors.border },
   tagText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
@@ -453,28 +505,28 @@ const styles = StyleSheet.create({
   galleryImage: { width: '100%', height: '100%', resizeMode: 'cover' },
 
   overallRatingBox: { alignItems: 'center', backgroundColor: colors.surface, padding: spacing.xl, borderRadius: borderRadius.md, marginBottom: spacing.xl, ...shadows.card },
-  overallRatingNumber: { fontFamily: fonts.heading, fontSize: 48, color: colors.primary },
+  overallRatingNumber: { fontFamily: fonts.heading, fontSize: layout.inputHeight, color: colors.primary },
   overallStars: { flexDirection: 'row', marginBottom: spacing.sm },
   totalReviewsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   reviewCard: { backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  reviewerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  reviewerAvatar: { width: layout.iconButton, height: layout.iconButton, borderRadius: borderRadius.pill, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   reviewerAvatarText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textSecondary },
   reviewerInfo: { flex: 1 },
   reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
-  reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
+  reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: spacing.l },
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 
-  stickyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs },
+  stickyFooter: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs },
   footerPriceBlock: { marginRight: spacing.lg },
   footerPriceLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   footerPriceValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
   footerButtons: { flex: 1, flexDirection: 'row', gap: spacing.sm },
-  messageBtn: { flex: 1, borderWidth: 1, borderColor: colors.primary, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: 48 },
+  messageBtn: { flex: 1, borderWidth: spacing.unit, borderColor: colors.primary, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight },
   messageBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
-  bookBtn: { flex: 1.5, backgroundColor: colors.coral, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: 48 },
+  bookBtn: { flex: 1.5, backgroundColor: colors.coral, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight },
   bookBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.surface }
 });

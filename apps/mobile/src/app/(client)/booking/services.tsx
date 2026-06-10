@@ -155,7 +155,12 @@ export default function ClientBookingServices() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
           <Feather name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bookingSelectService')}</Text>
@@ -215,7 +220,7 @@ export default function ClientBookingServices() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary },
   
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xxxxxl },
   sectionTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.sm },
   
-  serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border },
+  serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, borderWidth: spacing.unit, borderColor: colors.border },
   serviceCardSelected: { borderColor: colors.coral },
   serviceInfo: { flex: 1, paddingRight: spacing.sm },
   serviceName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.xxs },
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
   selectBtnText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
   selectBtnTextSelected: { color: colors.surface },
   
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs, ...shadows.card },
+  footer: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs, ...shadows.card },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerSummaryText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxxs },
   footerTotalText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },

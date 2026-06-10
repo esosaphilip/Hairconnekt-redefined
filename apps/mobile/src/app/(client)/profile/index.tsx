@@ -143,10 +143,15 @@ export default function ClientProfileScreen() {
     <SafeAreaView style={styles.safeContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 40 }} />
+        <View style={{ width: layout.iconButton }} />
         <Text style={styles.headerTitle}>{t('clientProfileTitle')}</Text>
-        <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/(shared)/settings' as any)}>
-          <Feather name="settings" size={24} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => router.push('/(shared)/settings' as any)}
+          accessibilityRole="button"
+          accessibilityLabel={t('settingsTitle')}
+        >
+          <Feather name="settings" size={fontSizes.xxl} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -171,7 +176,7 @@ export default function ClientProfileScreen() {
               </View>
             )}
             <View style={styles.cameraIconContainer}>
-              <Feather name="camera" size={16} color={colors.surface} />
+              <Feather name="camera" size={fontSizes.md} color={colors.surface} />
             </View>
           </TouchableOpacity>
 
@@ -217,7 +222,7 @@ export default function ClientProfileScreen() {
         {/* Provider Mode Card */}
         <TouchableOpacity style={styles.providerCard} onPress={handleProviderSwitch}>
           <View style={styles.providerEmojiCircle}>
-            <Text style={{ fontSize: 24 }}>💇</Text>
+            <Text style={{ fontSize: fontSizes.xxl }}>💇</Text>
           </View>
           <Text style={styles.providerCardText}>{t('clientProfileSwitchMode')}</Text>
         </TouchableOpacity>
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { width: layout.avatarXl - spacing.xxs, height: layout.avatarXl - spacing.xxs, borderRadius: layout.buttonHeight + borderRadius.xs - spacing.unit, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: spacing.xl2, color: colors.textSecondary },
   avatarLoader: { width: layout.avatarXl - spacing.xxs, height: layout.avatarXl - spacing.xxs, borderRadius: layout.buttonHeight + borderRadius.xs - spacing.unit, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' },
-  cameraIconContainer: { position: 'absolute', bottom: 0, right: 0, width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: spacing.xxxs, borderColor: colors.surface },
+  cameraIconContainer: { position: 'absolute', bottom: spacing.none, right: spacing.none, width: spacing.xl, height: spacing.xl, borderRadius: borderRadius.md, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: spacing.xxxs, borderColor: colors.surface },
   
   fullName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xxs },
   contactText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xxxs },
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
   badgeCount: { backgroundColor: colors.surfaceCard, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs },
   badgeCountText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textSecondary },
 
-  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.tealLight, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.teal, marginBottom: spacing.xl },
+  providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.tealLight, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: spacing.unit, borderColor: colors.teal, marginBottom: spacing.xl },
   providerEmojiCircle: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, ...shadows.card },
   providerCardText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.teal, flex: 1 },
 
