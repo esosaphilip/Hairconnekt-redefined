@@ -9,7 +9,7 @@ import { apiJson } from '@/services/apiClient';
 import { GermanErrorBanner } from '@/components/GermanErrorBanner';
 import { debugError } from '@/utils/logger';
 
-const DEFAULT_AVATAR = require('../../../assets/avatar-placeholder.png');
+const DEFAULT_AVATAR = require('../../../assets/avatar-placeholder.jpg');
 
 type BookingConfirmationService = {
   id: string;
