@@ -36,8 +36,9 @@ const baseConfig: ExpoConfig = {
       'android.permission.READ_MEDIA_IMAGES',
     ],
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/android-icon-foreground.png',
       backgroundColor: '#FFFFFF',
+      monochromeImage: './assets/android-icon-monochrome.png',
     },
     intentFilters: [
       {
