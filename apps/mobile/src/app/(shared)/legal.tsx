@@ -6,6 +6,7 @@ import { WebView } from 'react-native-webview';
 import { colors, fonts, fontSizes, spacing, layout } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getSafeLegalUrl } from '@/utils/safe-navigation';
+import { LEGAL_URLS } from '@/constants';
 
 const normalizeParam = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] : v) ?? '';
 
@@ -23,6 +24,10 @@ export default function LegalScreen() {
 
   const headerTitle = title || t('settingsPrivacy');
   const openInBrowserLabel = t('legalOpenInBrowser').replace('{title}', headerTitle);
+  const allowedOrigins = useMemo(
+    () => new Set(Object.values(LEGAL_URLS).map((legalUrl) => new URL(legalUrl).origin)),
+    [],
+  );
 
   if (!url) {
     return (
@@ -47,7 +52,6 @@ export default function LegalScreen() {
     );
   }
 
-  const safeOrigin = new URL(url).origin;
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
@@ -78,7 +82,7 @@ export default function LegalScreen() {
           onShouldStartLoadWithRequest={(request) => {
             try {
               const nextUrl = new URL(request.url);
-              return nextUrl.protocol === 'https:' && nextUrl.origin === safeOrigin;
+              return nextUrl.protocol === 'https:' && allowedOrigins.has(nextUrl.origin);
             } catch {
               return false;
             }

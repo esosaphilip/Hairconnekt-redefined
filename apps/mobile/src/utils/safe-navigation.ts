@@ -1,6 +1,9 @@
 import { LEGAL_URLS } from '@/constants';
 
 const ALLOWED_LEGAL_URLS = new Set<string>(Object.values(LEGAL_URLS));
+const ALLOWED_LEGAL_ORIGINS = new Set<string>(
+  Object.values(LEGAL_URLS).map((url) => new URL(url).origin),
+);
 
 const NOTIFICATION_ROUTE_PATTERNS: RegExp[] = [
   /^\/\(provider\)\/$/,
@@ -21,7 +24,8 @@ export const getSafeLegalUrl = (
   try {
     const parsed = new URL(value);
     if (parsed.protocol !== 'https:') return null;
-    return ALLOWED_LEGAL_URLS.has(parsed.toString()) ? parsed.toString() : null;
+    if (ALLOWED_LEGAL_URLS.has(parsed.toString())) return parsed.toString();
+    return ALLOWED_LEGAL_ORIGINS.has(parsed.origin) ? parsed.toString() : null;
   } catch {
     return null;
   }
