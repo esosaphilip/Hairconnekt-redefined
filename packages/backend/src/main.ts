@@ -32,9 +32,9 @@ async function bootstrap() {
 
   setEnvAlias('R2_BUCKET_NAME', ['R2_BUCKET']);
   setEnvAlias('R2_PUBLIC_URL', ['R2_PUBLIC_BASE_URL']);
-  setEnvAlias('EMAIL_FROM', ['SENDGRID_FROM_EMAIL']);
-  setEnvAlias('SMTP_USER', ['SMTP_USERNAME']);
-  setEnvAlias('SMTP_PASS', ['SMTP_PASSWORD']);
+  setEnvAlias('SMTP_FROM', ['EMAIL_FROM', 'SENDGRID_FROM_EMAIL']);
+  setEnvAlias('EMAIL_FROM', ['SMTP_FROM', 'SENDGRID_FROM_EMAIL']);
+  setEnvAlias('SMTP_FROM_NAME', ['EMAIL_FROM_NAME']);
   if (
     (process.env.R2_ENDPOINT === undefined || process.env.R2_ENDPOINT.trim() === '') &&
     process.env.R2_ACCOUNT_ID !== undefined &&
@@ -61,11 +61,9 @@ async function bootstrap() {
     requireEnv('R2_SECRET_ACCESS_KEY');
     requireEnv('R2_BUCKET_NAME');
     requireEnv('R2_ENDPOINT');
-    requireEnv('SMTP_HOST');
-    requireEnv('SMTP_PORT');
-    requireEnv('SMTP_USER');
-    requireEnv('SMTP_PASS');
-    requireEnv('EMAIL_FROM');
+    requireEnv('BREVO_API_KEY');
+    requireEnv('SMTP_FROM');
+    requireEnv('SMTP_FROM_NAME');
   }
 
   if (

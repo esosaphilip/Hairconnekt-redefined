@@ -18,20 +18,9 @@ export class ErrorReporter {
 
   private isEnabled(): boolean {
     const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
-    const from = (process.env.EMAIL_FROM ?? process.env.SENDGRID_FROM_EMAIL)?.trim();
-    const host = process.env.SMTP_HOST?.trim();
-    const user = process.env.SMTP_USER?.trim();
-    const pass = process.env.SMTP_PASS?.trim();
-    const portRaw = process.env.SMTP_PORT?.trim();
-    const port = portRaw ? parseInt(portRaw, 10) : NaN;
-    return (
-      isProd &&
-      Boolean(from) &&
-      Boolean(host) &&
-      Boolean(user) &&
-      Boolean(pass) &&
-      Number.isFinite(port)
-    );
+    const apiKey = process.env.BREVO_API_KEY?.trim();
+    const from = (process.env.SMTP_FROM ?? process.env.EMAIL_FROM)?.trim();
+    return isProd && Boolean(apiKey) && Boolean(from);
   }
 
   private canSendNow(): boolean {
@@ -51,7 +40,7 @@ export class ErrorReporter {
     if (!this.isEnabled()) return;
     if (!this.canSendNow()) return;
 
-    const from = (process.env.EMAIL_FROM ?? process.env.SENDGRID_FROM_EMAIL)?.trim();
+    const from = (process.env.SMTP_FROM ?? process.env.EMAIL_FROM)?.trim();
     if (!from) return;
 
     try {
