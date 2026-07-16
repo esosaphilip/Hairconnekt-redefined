@@ -1,6 +1,6 @@
 # Secrets Rotation Runbook
 
-This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendGrid + JWT secrets) for production and staging.
+This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + Brevo + JWT secrets) for production and staging.
 
 ## 1) Neon / Postgres (Recommended)
 
@@ -67,21 +67,19 @@ This runbook is for rotating secrets safely (Neon/Postgres + Render + R2 + SendG
   - portfolio upload works
   - popular style image upload works
 
-## 4) Amazon SES (SMTP)
+## 4) Brevo Transactional Email
 
 ### Goal
 
-- Rotate Amazon SES SMTP credentials used for OTP/password reset emails.
+- Rotate the Brevo API key used for OTP/password reset emails.
 
 ### Steps
 
-- Create new SES SMTP credentials (in the same region as the backend, e.g. eu-central-1).
+- Create or rotate a Brevo API key in Settings -> SMTP & API -> API Keys.
 - Update Render env vars:
-  - `SMTP_HOST`
-  - `SMTP_PORT`
-  - `SMTP_USER`
-  - `SMTP_PASS`
-  - `EMAIL_FROM`
+  - `BREVO_API_KEY`
+  - `SMTP_FROM`
+  - `SMTP_FROM_NAME`
 - Redeploy.
 - Verify forgot-password flow sends email (production and staging as needed).
 

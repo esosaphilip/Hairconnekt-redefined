@@ -111,7 +111,7 @@ export class AuthService {
 
     await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
       this.logger.error(
-        'SendGrid email verification send failed',
+        'Verification email send failed',
         err instanceof Error ? err.message : undefined,
       );
     });

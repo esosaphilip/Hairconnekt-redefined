@@ -1,13 +1,14 @@
-import * as nodemailer from 'nodemailer';
+import { InternalServerErrorException, Logger } from '@nestjs/common';
+import { BrevoClient } from '@getbrevo/brevo';
 
-let transporter: nodemailer.Transporter | null = null;
+const logger = new Logger('EmailProvider');
+let brevoClient: BrevoClient | null = null;
+let configuredApiKey: string | null = null;
 
 type MailerConfig = {
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
-  from: string;
+  apiKey: string;
+  fromEmail: string;
+  fromName: string;
 };
 
 export type SendEmailParams = {
@@ -19,46 +20,54 @@ export type SendEmailParams = {
 };
 
 function getConfig(): MailerConfig | null {
-  const host = process.env.SMTP_HOST?.trim() ?? '';
-  const portRaw = process.env.SMTP_PORT?.trim() ?? '';
-  const port = portRaw ? parseInt(portRaw, 10) : NaN;
-  const user = process.env.SMTP_USER?.trim() ?? '';
-  const pass = process.env.SMTP_PASS?.trim() ?? '';
-  const from = (process.env.EMAIL_FROM ?? process.env.SENDGRID_FROM_EMAIL)?.trim() ?? '';
+  const apiKey = process.env.BREVO_API_KEY?.trim() ?? '';
+  const fromEmail = (process.env.SMTP_FROM ?? process.env.EMAIL_FROM)?.trim() ?? '';
+  const fromName = process.env.SMTP_FROM_NAME?.trim() ?? '';
 
-  if (!host || !Number.isFinite(port) || !user || !pass || !from) return null;
+  if (!apiKey || !fromEmail || !fromName) return null;
 
-  return { host, port, user, pass, from };
+  return { apiKey, fromEmail, fromName };
 }
 
-function getTransporter(config: MailerConfig): nodemailer.Transporter {
-  if (transporter) return transporter;
+function getBrevoClient(apiKey: string): BrevoClient {
+  if (brevoClient && configuredApiKey === apiKey) return brevoClient;
 
-  transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: { user: config.user, pass: config.pass },
-    requireTLS: config.port !== 465,
+  configuredApiKey = apiKey;
+  brevoClient = new BrevoClient({
+    apiKey,
+    timeoutInSeconds: 30,
+    maxRetries: 2,
   });
 
-  return transporter;
+  return brevoClient;
 }
 
 export async function sendEmail(params: SendEmailParams): Promise<void> {
   const config = getConfig();
-  if (!config) return;
+  if (!config) {
+    logger.warn('Transactional email skipped because Brevo email config is incomplete.');
+    return;
+  }
 
-  const transport = getTransporter(config);
-  const from = (params.from ?? config.from).trim();
-  if (!from) return;
+  const fromEmail = (params.from ?? config.fromEmail).trim();
+  if (!fromEmail) return;
 
-  await transport.sendMail({
-    to: params.to,
-    from,
-    subject: params.subject,
-    text: params.text,
-    html: params.html,
-  });
+  try {
+    await getBrevoClient(config.apiKey).transactionalEmails.sendTransacEmail({
+      sender: {
+        email: fromEmail,
+        name: config.fromName,
+      },
+      to: [{ email: params.to }],
+      subject: params.subject,
+      htmlContent: params.html,
+      textContent: params.text,
+    });
+  } catch (error) {
+    logger.error(
+      'Brevo transactional email send failed',
+      error instanceof Error ? error.stack ?? error.message : String(error),
+    );
+    throw new InternalServerErrorException('E-Mail konnte nicht gesendet werden.');
+  }
 }
-
