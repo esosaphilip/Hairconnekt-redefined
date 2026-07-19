@@ -17,9 +17,10 @@ import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
+import { AdminLoginThrottlerGuard } from './guards/admin-login-throttler.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   clearAdminSessionCookie,
@@ -41,6 +42,7 @@ export class AuthController {
    * Returns: AuthResponseDto (accessToken + refreshToken + user)
    */
   @Post('register')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
@@ -54,6 +56,7 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('login')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 15 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -66,28 +69,43 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('admin-login')
-  @UseGuards(IpThrottlerGuard)
-  @Throttle({ default: { limit: 20, ttl: 15 * 60 } })
+  @SkipThrottle()
+  @UseGuards(IpThrottlerGuard, AdminLoginThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 15 * 60 } })
   @HttpCode(HttpStatus.OK)
   async adminLogin(
     @Body() dto: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ user: AuthResponseDto['user'] }> {
-    const auth = await this.authService.adminLogin(dto);
-    setAdminSessionCookie(res, auth.accessToken);
-    await this.auditService.record({
-      actorUserId: auth.user.id,
-      actorRole: auth.user.role,
-      action: 'auth.admin.login',
-      targetType: 'session',
-      targetId: auth.user.id,
-      request: req,
-      metadata: {
-        identifier: dto.identifier,
-      },
-    });
-    return { user: auth.user };
+    try {
+      const auth = await this.authService.adminLogin(dto);
+      setAdminSessionCookie(res, auth.accessToken);
+      await this.auditService.record({
+        actorUserId: auth.user.id,
+        actorRole: auth.user.role,
+        action: 'auth.admin.login',
+        targetType: 'session',
+        targetId: auth.user.id,
+        request: req,
+        metadata: {
+          identifier: dto.identifier,
+        },
+      });
+      return { user: auth.user };
+    } catch (error) {
+      await this.auditService.record({
+        action: 'auth.admin.login',
+        targetType: 'session',
+        outcome: 'failure',
+        reason: error instanceof HttpException ? error.message : 'admin_login_failed',
+        request: req,
+        metadata: {
+          identifier: dto.identifier,
+        },
+      });
+      throw error;
+    }
   }
 
   @Get('admin-csrf')
@@ -129,6 +147,7 @@ export class AuthController {
    * Returns: AuthResponseDto
    */
   @Post('refresh')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 120, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -191,6 +210,7 @@ export class AuthController {
    * Sends OTP code to user's email. Returns generic message (no enumeration).
    */
   @Post('forgot-password')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -203,6 +223,7 @@ export class AuthController {
    * Validates the 6-digit OTP. Must be called before reset-password.
    */
   @Post('verify-otp')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -216,6 +237,7 @@ export class AuthController {
    * Returns: AuthResponseDto (auto-login after reset)
    */
   @Post('reset-password')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -224,6 +246,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
@@ -232,6 +255,7 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)

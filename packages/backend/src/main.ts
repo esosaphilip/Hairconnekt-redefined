@@ -13,6 +13,8 @@ import {
 } from './auth/admin-csrf';
 
 async function bootstrap() {
+  const isProduction = (process.env.NODE_ENV ?? 'development') === 'production';
+
   const setEnvAlias = (target: string, sources: string[]) => {
     const existing = process.env[target];
     if (existing !== undefined && existing.trim() !== '') return;
@@ -51,7 +53,7 @@ async function bootstrap() {
     return value;
   };
 
-  if ((process.env.NODE_ENV ?? 'development') === 'production') {
+  if (isProduction) {
     requireEnv('DATABASE_URL');
     requireEnv('JWT_ACCESS_SECRET');
     requireEnv('JWT_REFRESH_SECRET');
@@ -66,10 +68,7 @@ async function bootstrap() {
     requireEnv('SMTP_FROM_NAME');
   }
 
-  if (
-    (process.env.NODE_ENV ?? 'development') === 'production' &&
-    process.env.OTP_DEV_MODE === 'true'
-  ) {
+  if (isProduction && process.env.OTP_DEV_MODE === 'true') {
     throw new Error('OTP_DEV_MODE must be disabled in production');
   }
 
@@ -105,7 +104,7 @@ async function bootstrap() {
     (req as any).requestId = requestId;
     res.setHeader('x-request-id', requestId);
 
-    if ((process.env.NODE_ENV ?? 'development') === 'production') {
+    if (isProduction) {
       const startMs = Date.now();
       res.on('finish', () => {
         const ms = Date.now() - startMs;
@@ -136,27 +135,31 @@ async function bootstrap() {
     'https://admin.hairconnekt.de',
   ];
 
-  if (!rawCorsOrigin) {
+  const configuredOrigins = rawCorsOrigin
+    ? rawCorsOrigin
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
+
+  if (isProduction && configuredOrigins.includes('*')) {
+    throw new Error('CORS_ORIGIN must not include "*" in production');
+  }
+
+  const allowedOrigins = new Set(
+    isProduction ? configuredOrigins : [...configuredOrigins, ...defaultCorsOrigins],
+  );
+
+  if (!isProduction && allowedOrigins.size === 0) {
     app.enableCors({ origin: true, credentials: true });
   } else {
-    const configured = rawCorsOrigin
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-    const allowAll = configured.includes('*');
-
-    if (allowAll) {
-      app.enableCors({ origin: true, credentials: true });
-    } else {
-      const allowed = new Set([...configured, ...defaultCorsOrigins]);
-      app.enableCors({
-        origin: (origin, callback) => {
-          if (!origin) return callback(null, true);
-          return callback(null, allowed.has(origin));
-        },
-        credentials: true,
-      });
-    }
+    app.enableCors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        return callback(null, allowedOrigins.has(origin));
+      },
+      credentials: true,
+    });
   }
 
   app.useGlobalPipes(

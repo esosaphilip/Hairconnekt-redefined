@@ -216,7 +216,15 @@ raw="$(request GET "/api/v1/services/categories" "" "")"
 status="$(echo "$raw" | tail -n 1)"
 body="$(echo "$raw" | sed '$d')"
 expect_status 200 "$status" "categories"
-category_id="$(echo "$body" | jq -r '(.data // .)[0].id')"
+category_id="$(echo "$body" | jq -r '
+  if type == "array" then
+    .[0].id
+  elif (.data | type) == "array" then
+    .data[0].id
+  else
+    empty
+  end
+')"
 
 echo "--- PROVIDERS: create service ---"
 raw="$(request POST "/api/v1/providers/me/services" "$provider_token" "$(jq -n --arg cid "$category_id" '{
@@ -334,7 +342,15 @@ raw="$(request GET "/api/v1/chat/conversations" "$provider_token" "")"
 status="$(echo "$raw" | tail -n 1)"
 body="$(echo "$raw" | sed '$d')"
 expect_status 200 "$status" "list conversations"
-found="$(echo "$body" | jq -r --arg cid "$conversation_id" '([.data // .][]? | select(.id == $cid)] | length)')"
+found="$(echo "$body" | jq -r --arg cid "$conversation_id" '
+  if type == "array" then
+    [ .[]? | select(.id == $cid) ] | length
+  elif (.data | type) == "array" then
+    [ .data[]? | select(.id == $cid) ] | length
+  else
+    0
+  end
+')"
 if [[ "$found" == "0" ]]; then
   echo "FAIL (chat list): conversation not found" >&2
   exit 1

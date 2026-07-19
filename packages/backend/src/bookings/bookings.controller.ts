@@ -10,13 +10,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 20, ttl: 60 } })
@@ -47,6 +48,7 @@ export class BookingsController {
   }
 
   @Patch(':id/reschedule')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 10, ttl: 60 } })
@@ -59,6 +61,7 @@ export class BookingsController {
   }
 
   @Patch(':id/cancel')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   @Throttle({ default: { limit: 10, ttl: 60 } })
@@ -71,6 +74,7 @@ export class BookingsController {
   }
 
   @Patch(':id/accept')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
@@ -79,6 +83,7 @@ export class BookingsController {
   }
 
   @Patch(':id/decline')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
@@ -87,6 +92,7 @@ export class BookingsController {
   }
 
   @Patch(':id/start')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
@@ -95,6 +101,7 @@ export class BookingsController {
   }
 
   @Patch(':id/complete')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })

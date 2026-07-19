@@ -11,6 +11,7 @@ import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { User } from '../entities/user.entity';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
+import { AdminLoginThrottlerGuard } from './guards/admin-login-throttler.guard';
 import { AuditModule } from '../audit/audit.module';
 
 @Module({
@@ -24,7 +25,14 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshJwtStrategy, IpThrottlerGuard, UserThrottlerGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RefreshJwtStrategy,
+    IpThrottlerGuard,
+    UserThrottlerGuard,
+    AdminLoginThrottlerGuard,
+  ],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

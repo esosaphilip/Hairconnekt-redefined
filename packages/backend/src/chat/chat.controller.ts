@@ -23,7 +23,7 @@ import { User } from '../entities/user.entity';
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { ensureAllowedChatMediaUpload } from '../common/files/file-validation';
 
 @Controller('chat')
@@ -53,6 +53,7 @@ export class ChatController {
   }
 
   @Post('conversations')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
@@ -61,6 +62,7 @@ export class ChatController {
   }
 
   @Post('conversations/:id/messages')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 60, ttl: 60 } })
   @HttpCode(HttpStatus.CREATED)
@@ -69,6 +71,7 @@ export class ChatController {
   }
 
   @Post('conversations/:id/messages/media')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   @UseInterceptors(
