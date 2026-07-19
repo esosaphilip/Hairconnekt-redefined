@@ -28,10 +28,25 @@ type Notification = {
   referenceId?: string;
 };
 
+type RawNotification = {
+  id: string;
+  type: string;
+  title?: string;
+  body?: string;
+  isRead: boolean;
+  createdAt: string;
+  referenceId?: string;
+  titleDe?: string;
+  titleEn?: string;
+  bodyDe?: string;
+  bodyEn?: string;
+  data?: Record<string, unknown>;
+};
+
 type NotificationFilter = 'all' | 'booking' | 'message' | 'system';
 
 type NotificationListResponse = {
-  data?: Notification[];
+  data?: RawNotification[];
   meta?: {
     hasNextPage?: boolean;
   };
@@ -109,6 +124,53 @@ const getNotificationTarget = (notif: Notification): string | null => {
   }
 };
 
+const getNotificationReferenceId = (raw: RawNotification): string | undefined => {
+  if (typeof raw.referenceId === 'string' && raw.referenceId) {
+    return raw.referenceId;
+  }
+
+  const data = raw.data;
+  if (!data || typeof data !== 'object') {
+    return undefined;
+  }
+
+  const candidates = [
+    data.referenceId,
+    data.bookingId,
+    data.conversationId,
+    data.reviewId,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeNotification = (raw: RawNotification, lang: 'de' | 'en'): Notification => {
+  const title =
+    lang === 'en'
+      ? raw.titleEn || raw.title || raw.titleDe || ''
+      : raw.titleDe || raw.title || raw.titleEn || '';
+  const body =
+    lang === 'en'
+      ? raw.bodyEn || raw.body || raw.bodyDe || ''
+      : raw.bodyDe || raw.body || raw.bodyEn || '';
+
+  return {
+    id: raw.id,
+    type: raw.type,
+    title,
+    body,
+    isRead: raw.isRead,
+    createdAt: raw.createdAt,
+    referenceId: getNotificationReferenceId(raw),
+  };
+};
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
@@ -160,7 +222,9 @@ export default function NotificationsScreen() {
           { auth: true },
         );
 
-        const newItems = Array.isArray(response.data) ? response.data : [];
+        const newItems = Array.isArray(response.data)
+          ? response.data.map((item) => normalizeNotification(item, lang))
+          : [];
         setNotifications((prev) => (refresh ? newItems : [...prev, ...newItems]));
         setHasMore(response.meta?.hasNextPage ?? false);
         setPage(pageNum);

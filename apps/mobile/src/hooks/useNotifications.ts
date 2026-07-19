@@ -12,6 +12,51 @@ export interface Notification {
   referenceId?: string;
 }
 
+type RawNotification = {
+  id: string;
+  type: string;
+  title?: string;
+  body?: string;
+  isRead: boolean;
+  createdAt: string;
+  referenceId?: string;
+  titleDe?: string;
+  titleEn?: string;
+  bodyDe?: string;
+  bodyEn?: string;
+  data?: Record<string, unknown>;
+};
+
+const getNotificationReferenceId = (raw: RawNotification): string | undefined => {
+  if (typeof raw.referenceId === 'string' && raw.referenceId) {
+    return raw.referenceId;
+  }
+
+  const data = raw.data;
+  if (!data || typeof data !== 'object') {
+    return undefined;
+  }
+
+  const candidates = [data.referenceId, data.bookingId, data.conversationId, data.reviewId];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeNotification = (raw: RawNotification): Notification => ({
+  id: raw.id,
+  type: raw.type,
+  title: raw.titleDe || raw.title || raw.titleEn || '',
+  body: raw.bodyDe || raw.body || raw.bodyEn || '',
+  isRead: raw.isRead,
+  createdAt: raw.createdAt,
+  referenceId: getNotificationReferenceId(raw),
+});
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +70,9 @@ export const useNotifications = () => {
 
       const data = await apiJson<any>(`/notifications?page=${page}&limit=${limit}`, { auth: true });
       const notificationList = data.data || data || [];
-      const notificationsArray = Array.isArray(notificationList) ? notificationList : [];
+      const notificationsArray = Array.isArray(notificationList)
+        ? notificationList.map((item: RawNotification) => normalizeNotification(item))
+        : [];
       
       if (page === 1) {
         setNotifications(notificationsArray);
