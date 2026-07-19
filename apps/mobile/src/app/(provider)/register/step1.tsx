@@ -1,16 +1,26 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, KeyboardAvoidingView, Platform, Keyboard, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { COUNTRY_CODES, isValidInternationalPhone, sanitizePhoneNumber } from '@/utils/country-codes';
 
 export default function RegisterStep1Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
   const { t } = useLanguage();
+  const initialDialCode =
+    COUNTRY_CODES
+      .slice()
+      .sort((a, b) => b.code.length - a.code.length)
+      .find((item) => (form.phone || '').startsWith(item.code))?.code ?? '+49';
+  const initialPhoneNumber =
+    form.phone && form.phone.startsWith(initialDialCode)
+      ? form.phone.slice(initialDialCode.length)
+      : '';
 
   const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
@@ -22,7 +32,9 @@ export default function RegisterStep1Screen() {
   const [firstName, setFirstName] = useState(form.firstName || '');
   const [lastName, setLastName] = useState(form.lastName || '');
   const [email, setEmail] = useState(form.email || '');
-  const [phone, setPhone] = useState(form.phone || '');
+  const [dialCode, setDialCode] = useState(initialDialCode);
+  const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [password, setPassword] = useState(form.password || '');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(form.acceptedTerms || false);
@@ -30,15 +42,6 @@ export default function RegisterStep1Screen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const formatPhone = (raw: string): string => {
-    let cleaned = raw.replace(/[\s\-\(\)]/g, '');
-    if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
-    if (cleaned.startsWith('0')) cleaned = '+49' + cleaned.slice(1);
-    if (cleaned.startsWith('49') && !cleaned.startsWith('+')) cleaned = '+' + cleaned;
-    return cleaned;
-  };
-
-  const isPhoneValid = (p: string) => /^\+49\d{9,12}$/.test(p);
   const isEmailValid = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const validate = () => {
@@ -49,8 +52,14 @@ export default function RegisterStep1Screen() {
     if (!email.trim()) newErrors.email = t('providerRegisterEmailRequired');
     else if (!isEmailValid(email)) newErrors.email = t('providerRegisterEmailInvalid');
 
-    if (!phone.trim()) newErrors.phone = t('providerRegisterPhoneRequired');
-    else if (!isPhoneValid(formatPhone(phone))) newErrors.phone = t('providerRegisterPhoneInvalid');
+    if (!phoneNumber.trim()) {
+      newErrors.phone = t('providerRegisterPhoneRequired');
+    } else {
+      const fullPhone = sanitizePhoneNumber(dialCode, phoneNumber);
+      if (!isValidInternationalPhone(fullPhone)) {
+        newErrors.phone = 'Bitte gib eine gültige Telefonnummer ein.';
+      }
+    }
 
     if (!password) newErrors.password = t('providerRegisterPasswordRequired');
     else if (password.length < 8) newErrors.password = t('providerRegisterPasswordTooShort');
@@ -70,7 +79,7 @@ export default function RegisterStep1Screen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        phone: formatPhone(phone),
+        phone: sanitizePhoneNumber(dialCode, phoneNumber),
         password,
         acceptedTerms: true,
       });
@@ -162,19 +171,35 @@ export default function RegisterStep1Screen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('providerRegisterPhoneLabel')}</Text>
-            <TextInput
-              ref={phoneRef}
-              style={[styles.input, errors.phone && styles.inputError]}
-              value={phone}
-              onChangeText={(t) => { setPhone(t); setErrors(prev => ({...prev, phone: ''})); }}
-              placeholder="+49 160 1234567"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="phone-pad"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
+            <Text style={styles.label}>Telefonnummer</Text>
+            <View style={[styles.phoneRow, errors.phone && styles.inputError]}>
+              <TouchableOpacity
+                style={styles.dialCodeBtn}
+                onPress={() => setShowCountryPicker(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dialCodeText}>
+                  {COUNTRY_CODES.find(c => c.code === dialCode)?.flag} {dialCode}
+                </Text>
+                <Feather name="chevron-down" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <TextInput
+                ref={phoneRef}
+                style={styles.phoneInput}
+                value={phoneNumber}
+                onChangeText={(value) => {
+                  setPhoneNumber(value);
+                  setErrors(prev => ({ ...prev, phone: '' }));
+                }}
+                placeholder="160 1234567"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="phone-pad"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                textContentType="telephoneNumber"
+              />
+            </View>
             {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
           </View>
 
@@ -250,6 +275,40 @@ export default function RegisterStep1Screen() {
         <View style={styles.footer}>
           <PrimaryButton label={t('next')} onPress={handleNext} variant="filled" />
         </View>
+
+        <Modal
+          visible={showCountryPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCountryPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.pickerOverlay}
+            onPress={() => setShowCountryPicker(false)}
+            activeOpacity={1}
+          >
+            <View style={styles.pickerSheet}>
+              <Text style={styles.pickerTitle}>Ländervorwahl</Text>
+              <ScrollView>
+                {COUNTRY_CODES.map((item) => (
+                  <TouchableOpacity
+                    key={item.iso}
+                    style={styles.pickerRow}
+                    onPress={() => {
+                      setDialCode(item.code);
+                      setErrors(prev => ({ ...prev, phone: '' }));
+                      setShowCountryPicker(false);
+                    }}
+                  >
+                    <Text style={styles.pickerFlag}>{item.flag}</Text>
+                    <Text style={styles.pickerCountry}>{item.country}</Text>
+                    <Text style={styles.pickerCode}>{item.code}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -282,6 +341,34 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: colors.error },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.error, marginTop: spacing.xs },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: spacing.unit,
+    borderColor: colors.borderStrong,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  dialCodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRightWidth: spacing.unit,
+    borderRightColor: colors.border,
+    gap: spacing.xxs,
+    minWidth: 96,
+  },
+  dialCodeText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textPrimary },
+  phoneInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
   
   passwordContainer: { position: 'relative', justifyContent: 'center' },
   passwordInput: { paddingRight: spacing.xxl },
@@ -292,4 +379,33 @@ const styles = StyleSheet.create({
   linkText: { color: colors.teal, textDecorationLine: 'underline' },
   
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
+  pickerOverlay: { flex: 1, backgroundColor: colors.overlaySoft, justifyContent: 'flex-end' },
+  pickerSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    paddingTop: spacing.md,
+    maxHeight: '70%',
+  },
+  pickerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    paddingBottom: spacing.md,
+    borderBottomWidth: spacing.unit,
+    borderBottomColor: colors.border,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderBottomWidth: spacing.unit,
+    borderBottomColor: colors.border,
+    gap: spacing.md,
+  },
+  pickerFlag: { fontSize: fontSizes.xxl },
+  pickerCountry: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textPrimary },
+  pickerCode: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 });

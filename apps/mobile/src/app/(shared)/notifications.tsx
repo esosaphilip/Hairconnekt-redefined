@@ -1,34 +1,37 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout } from '../../theme';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { apiFetch, apiJson } from '@/services/apiClient';
+import { mapHttpError } from '@/utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getSafeNotificationRoute } from '@/utils/safe-navigation';
 import { debugLog } from '@/utils/logger';
 
-type NotificationData = {
-  screen?: string;
-} & Record<string, unknown>;
-
-type NotificationItem = {
+type Notification = {
   id: string;
   type: string;
-  titleDe: string;
-  titleEn?: string | null;
-  bodyDe: string;
-  bodyEn?: string | null;
-  data?: NotificationData | null;
+  title: string;
+  body: string;
   isRead: boolean;
   createdAt: string;
+  referenceId?: string;
 };
 
 type NotificationFilter = 'all' | 'booking' | 'message' | 'system';
 
 type NotificationListResponse = {
-  data?: NotificationItem[];
+  data?: Notification[];
   meta?: {
     hasNextPage?: boolean;
   };
@@ -36,7 +39,7 @@ type NotificationListResponse = {
 
 type NotificationSection = {
   label: string;
-  data: NotificationItem[];
+  data: Notification[];
 };
 
 type NotificationHeaderItem = {
@@ -48,12 +51,10 @@ type NotificationHeaderItem = {
 type NotificationRowItem = {
   id: string;
   isHeader: false;
-  notification: NotificationItem;
+  notification: Notification;
 };
 
-type NotificationListItem =
-  | NotificationHeaderItem
-  | NotificationRowItem;
+type NotificationListItem = NotificationHeaderItem | NotificationRowItem;
 
 type NotificationIconConfig = {
   name: React.ComponentProps<typeof Feather>['name'];
@@ -75,17 +76,51 @@ const FILTER_OPTIONS: ReadonlyArray<{
   { key: 'system', labelKey: 'notificationsSystem' },
 ] as const;
 
+const getNotificationTarget = (notif: Notification): string | null => {
+  const id = notif.referenceId;
+
+  switch (notif.type) {
+    case 'new_booking':
+    case 'booking_rescheduled':
+      return id ? `/(provider)/booking-request/${id}` : null;
+    case 'booking_confirmed':
+    case 'booking_declined':
+    case 'booking_cancelled_by_provider':
+    case 'booking_completed':
+      return id ? `/(client)/appointments/${id}` : null;
+    case 'booking_cancelled_by_client':
+      return '/(provider)/calendar';
+    case 'booking_reminder_24h':
+    case 'booking_reminder_2h':
+    case 'booking_started':
+      return id ? `/(client)/appointments/${id}` : null;
+    case 'message_received':
+      return id ? `/(shared)/chat/${id}` : '/(shared)/chat';
+    case 'review_received':
+      return '/(provider)/reviews';
+    case 'review_response':
+      return '/(client)/profile/reviews';
+    case 'provider_approved':
+      return '/(provider)/';
+    case 'provider_rejected':
+      return '/(provider)/pending';
+    default:
+      return null;
+  }
+};
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
+  const [expandedNotif, setExpandedNotif] = useState<Notification | null>(null);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
   const [errorMessage, setErrorMessage] = useState('');
@@ -111,143 +146,182 @@ export default function NotificationsScreen() {
     'new_favourite',
   ];
 
-  const loadNotifications = useCallback(async (pageNum: number, refresh = false) => {
-    try {
-      if (refresh) setIsLoading(true);
-      else setIsLoadingMore(true);
-      setErrorVisible(false);
-      setErrorStatus(undefined);
+  const loadNotifications = useCallback(
+    async (pageNum: number, refresh = false) => {
+      try {
+        if (refresh) setIsLoading(true);
+        else setIsLoadingMore(true);
 
-      const response = await apiJson<NotificationListResponse>(
-        `/notifications?page=${pageNum}&limit=20`,
-        { auth: true },
-      );
+        setErrorVisible(false);
+        setErrorStatus(undefined);
 
-      const newItems = Array.isArray(response.data) ? response.data : [];
-      setNotifications(prev => (refresh ? newItems : [...prev, ...newItems]));
-      setHasMore(response.meta?.hasNextPage ?? false);
-      setPage(pageNum);
-    } catch (error: any) {
-      debugLog('Error loading notifications', error);
-      setErrorStatus(error?.status ?? error?.response?.status ?? 500);
-      setErrorMessage(error?.message);
-      setErrorVisible(true);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, []);
+        const response = await apiJson<NotificationListResponse>(
+          `/notifications?page=${pageNum}&limit=20`,
+          { auth: true },
+        );
+
+        const newItems = Array.isArray(response.data) ? response.data : [];
+        setNotifications((prev) => (refresh ? newItems : [...prev, ...newItems]));
+        setHasMore(response.meta?.hasNextPage ?? false);
+        setPage(pageNum);
+      } catch (error: any) {
+        const status = error?.status ?? error?.response?.status ?? 500;
+        debugLog('Error loading notifications', error);
+        setErrorStatus(status);
+        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorVisible(true);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [lang],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      loadNotifications(1, true);
+      void loadNotifications(1, true);
     }, [loadNotifications]),
   );
 
   const markAsRead = async (id: string) => {
     const previous = notifications;
+
     try {
-      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === id ? { ...notification, isRead: true } : notification,
+        ),
+      );
       await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
-    } catch (e: any) {
-      debugLog('Error marking as read', e);
+    } catch (error: any) {
+      const status = error?.status ?? error?.response?.status ?? 500;
+      debugLog('Error marking as read', error);
       setNotifications(previous);
-      setErrorStatus(e?.status ?? e?.response?.status ?? 500);
-      setErrorMessage(e?.message);
+      setErrorStatus(status);
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     }
   };
 
   const markAllAsRead = async () => {
     const previous = notifications;
+
     try {
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
       await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
-    } catch (e: any) {
-      debugLog('Error marking all as read', e);
+    } catch (error: any) {
+      const status = error?.status ?? error?.response?.status ?? 500;
+      debugLog('Error marking all as read', error);
       setNotifications(previous);
-      setErrorStatus(e?.status ?? e?.response?.status ?? 500);
-      setErrorMessage(e?.message);
+      setErrorStatus(status);
+      setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     }
   };
 
-  const handleNotificationPress = (notif: NotificationItem) => {
+  const handleNotificationPress = async (notif: Notification) => {
     if (!notif.isRead) {
-      markAsRead(notif.id);
+      await markAsRead(notif.id);
     }
 
-    const safeRoute = getSafeNotificationRoute(notif.data?.screen);
-    if (safeRoute) {
-      router.push(safeRoute as any);
+    const target = getNotificationTarget(notif);
+    if (!target) {
+      setExpandedNotif(notif);
+      return;
     }
+
+    router.push(target as any);
   };
 
   const loadMore = () => {
     if (hasMore && !isLoadingMore) {
-      loadNotifications(page + 1);
+      void loadNotifications(page + 1);
     }
   };
 
   const getRelativeTime = (isoString: string) => {
-    const d = new Date(isoString);
+    const date = new Date(isoString);
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
 
-    const diffMs = Date.now() - d.getTime();
-    if (diffMs > 0 && d.toDateString() === today.toDateString()) {
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 60) return t('notificationsAgoMins').replace('{minutes}', String(diffMins));
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return t('notificationsAgoHours').replace('{hours}', String(diffHours));
+    if (date.toDateString() === yesterday.toDateString()) {
+      return t('notificationsYesterday');
     }
 
-    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs > 0 && date.toDateString() === today.toDateString()) {
+      const diffMinutes = Math.floor(diffMs / 60000);
+      if (diffMinutes < 60) {
+        return t('notificationsAgoMins').replace('{minutes}', String(diffMinutes));
+      }
+
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) {
+        return t('notificationsAgoHours').replace('{hours}', String(diffHours));
+      }
+    }
+
+    return date.toLocaleDateString(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   };
 
   const getDateLabel = (isoString: string) => {
-    const d = new Date(isoString);
+    const date = new Date(isoString);
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (d.toDateString() === today.toDateString()) return t('notificationsToday');
-    if (d.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
-    return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
+    if (date.toDateString() === today.toDateString()) return t('notificationsToday');
+    if (date.toDateString() === yesterday.toDateString()) return t('notificationsYesterday');
+
+    return date.toLocaleDateString(locale, {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
-  const filteredNotifications = notifications.filter((n) => {
+  const filteredNotifications = notifications.filter((notification) => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'booking') return BOOKING_TYPES.includes(n.type);
-    if (activeFilter === 'message') return MESSAGE_TYPES.includes(n.type);
-    if (activeFilter === 'system') return SYSTEM_TYPES.includes(n.type);
+    if (activeFilter === 'booking') return BOOKING_TYPES.includes(notification.type);
+    if (activeFilter === 'message') return MESSAGE_TYPES.includes(notification.type);
+    if (activeFilter === 'system') return SYSTEM_TYPES.includes(notification.type);
     return true;
   });
 
   const groupedData: NotificationSection[] = [];
-  filteredNotifications.forEach(n => {
-    const label = getDateLabel(n.createdAt);
-    let group = groupedData.find(g => g.label === label);
+  filteredNotifications.forEach((notification) => {
+    const label = getDateLabel(notification.createdAt);
+    let group = groupedData.find((entry) => entry.label === label);
+
     if (!group) {
       group = { label, data: [] };
       groupedData.push(group);
     }
-    group.data.push(n);
+
+    group.data.push(notification);
   });
 
   const flattenedData: NotificationListItem[] = [];
-  groupedData.forEach(group => {
-    flattenedData.push({ isHeader: true, label: group.label, id: `header-${group.label}` });
-    group.data.forEach((notification) =>
+  groupedData.forEach((group) => {
+    flattenedData.push({
+      id: `header-${group.label}`,
+      isHeader: true,
+      label: group.label,
+    });
+
+    group.data.forEach((notification) => {
       flattenedData.push({
         id: notification.id,
         isHeader: false,
         notification,
-      }),
-    );
+      });
+    });
   });
 
   const getIconConfig = (type: string): NotificationIconConfig => {
@@ -257,7 +331,6 @@ export default function NotificationsScreen() {
       case 'booking_confirmed':
         return { name: 'check-circle', color: colors.background, bg: colors.successAlt };
       case 'booking_declined':
-        return { name: 'x-circle', color: colors.background, bg: colors.error };
       case 'booking_cancelled_by_client':
       case 'booking_cancelled_by_provider':
         return { name: 'x-circle', color: colors.background, bg: colors.error };
@@ -266,7 +339,6 @@ export default function NotificationsScreen() {
       case 'booking_started':
         return { name: 'play-circle', color: colors.background, bg: colors.successAlt };
       case 'booking_completed':
-        return { name: 'star', color: colors.background, bg: colors.gold };
       case 'review_received':
         return { name: 'star', color: colors.background, bg: colors.gold };
       case 'message_received':
@@ -278,36 +350,38 @@ export default function NotificationsScreen() {
     }
   };
 
-  function renderItem({
-    item,
-  }: {
-    item: NotificationListItem;
-  }): React.ReactElement {
+  function renderItem(params: { item: NotificationListItem }): React.ReactElement {
+    const { item } = params;
     if (item.isHeader === true) {
       return <Text style={styles.sectionHeader}>{item.label}</Text>;
     }
 
     const notif = item.notification;
     const iconConfig = getIconConfig(notif.type);
-    const title = lang === 'en' ? (notif.titleEn || notif.titleDe) : notif.titleDe;
-    const body = lang === 'en' ? (notif.bodyEn || notif.bodyDe) : notif.bodyDe;
 
     return (
       <TouchableOpacity
-        style={[styles.notificationRow, !notif.isRead ? styles.notificationRowUnread : styles.notificationRowRead]}
-        onPress={() => handleNotificationPress(notif)}
+        style={[
+          styles.notificationRow,
+          !notif.isRead ? styles.notificationRowUnread : styles.notificationRowRead,
+        ]}
+        onPress={() => {
+          void handleNotificationPress(notif);
+        }}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={`${title}. ${body}`}
+        accessibilityLabel={`${notif.title}. ${notif.body}`}
       >
         <View style={[styles.iconCircle, { backgroundColor: iconConfig.bg }]}>
           <Feather name={iconConfig.name} size={20} color={iconConfig.color} />
         </View>
 
         <View style={styles.contentCol}>
-          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>{title}</Text>
+          <Text style={[styles.title, !notif.isRead ? styles.titleUnread : styles.titleRead]}>
+            {notif.title}
+          </Text>
           <Text style={styles.bodyText} numberOfLines={2}>
-            {body}
+            {notif.body}
           </Text>
           <Text style={styles.timeText}>{getRelativeTime(notif.createdAt)}</Text>
         </View>
@@ -317,7 +391,7 @@ export default function NotificationsScreen() {
     );
   }
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -332,7 +406,9 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('notificationsTitle')}</Text>
         <TouchableOpacity onPress={markAllAsRead} disabled={unreadCount === 0}>
-          <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>{t('notificationsMarkAll')}</Text>
+          <Text style={[styles.readAllText, unreadCount === 0 && styles.readAllTextDisabled]}>
+            {t('notificationsMarkAll')}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -354,24 +430,29 @@ export default function NotificationsScreen() {
         </View>
       ) : flattenedData.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Feather name="bell" size={64} color={colors.iconDisabled} style={{ marginBottom: spacing.md }} />
+          <Feather
+            name="bell"
+            size={64}
+            color={colors.iconDisabled}
+            style={{ marginBottom: spacing.md }}
+          />
           <Text style={styles.emptyTitle}>{t('notificationsEmpty')}</Text>
           <Text style={styles.emptySub}>{t('notificationsEmptySub')}</Text>
         </View>
       ) : (
         <>
           <View style={styles.filterRow}>
-            {FILTER_OPTIONS.map((f) => {
-              const isActive = activeFilter === f.key;
+            {FILTER_OPTIONS.map((filterOption) => {
+              const isActive = activeFilter === filterOption.key;
               return (
                 <TouchableOpacity
-                  key={f.key}
+                  key={filterOption.key}
                   style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setActiveFilter(f.key)}
+                  onPress={() => setActiveFilter(filterOption.key)}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                    {t(f.labelKey)}
+                    {t(filterOption.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -385,18 +466,53 @@ export default function NotificationsScreen() {
             contentContainerStyle={styles.listContent}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={isLoadingMore ? <ActivityIndicator style={{ margin: spacing.md }} color={colors.coral} /> : null}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <ActivityIndicator style={{ margin: spacing.md }} color={colors.coral} />
+              ) : null
+            }
           />
         </>
       )}
+
+      <Modal
+        visible={!!expandedNotif}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExpandedNotif(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setExpandedNotif(null)}
+          activeOpacity={1}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{expandedNotif?.title}</Text>
+            <Text style={styles.modalBody}>{expandedNotif?.body}</Text>
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setExpandedNotif(null)}
+            >
+              <Text style={styles.modalCloseText}>Schließen</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeContainer: { flex: 1, backgroundColor: colors.warmBackground },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-
+  safeContainer: {
+    flex: 1,
+    backgroundColor: colors.warmBackground,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -405,16 +521,34 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: spacing.unit,
     borderBottomColor: colors.border,
-    backgroundColor: colors.warmBackground
+    backgroundColor: colors.warmBackground,
   },
-  backButton: { width: layout.iconButton, height: layout.iconButton, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary },
-  readAllText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.primary },
-  readAllTextDisabled: { color: colors.borderStrong },
-  bannerContainer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-
-  listContent: { paddingBottom: spacing.xl2 },
-
+  backButton: {
+    width: layout.iconButton,
+    height: layout.iconButton,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    color: colors.primary,
+  },
+  readAllText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+  },
+  readAllTextDisabled: {
+    color: colors.borderStrong,
+  },
+  bannerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  listContent: {
+    paddingBottom: spacing.xl2,
+  },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
@@ -433,9 +567,14 @@ const styles = StyleSheet.create({
     borderColor: colors.coral,
     backgroundColor: colors.coralTint,
   },
-  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs + spacing.unit, color: colors.textSecondary },
-  filterTextActive: { color: colors.coral },
-
+  filterText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.xs + spacing.unit,
+    color: colors.textSecondary,
+  },
+  filterTextActive: {
+    color: colors.coral,
+  },
   sectionHeader: {
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.sm,
@@ -444,7 +583,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
-
   notificationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -464,19 +602,98 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.coral,
     paddingLeft: spacing.md - (spacing.xxs - spacing.unit),
   },
-
-  iconCircle: { width: layout.inputHeight, height: layout.inputHeight, borderRadius: borderRadius.lg, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
-
-  contentCol: { flex: 1, paddingRight: spacing.sm, justifyContent: 'center' },
-  title: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, marginBottom: spacing.xxs },
-  titleUnread: { color: colors.textPrimary },
-  titleRead: { color: colors.textMuted3 },
-
-  bodyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: spacing.l, marginBottom: spacing.xxs + spacing.xxxs },
-  timeText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
-
-  unreadDot: { width: spacing.xs, height: spacing.xs, borderRadius: borderRadius.xs + spacing.xxxs, backgroundColor: colors.coral },
-
-  emptyTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
-  emptySub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: 'center' },
+  iconCircle: {
+    width: layout.inputHeight,
+    height: layout.inputHeight,
+    borderRadius: borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  contentCol: {
+    flex: 1,
+    paddingRight: spacing.sm,
+    justifyContent: 'center',
+  },
+  title: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    marginBottom: spacing.xxs,
+  },
+  titleUnread: {
+    color: colors.textPrimary,
+  },
+  titleRead: {
+    color: colors.textMuted3,
+  },
+  bodyText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    lineHeight: spacing.l,
+    marginBottom: spacing.xxs + spacing.xxxs,
+  },
+  timeText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colors.textTertiary,
+  },
+  unreadDot: {
+    width: spacing.xs,
+    height: spacing.xs,
+    borderRadius: borderRadius.xs + spacing.xxxs,
+    backgroundColor: colors.coral,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+  },
+  modalTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.lg,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  modalBody: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    lineHeight: spacing.xl - spacing.xxs,
+    marginBottom: spacing.lg,
+  },
+  modalClose: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: spacing.xl - spacing.xs,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+  },
+  modalCloseText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.background,
+  },
+  emptyTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.lg,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  emptySub: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
 });

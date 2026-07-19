@@ -2,7 +2,7 @@
 // Loads Google Fonts (Playfair Display + DM Sans) before rendering anything
 
 import { useEffect, useRef } from 'react';
-import { Href, Stack, useRouter } from 'expo-router';
+import { Href, Stack, useRootNavigationState, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Sentry from '@sentry/react-native';
@@ -100,6 +100,7 @@ type NotificationRoutePayload = {
 
 function RootLayout() {
   const router = useRouter();
+  const navigationState = useRootNavigationState();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
   const registerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,6 +139,10 @@ function RootLayout() {
     };
 
     const navigateFromNotificationPayload = (payload: NotificationRoutePayload) => {
+      if (!navigationState?.key) {
+        return;
+      }
+
       const safeRoute = getSafeNotificationRoute(payload.screen);
       if (safeRoute) {
         router.push(safeRoute as Href);
@@ -181,6 +186,8 @@ function RootLayout() {
       });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (!navigationState?.key) return;
+
       navigateFromNotificationPayload(
         response.notification.request.content.data as NotificationRoutePayload,
       );
@@ -192,7 +199,7 @@ function RootLayout() {
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [fontsLoaded, router]);
+  }, [fontsLoaded, navigationState?.key, router]);
 
   if (!fontsLoaded) return null;
 
