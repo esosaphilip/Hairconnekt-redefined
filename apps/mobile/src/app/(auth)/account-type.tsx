@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function AccountTypeScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<'client' | 'provider' | null>(null);
 
   const handleContinue = () => {
@@ -19,7 +21,7 @@ export default function AccountTypeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.heading}>{t('accountTypeTitle')}</Text>
 
@@ -47,7 +49,7 @@ export default function AccountTypeScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.xl }]}>
           <PrimaryButton 
             label={t('next')} 
             onPress={handleContinue} 

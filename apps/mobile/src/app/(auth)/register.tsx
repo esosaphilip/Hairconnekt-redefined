@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, SafeAreaView, Keyboard, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, layout, spacing, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -97,7 +97,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -209,7 +209,7 @@ export default function RegisterScreen() {
         </ScrollView>
 
         <TouchableOpacity
-          style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}
+          style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
           onPress={() => router.push('/(auth)/login?role=client' as any)}
         >
           <Text style={styles.footerText}>Bereits registriert?</Text>

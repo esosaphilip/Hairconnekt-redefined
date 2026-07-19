@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, SafeAreaView, Keyboard, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
@@ -14,6 +15,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole } = useLocalSearchParams<{ role: 'client' | 'provider' }>();
   const { lang, t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
   
   const [identifier, setIdentifier] = useState('');
@@ -86,7 +88,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -158,7 +160,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
           <PrimaryButton label={t('login')} onPress={handleLogin} loading={isLoading} />
           <TouchableOpacity
             style={styles.footerLink}
