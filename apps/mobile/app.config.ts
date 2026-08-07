@@ -27,7 +27,7 @@ const baseConfig: ExpoConfig = {
   android: {
     backgroundColor: '#FFFFFF',
     package: 'de.hairconnekt.app',
-    versionCode: 4,
+    versionCode: 5,
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
@@ -125,10 +125,6 @@ export default (_: ConfigContext): ExpoConfig => {
 
   const intentFilters = (baseConfig.android?.intentFilters ?? []).map((filter: any) => {
     const data = Array.isArray(filter?.data) ? [...filter.data] : [];
-    const hasWww = data.some((d: any) => d?.scheme === 'https' && d?.host === 'www.hairconnekt.de');
-    if (!hasWww) {
-      data.push({ scheme: 'https', host: 'www.hairconnekt.de', pathPrefix: '/' });
-    }
 
     return {
       ...filter,
