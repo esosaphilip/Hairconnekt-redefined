@@ -1,87 +1,129 @@
-import { useEffect, useState } from 'react';
-import { Users, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
-import api from '../api';
-import { getAdminStats } from '../api';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle, Sparkles, Users } from 'lucide-react';
+import { getAdminStats, type AdminStatsResponse } from '../api';
+import { LoadingSpinner, PageError, useToasts } from '../components/ui';
+import { formatApiError } from '../utils/apiError';
+
+interface CardData {
+  label: string;
+  value: number;
+  background: string;
+  color: string;
+  icon: React.ComponentType<{ size?: number }>;
+}
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    pending: 0,
-    approved: 0,
-    totalCategories: 0,
-    activePopularStyles: 0,
-  });
+  const toast = useToasts();
+  const [isLoading, setIsLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
+  const [stats, setStats] = useState<AdminStatsResponse | null>(null);
+
+  const loadStats = useCallback(async () => {
+    setPageError('');
+    try {
+      setIsLoading(true);
+      const adminStats = await getAdminStats();
+      setStats(adminStats);
+    } catch (err: unknown) {
+      const detail = formatApiError(err);
+      const message = `Fehler beim Laden der Statistiken. ${detail}`;
+      setPageError(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [pendingRes, approvedRes, catRes] = await Promise.all([
-          api.get('/admin/providers?status=pending'),
-          api.get('/admin/providers?status=approved'),
-          api.get('/admin/categories')
-        ]);
+    void loadStats();
+  }, [loadStats]);
 
-        const adminStats = await getAdminStats();
-        
-        setStats({
-          pending: pendingRes.data.length || 0,
-          approved: approvedRes.data.length || 0,
-          totalCategories: catRes.data.length || 0,
-          activePopularStyles: adminStats.activePopularStyles || 0,
-        });
-      } catch (err) {
-        console.error("Error fetching stats", err);
-      }
-    };
-    fetchStats();
-  }, []);
+  const cards: CardData[] = stats
+    ? [
+        {
+          label: 'Ausstehende Anbieter',
+          value: stats.pendingProviders || 0,
+          background: '#fef3c7',
+          color: '#b45309',
+          icon: AlertCircle,
+        },
+        {
+          label: 'Genehmigte Anbieter',
+          value: stats.approvedProviders || 0,
+          background: '#dcfce7',
+          color: '#15803d',
+          icon: CheckCircle,
+        },
+        {
+          label: 'Kategorien Aktiv',
+          value: stats.activeCategories || 0,
+          background: '#e0e7ff',
+          color: 'var(--primary)',
+          icon: Users,
+        },
+        {
+          label: 'Beliebte Styles Aktiv',
+          value: stats.activePopularStyles || 0,
+          background: '#fef3c7',
+          color: '#b45309',
+          icon: Sparkles,
+        },
+      ]
+    : [];
 
   return (
     <div>
       <h1 style={{ marginBottom: '2rem', color: 'var(--primary)' }}>Dashboard Overview</h1>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-        
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '16px', color: '#b45309' }}>
-            <AlertCircle size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Ausstehende Anbieter</p>
-            <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.pending}</h2>
-          </div>
-        </div>
 
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '16px', color: '#15803d' }}>
-            <CheckCircle size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Genehmigte Anbieter</p>
-            <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.approved}</h2>
-          </div>
-        </div>
+      {pageError && <PageError message={pageError} onRetry={() => void loadStats()} />}
 
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ background: '#e0e7ff', padding: '1rem', borderRadius: '16px', color: 'var(--primary)' }}>
-            <Users size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Kategorien Aktiv</p>
-            <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.totalCategories}</h2>
-          </div>
-        </div>
+      {isLoading && !stats && <LoadingSpinner label="Statistiken werden geladen…" />}
 
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '16px', color: '#b45309' }}>
-            <Sparkles size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase' }}>Beliebte Styles Aktiv</p>
-            <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{stats.activePopularStyles}</h2>
-          </div>
+      {!isLoading && stats && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+          }}
+          aria-live="polite"
+        >
+          {cards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.label}
+                className="card"
+                style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}
+              >
+                <div
+                  style={{
+                    background: card.background,
+                    padding: '1rem',
+                    borderRadius: '16px',
+                    color: card.color,
+                  }}
+                >
+                  <Icon size={32} />
+                </div>
+                <div>
+                  <p
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {card.label}
+                  </p>
+                  <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{card.value}</h2>
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

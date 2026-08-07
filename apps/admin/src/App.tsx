@@ -7,6 +7,7 @@ import Providers from './pages/Providers';
 import Users from './pages/Users';
 import Categories from './pages/Categories';
 import PopularStyles from './pages/PopularStyles';
+import { ToastProvider } from './components/ui';
 import { getAdminSession, setOnAuthExpired, type AdminUserSummary } from './api';
 import './index.css';
 
@@ -76,7 +77,11 @@ const ProtectedRoute = () => {
     return <Navigate to={LOGIN_PATH} replace />;
   }
 
-  return <Layout user={user} />;
+  return (
+    <ToastProvider>
+      <Layout user={user} />
+    </ToastProvider>
+  );
 };
 
 function App() {

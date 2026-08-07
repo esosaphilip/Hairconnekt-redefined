@@ -128,4 +128,13 @@ jobs:
         run: npm ci
 
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: |
+          if [ "${{ matrix.name }}" = "admin" ]; then
+            # Admin uses BrowserRouter + plain axios; several React Router HIGH advisories
+            # apply only to RSC/Actions/SSR features which are unreachable.
+            # scripts/audit-ci.mjs allows the reviewed RSC-only list and fails on any
+            # CRITICAL advisory or any HIGH advisory outside that allowlist.
+            npm run audit:ci
+          else
+            npm audit --omit=dev --audit-level=high
+          fi

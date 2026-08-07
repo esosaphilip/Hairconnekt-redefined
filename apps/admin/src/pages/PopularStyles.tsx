@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Camera, Edit2, Plus, ShieldAlert, Trash2, X } from 'lucide-react';
 import {
   createPopularStyle,
@@ -9,6 +9,13 @@ import {
   updatePopularStyle,
   uploadStyleImage,
 } from '../api';
+import {
+  AlertDialog,
+  ConfirmDialog,
+  LoadingSpinner,
+  PageError,
+  useToasts,
+} from '../components/ui';
 import { formatApiError } from '../utils/apiError';
 
 type FormState = {
@@ -26,6 +33,9 @@ const defaultForm: FormState = {
 };
 
 export default function PopularStyles() {
+  const toast = useToasts();
+  const nameErrorId = useId();
+
   const [styles, setStyles] = useState<PopularStyle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState('');
@@ -35,25 +45,34 @@ export default function PopularStyles() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStyle, setEditingStyle] = useState<PopularStyle | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
+  const [formNameError, setFormNameError] = useState('');
+
+  const [deleteImageTargetId, setDeleteImageTargetId] = useState<string | null>(null);
+  const [deleteStyleTargetId, setDeleteStyleTargetId] = useState<string | null>(null);
+  const [alertError, setAlertError] = useState<{ title: string; message: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetIdRef = useRef<string | null>(null);
 
-  const loadStyles = async () => {
+  const loadStyles = useCallback(async () => {
     setPageError('');
     try {
+      setIsLoading(true);
       const data = await getPopularStyles();
       setStyles(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      setPageError(`Fehler beim Laden der Styles. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      const message = `Fehler beim Laden der Styles. ${detail}`;
+      setPageError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    loadStyles();
-  }, []);
+    void loadStyles();
+  }, [loadStyles]);
 
   const activeSortedStyles = useMemo(() => {
     return [...styles]
@@ -64,6 +83,7 @@ export default function PopularStyles() {
   const openNew = () => {
     setEditingStyle(null);
     setForm(defaultForm);
+    setFormNameError('');
     setIsModalOpen(true);
   };
 
@@ -75,26 +95,30 @@ export default function PopularStyles() {
       colorHex: style.colorHex || '#C8860A',
       sortOrder: typeof style.sortOrder === 'number' ? style.sortOrder : 0,
     });
+    setFormNameError('');
     setIsModalOpen(true);
-  };
-
-  const setRowError = (id: string, message: string) => {
-    setRowErrors((prev) => ({ ...prev, [id]: message }));
   };
 
   const clearRowError = (id: string) => {
     setRowErrors((prev) => {
+      if (!prev[id]) return prev;
       const next = { ...prev };
       delete next[id];
       return next;
     });
   };
 
-  const saveStyle = async () => {
+  const validateForm = (): boolean => {
     if (!form.name.trim()) {
-      alert('Name ist erforderlich.');
-      return;
+      setFormNameError('Name ist erforderlich.');
+      return false;
     }
+    setFormNameError('');
+    return true;
+  };
+
+  const saveStyle = async () => {
+    if (!validateForm()) return;
 
     try {
       if (editingStyle) {
@@ -105,6 +129,7 @@ export default function PopularStyles() {
           sortOrder: form.sortOrder,
         });
         setStyles((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+        toast.success('Style wurde aktualisiert.');
       } else {
         const created = await createPopularStyle({
           name: form.name.trim(),
@@ -113,13 +138,16 @@ export default function PopularStyles() {
           sortOrder: form.sortOrder,
         });
         setStyles((prev) => [...prev, created]);
+        toast.success('Style wurde erstellt.');
       }
 
       setIsModalOpen(false);
       setEditingStyle(null);
       setForm(defaultForm);
+      setFormNameError('');
     } catch (err: unknown) {
-      alert(`Fehler beim Speichern. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      setAlertError({ title: 'Speichern fehlgeschlagen', message: detail });
     }
   };
 
@@ -130,9 +158,11 @@ export default function PopularStyles() {
     try {
       const updated = await updatePopularStyle(style.id, { isActive: nextValue });
       setStyles((prev) => prev.map((s) => (s.id === style.id ? updated : s)));
+      toast.success(nextValue ? 'Style aktiviert.' : 'Style deaktiviert.');
     } catch (err: unknown) {
       setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, isActive: style.isActive } : s)));
-      setRowError(style.id, `Aktualisierung fehlgeschlagen. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      setRowErrors((prev) => ({ ...prev, [style.id]: detail }));
     }
   };
 
@@ -150,7 +180,7 @@ export default function PopularStyles() {
     clearRowError(id);
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Datei zu groß. Maximal 5MB.');
+      toast.error('Datei zu groß. Maximal 5MB.');
       return;
     }
 
@@ -158,35 +188,54 @@ export default function PopularStyles() {
     try {
       const res = await uploadStyleImage(id, file);
       setStyles((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: res.imageUrl } : s)));
+      toast.success('Bild wurde hochgeladen.');
     } catch (err: unknown) {
-      setRowError(id, `Bild-Upload fehlgeschlagen. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      setRowErrors((prev) => ({ ...prev, [id]: detail }));
     } finally {
       setUploadingImageIds((prev) => ({ ...prev, [id]: false }));
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const confirmDeleteImage = async (style: PopularStyle) => {
-    if (!confirm(`Bild für "${style.name}" wirklich entfernen?`)) return;
-    clearRowError(style.id);
+  const executeDeleteImage = async () => {
+    const id = deleteImageTargetId;
+    if (!id) return;
+    clearRowError(id);
     try {
-      await deleteStyleImage(style.id);
-      setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, imageUrl: null } : s)));
+      await deleteStyleImage(id);
+      setStyles((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: null } : s)));
+      toast.success('Bild wurde entfernt.');
+      setDeleteImageTargetId(null);
     } catch (err: unknown) {
-      setRowError(style.id, `Bild konnte nicht entfernt werden. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      setRowErrors((prev) => ({ ...prev, [id]: detail }));
+      setDeleteImageTargetId(null);
     }
   };
 
-  const confirmDeleteStyle = async (style: PopularStyle) => {
-    if (!confirm(`Style "${style.name}" wirklich löschen? Das Bild wird ebenfalls gelöscht.`)) return;
-    clearRowError(style.id);
+  const executeDeleteStyle = async () => {
+    const id = deleteStyleTargetId;
+    if (!id) return;
+    clearRowError(id);
     try {
-      await deletePopularStyle(style.id);
-      setStyles((prev) => prev.filter((s) => s.id !== style.id));
+      await deletePopularStyle(id);
+      setStyles((prev) => prev.filter((s) => s.id !== id));
+      toast.success('Style wurde gelöscht.');
+      setDeleteStyleTargetId(null);
     } catch (err: unknown) {
-      setRowError(style.id, `Löschen fehlgeschlagen. ${formatApiError(err)}`);
+      const detail = formatApiError(err);
+      setRowErrors((prev) => ({ ...prev, [id]: detail }));
+      setDeleteStyleTargetId(null);
     }
   };
+
+  const deleteImageTarget = deleteImageTargetId
+    ? styles.find((s) => s.id === deleteImageTargetId) ?? null
+    : null;
+  const deleteStyleTarget = deleteStyleTargetId
+    ? styles.find((s) => s.id === deleteStyleTargetId) ?? null
+    : null;
 
   const previewCard = (
     <div
@@ -221,13 +270,8 @@ export default function PopularStyles() {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem' }}>
-        <div className="spinner" />
-        <div style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Lädt...</div>
-      </div>
-    );
+  if (isLoading && styles.length === 0) {
+    return <LoadingSpinner label="Styles werden geladen…" />;
   }
 
   return (
@@ -240,24 +284,6 @@ export default function PopularStyles() {
         onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
       />
 
-      {pageError && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1.5rem',
-            border: '1px solid var(--danger)',
-            color: 'var(--danger)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-          }}
-        >
-          <div>{pageError}</div>
-          <button className="btn btn-outline" onClick={loadStyles}>Erneut versuchen</button>
-        </div>
-      )}
-
       <div
         style={{
           display: 'grid',
@@ -267,12 +293,19 @@ export default function PopularStyles() {
         }}
       >
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1 style={{ color: '#2563eb' }}>Beliebte Styles</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h1 style={{ color: 'var(--primary)', margin: 0 }}>Beliebte Styles</h1>
+              <div aria-live="polite" style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {styles.length} Styles · davon {activeSortedStyles.length} aktiv
+              </div>
+            </div>
             <button className="btn btn-primary" onClick={openNew}>
               <Plus size={18} /> Neuen Style hinzufügen
             </button>
           </div>
+
+          {pageError && <PageError message={pageError} onRetry={() => void loadStyles()} />}
 
           <div className="table-container">
             <table>
@@ -310,15 +343,20 @@ export default function PopularStyles() {
                             {style.imageUrl ? (
                               <img
                                 src={style.imageUrl}
-                                alt=""
+                                alt={`Vorschaubild für ${style.name}`}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             ) : (
-                              <div style={{ fontSize: 22, lineHeight: 1 }}>{style.emoji || '✨'}</div>
+                              <div role="img" aria-label={`${style.emoji || '✨'} Emoji`} style={{ fontSize: 22, lineHeight: 1 }}>
+                                {style.emoji || '✨'}
+                              </div>
                             )}
 
                             {isUploading && (
                               <div
+                                role="status"
+                                aria-live="polite"
+                                aria-label="Bild-Upload läuft"
                                 style={{
                                   position: 'absolute',
                                   inset: 0,
@@ -337,8 +375,9 @@ export default function PopularStyles() {
                             <button
                               className="btn btn-outline"
                               style={{ padding: '0.35rem', borderRadius: 10 }}
-                              onClick={() => confirmDeleteImage(style)}
+                              onClick={() => setDeleteImageTargetId(style.id)}
                               title="Bild entfernen"
+                              aria-label={`Bild für ${style.name} entfernen`}
                             >
                               <X size={14} />
                             </button>
@@ -347,11 +386,15 @@ export default function PopularStyles() {
                       </td>
                       <td style={{ fontWeight: 500 }}>{style.name}</td>
                       <td>
-                        <span style={{ fontSize: '1.25rem' }}>{style.emoji}</span>
+                        <span role="img" aria-label={style.emoji || 'Emoji'} style={{ fontSize: '1.25rem' }}>
+                          {style.emoji}
+                        </span>
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <div
+                            role="img"
+                            aria-label={`Farbe ${style.colorHex}`}
                             style={{
                               width: 18,
                               height: 18,
@@ -375,9 +418,11 @@ export default function PopularStyles() {
                             position: 'relative',
                             transition: 'all 0.2s',
                           }}
-                          aria-label={style.isActive ? 'Aktiv' : 'Inaktiv'}
+                          aria-pressed={style.isActive}
+                          aria-label={`Aktiv-Status für ${style.name} umschalten`}
                         >
                           <span
+                            aria-hidden="true"
                             style={{
                               width: 20,
                               height: 20,
@@ -393,33 +438,41 @@ export default function PopularStyles() {
                         </button>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-outline"
-                          style={{ padding: '0.4rem', marginRight: '0.5rem' }}
-                          onClick={() => handleUploadClick(style.id)}
-                          title="Bild hochladen"
-                        >
-                          <Camera size={16} />
-                        </button>
-                        <button
-                          className="btn btn-outline"
-                          style={{ padding: '0.4rem', marginRight: '0.5rem' }}
-                          onClick={() => openEdit(style)}
-                          title="Bearbeiten"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          className="btn btn-outline"
-                          style={{ padding: '0.4rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                          onClick={() => confirmDeleteStyle(style)}
-                          title="Löschen"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem' }}
+                            onClick={() => handleUploadClick(style.id)}
+                            title="Bild hochladen"
+                            aria-label={`Bild für ${style.name} hochladen`}
+                          >
+                            <Camera size={16} />
+                          </button>
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem' }}
+                            onClick={() => openEdit(style)}
+                            title="Bearbeiten"
+                            aria-label={`Style ${style.name} bearbeiten`}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                            onClick={() => setDeleteStyleTargetId(style.id)}
+                            title="Löschen"
+                            aria-label={`Style ${style.name} löschen`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                         {rowErrors[style.id] && (
-                          <div style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.75rem' }}>
-                            {rowErrors[style.id]}
+                          <div
+                            role="alert"
+                            style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.75rem', textAlign: 'left' }}
+                          >
+                            Aktion fehlgeschlagen. {rowErrors[style.id]}
                           </div>
                         )}
                       </td>
@@ -427,7 +480,7 @@ export default function PopularStyles() {
                   );
                 })}
 
-                {styles.length === 0 && (
+                {styles.length === 0 && !isLoading && (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                       <ShieldAlert size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
@@ -485,7 +538,9 @@ export default function PopularStyles() {
 
                   {!style.imageUrl && (
                     <div style={{ position: 'relative', height: '70%', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                      <div style={{ fontSize: 42, lineHeight: 1 }}>{style.emoji || '✨'}</div>
+                      <div role="img" aria-label={`${style.emoji || '✨'} Emoji`} style={{ fontSize: 42, lineHeight: 1 }}>
+                        {style.emoji || '✨'}
+                      </div>
                     </div>
                   )}
 
@@ -518,27 +573,59 @@ export default function PopularStyles() {
       </div>
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="hc-style-title"
+          onClick={() => setIsModalOpen(false)}
+        >
           <div className="modal" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+            <div className="modal-header" id="hc-style-title">
               {editingStyle ? 'Style bearbeiten' : 'Neuen Style hinzufügen'}
             </div>
             <div className="modal-body">
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Name *</label>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="hc-style-name"
+                  style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
+                >
+                  Name *
+                </label>
                 <input
+                  id="hc-style-name"
                   type="text"
                   className="input-field"
                   maxLength={50}
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, name: e.target.value });
+                    if (formNameError) setFormNameError('');
+                  }}
                   placeholder="z.B. Senegalese Twists"
+                  aria-invalid={Boolean(formNameError) || undefined}
+                  aria-describedby={formNameError ? nameErrorId : undefined}
                 />
+                {formNameError && (
+                  <div
+                    id={nameErrorId}
+                    role="alert"
+                    style={{ marginTop: 4, color: 'var(--danger)', fontSize: '0.75rem' }}
+                  >
+                    {formNameError}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Emoji</label>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="hc-style-emoji"
+                  style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
+                >
+                  Emoji
+                </label>
                 <input
+                  id="hc-style-emoji"
                   type="text"
                   className="input-field"
                   maxLength={4}
@@ -551,16 +638,23 @@ export default function PopularStyles() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Farbe (Hintergrundfarbe)</label>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="hc-style-color"
+                  style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
+                >
+                  Farbe (Hintergrundfarbe)
+                </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: '0.75rem', alignItems: 'center' }}>
                   <input
+                    aria-label="Farbwähler"
                     type="color"
                     value={form.colorHex}
                     onChange={(e) => setForm({ ...form, colorHex: e.target.value })}
                     style={{ width: 56, height: 44, borderRadius: 10, border: '1px solid var(--border)', background: 'transparent', padding: 0 }}
                   />
                   <input
+                    id="hc-style-color"
                     type="text"
                     className="input-field"
                     value={form.colorHex}
@@ -570,14 +664,20 @@ export default function PopularStyles() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Sortier-Reihenfolge</label>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="hc-style-sort"
+                  style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
+                >
+                  Sortier-Reihenfolge
+                </label>
                 <input
+                  id="hc-style-sort"
                   type="number"
                   className="input-field"
                   min={0}
                   value={form.sortOrder}
-                  onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 })}
                 />
               </div>
 
@@ -593,6 +693,48 @@ export default function PopularStyles() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteImageTargetId !== null}
+        onClose={() => setDeleteImageTargetId(null)}
+        title="Bild wirklich entfernen?"
+        description={
+          deleteImageTarget ? (
+            <>Das Bild für <strong>{deleteImageTarget.name}</strong> wird vom Server gelöscht.</>
+          ) : (
+            'Das Bild wird unwiderruflich entfernt.'
+          )
+        }
+        confirmLabel="Bild entfernen"
+        confirmVariant="danger"
+        onConfirm={executeDeleteImage}
+      />
+
+      <ConfirmDialog
+        open={deleteStyleTargetId !== null}
+        onClose={() => setDeleteStyleTargetId(null)}
+        title="Style wirklich löschen?"
+        description={
+          deleteStyleTarget ? (
+            <>
+              <strong>{deleteStyleTarget.name}</strong> wird vollständig gelöscht. Zugeordnete Bilder werden
+              ebenfalls entfernt. Diese Aktion kann nicht rückgängig gemacht werden.
+            </>
+          ) : (
+            'Der Style und sein Bild werden unwiderruflich gelöscht.'
+          )
+        }
+        confirmLabel="Style löschen"
+        confirmVariant="danger"
+        onConfirm={executeDeleteStyle}
+      />
+
+      <AlertDialog
+        open={alertError !== null}
+        onClose={() => setAlertError(null)}
+        title={alertError?.title ?? 'Fehler'}
+        description={alertError?.message ?? null}
+      />
     </div>
   );
 }

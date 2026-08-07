@@ -398,12 +398,14 @@ export function getAdminProviderIdDocumentUrl(providerId: string): string {
   return buildApiUrl(`/admin/providers/${providerId}/id-document`);
 }
 
-export async function getAdminStats(): Promise<{
+export type AdminStatsResponse = {
   pendingProviders: number;
   approvedProviders: number;
   activeCategories: number;
   activePopularStyles: number;
-}> {
+};
+
+export async function getAdminStats(): Promise<AdminStatsResponse> {
   const res = await api.get('/admin/stats');
-  return res.data;
+  return res.data as AdminStatsResponse;
 }
