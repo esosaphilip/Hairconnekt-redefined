@@ -12,6 +12,72 @@ import {
 import { X } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
+// Shared dialog helpers: Esc-to-close + focus-first-focusable + restore on close
+// ---------------------------------------------------------------------------
+
+function focusFirstDescendant(root: HTMLElement) {
+  const focusable = root.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  );
+  for (const el of focusable) {
+    if (!el.hasAttribute('disabled') && !(el as HTMLInputElement).disabled) {
+      el.focus({ preventScroll: true });
+      return;
+    }
+  }
+}
+
+function useDialogLifecycle(open: boolean, onClose: () => void, dialogRootRef: { current: HTMLElement | null }) {
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previouslyFocusedRef.current = (document.activeElement as HTMLElement | null);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+      if (e.key === 'Tab' && dialogRootRef.current) {
+        const focusables = dialogRootRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+
+    if (dialogRootRef.current) {
+      // Focus first focusable child (usually input or confirm button) on next tick.
+      const root = dialogRootRef.current;
+      window.setTimeout(() => focusFirstDescendant(root), 0);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+      const prev = previouslyFocusedRef.current;
+      prev?.focus?.();
+    };
+  }, [open, onClose, dialogRootRef]);
+}
+
+export { useDialogLifecycle };
+
+// ---------------------------------------------------------------------------
 // Loading skeleton — re-uses the spinner pattern from PopularStyles.tsx.
 // ---------------------------------------------------------------------------
 
@@ -127,6 +193,8 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const [running, setRunning] = useState(false);
+  const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(open, onClose, dialogRootRef);
   if (!open) return null;
 
   const variantClass =
@@ -154,7 +222,12 @@ export function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="hc-confirm-title"
     >
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRootRef}
+        className="modal"
+        style={{ maxWidth: 460 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span id="hc-confirm-title" style={{ fontWeight: 600 }}>{title}</span>
           <button
@@ -203,6 +276,8 @@ export function AlertDialog({
   description,
   confirmLabel = 'OK',
 }: AlertDialogProps) {
+  const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(open, onClose, dialogRootRef);
   if (!open) return null;
   return (
     <div
@@ -212,7 +287,12 @@ export function AlertDialog({
       aria-modal="true"
       aria-labelledby="hc-alert-title"
     >
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRootRef}
+        className="modal"
+        style={{ maxWidth: 460 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span id="hc-alert-title" style={{ fontWeight: 600 }}>{title}</span>
           <button
@@ -271,6 +351,8 @@ export function PromptDialog({
   const [running, setRunning] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(open, onClose, dialogRootRef);
 
   if (open && value === initialValue && !running) {
     // no-op: we only reset via onOpenEffect below
@@ -319,6 +401,7 @@ export function PromptDialog({
       aria-labelledby="hc-prompt-title"
     >
       <div
+        ref={dialogRootRef}
         className="modal"
         style={{ maxWidth: multiline ? 520 : 460 }}
         onClick={(e) => e.stopPropagation()}

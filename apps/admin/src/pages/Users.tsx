@@ -214,7 +214,7 @@ export default function Users() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 48 }}>
+                <th scope="col" style={{ width: 48 }}>
                   <input
                     type="checkbox"
                     aria-label="Alle auswählbaren Benutzer auf dieser Seite auswählen"
@@ -223,12 +223,12 @@ export default function Users() {
                     disabled={selectableIdsOnPage.length === 0}
                   />
                 </th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Rolle</th>
-                <th>Status</th>
-                <th>Registriert</th>
-                <th style={{ textAlign: 'right' }}>Aktionen</th>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Rolle</th>
+                <th scope="col">Status</th>
+                <th scope="col">Registriert</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -305,7 +305,8 @@ export default function Users() {
       )}
 
       {totalPages > 1 && (
-        <div
+        <nav
+          aria-label="Benutzer Paginierung"
           style={{
             marginTop: '1rem',
             display: 'flex',
@@ -324,6 +325,7 @@ export default function Users() {
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               style={{ opacity: page <= 1 ? 0.5 : 1 }}
+              aria-label="Zur vorherigen Seite"
             >
               Zurück
             </button>
@@ -334,6 +336,7 @@ export default function Users() {
                 className={p === page ? 'btn btn-success' : 'btn btn-outline'}
                 onClick={() => setPage(p)}
                 aria-current={p === page ? 'page' : undefined}
+                aria-label={`Seite ${p}`}
               >
                 {p}
               </button>
@@ -344,11 +347,12 @@ export default function Users() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               style={{ opacity: page >= totalPages ? 0.5 : 1 }}
+              aria-label="Zur nächsten Seite"
             >
               Weiter
             </button>
           </div>
-        </div>
+        </nav>
       )}
 
       <ConfirmDialog

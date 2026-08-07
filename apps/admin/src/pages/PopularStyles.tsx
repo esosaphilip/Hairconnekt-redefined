@@ -14,6 +14,7 @@ import {
   ConfirmDialog,
   LoadingSpinner,
   PageError,
+  useDialogLifecycle,
   useToasts,
 } from '../components/ui';
 import { formatApiError } from '../utils/apiError';
@@ -35,6 +36,8 @@ const defaultForm: FormState = {
 export default function PopularStyles() {
   const toast = useToasts();
   const nameErrorId = useId();
+  const sortErrorId = useId();
+  const colorErrorId = useId();
 
   const [styles, setStyles] = useState<PopularStyle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +49,8 @@ export default function PopularStyles() {
   const [editingStyle, setEditingStyle] = useState<PopularStyle | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [formNameError, setFormNameError] = useState('');
+  const [formSortError, setFormSortError] = useState('');
+  const [formColorError, setFormColorError] = useState('');
 
   const [deleteImageTargetId, setDeleteImageTargetId] = useState<string | null>(null);
   const [deleteStyleTargetId, setDeleteStyleTargetId] = useState<string | null>(null);
@@ -53,6 +58,8 @@ export default function PopularStyles() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetIdRef = useRef<string | null>(null);
+  const styleModalRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(isModalOpen, () => setIsModalOpen(false), styleModalRef);
 
   const loadStyles = useCallback(async () => {
     setPageError('');
@@ -84,6 +91,8 @@ export default function PopularStyles() {
     setEditingStyle(null);
     setForm(defaultForm);
     setFormNameError('');
+    setFormSortError('');
+    setFormColorError('');
     setIsModalOpen(true);
   };
 
@@ -96,6 +105,8 @@ export default function PopularStyles() {
       sortOrder: typeof style.sortOrder === 'number' ? style.sortOrder : 0,
     });
     setFormNameError('');
+    setFormSortError('');
+    setFormColorError('');
     setIsModalOpen(true);
   };
 
@@ -109,12 +120,23 @@ export default function PopularStyles() {
   };
 
   const validateForm = (): boolean => {
+    let ok = true;
+    setFormNameError('');
+    setFormSortError('');
+    setFormColorError('');
     if (!form.name.trim()) {
       setFormNameError('Name ist erforderlich.');
-      return false;
+      ok = false;
     }
-    setFormNameError('');
-    return true;
+    if (form.sortOrder < 0 || Number.isNaN(form.sortOrder)) {
+      setFormSortError('Sortier-Reihenfolge muss >= 0 sein.');
+      ok = false;
+    }
+    if (!/^#[0-9A-Fa-f]{6}$/.test(form.colorHex)) {
+      setFormColorError('Farbe muss im Format #RRGGBB angegeben werden (z.B. #C8860A).');
+      ok = false;
+    }
+    return ok;
   };
 
   const saveStyle = async () => {
@@ -145,6 +167,8 @@ export default function PopularStyles() {
       setEditingStyle(null);
       setForm(defaultForm);
       setFormNameError('');
+      setFormSortError('');
+      setFormColorError('');
     } catch (err: unknown) {
       const detail = formatApiError(err);
       setAlertError({ title: 'Speichern fehlgeschlagen', message: detail });
@@ -311,13 +335,13 @@ export default function PopularStyles() {
             <table>
               <thead>
                 <tr>
-                  <th>BILD</th>
-                  <th>NAME</th>
-                  <th>EMOJI</th>
-                  <th>FARBE</th>
-                  <th>REIHENFOLGE</th>
-                  <th>AKTIV</th>
-                  <th style={{ textAlign: 'right' }}>AKTIONEN</th>
+                  <th scope="col">BILD</th>
+                  <th scope="col">NAME</th>
+                  <th scope="col">EMOJI</th>
+                  <th scope="col">FARBE</th>
+                  <th scope="col">REIHENFOLGE</th>
+                  <th scope="col">AKTIV</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>AKTIONEN</th>
                 </tr>
               </thead>
               <tbody>
@@ -580,7 +604,12 @@ export default function PopularStyles() {
           aria-labelledby="hc-style-title"
           onClick={() => setIsModalOpen(false)}
         >
-          <div className="modal" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={styleModalRef}
+            className="modal"
+            style={{ maxWidth: '560px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header" id="hc-style-title">
               {editingStyle ? 'Style bearbeiten' : 'Neuen Style hinzufügen'}
             </div>
@@ -650,7 +679,10 @@ export default function PopularStyles() {
                     aria-label="Farbwähler"
                     type="color"
                     value={form.colorHex}
-                    onChange={(e) => setForm({ ...form, colorHex: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, colorHex: e.target.value });
+                      if (formColorError) setFormColorError('');
+                    }}
                     style={{ width: 56, height: 44, borderRadius: 10, border: '1px solid var(--border)', background: 'transparent', padding: 0 }}
                   />
                   <input
@@ -658,10 +690,24 @@ export default function PopularStyles() {
                     type="text"
                     className="input-field"
                     value={form.colorHex}
-                    onChange={(e) => setForm({ ...form, colorHex: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, colorHex: e.target.value });
+                      if (formColorError) setFormColorError('');
+                    }}
                     pattern="^#[0-9A-Fa-f]{6}$"
+                    aria-invalid={Boolean(formColorError) || undefined}
+                    aria-describedby={formColorError ? colorErrorId : undefined}
                   />
                 </div>
+                {formColorError && (
+                  <div
+                    id={colorErrorId}
+                    role="alert"
+                    style={{ marginTop: 4, color: 'var(--danger)', fontSize: '0.75rem' }}
+                  >
+                    {formColorError}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
@@ -677,8 +723,22 @@ export default function PopularStyles() {
                   className="input-field"
                   min={0}
                   value={form.sortOrder}
-                  onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 })}
+                  onChange={(e) => {
+                    setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 });
+                    if (formSortError) setFormSortError('');
+                  }}
+                  aria-invalid={Boolean(formSortError) || undefined}
+                  aria-describedby={formSortError ? sortErrorId : undefined}
                 />
+                {formSortError && (
+                  <div
+                    id={sortErrorId}
+                    role="alert"
+                    style={{ marginTop: 4, color: 'var(--danger)', fontSize: '0.75rem' }}
+                  >
+                    {formSortError}
+                  </div>
+                )}
               </div>
 
               <div>

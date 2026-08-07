@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShieldAlert, UserCheck, UserMinus, UserX } from 'lucide-react';
 import {
   approveProvider,
@@ -15,6 +15,7 @@ import {
   LoadingSpinner,
   PageError,
   PromptDialog,
+  useDialogLifecycle,
   useToasts,
 } from '../components/ui';
 import { formatApiError } from '../utils/apiError';
@@ -33,6 +34,9 @@ export default function Providers() {
   const [promptReject, setPromptReject] = useState<string | null>(null);
   const [promptSuspend, setPromptSuspend] = useState<string | null>(null);
   const [alertError, setAlertError] = useState<{ title: string; message: string } | null>(null);
+
+  const providerDetailsRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(selectedProvider !== null, () => setSelectedProvider(null), providerDetailsRef);
 
   const normalizeStatus = (status?: string | null): ProviderStatus | '' => {
     const normalized = status?.toLowerCase();
@@ -116,6 +120,10 @@ export default function Providers() {
   // ---------------------------------------------------------------------------
   const executeReject = async (reason: string) => {
     if (!promptReject) return;
+    if (reason.trim().length > 0 && reason.trim().length < 6) {
+      toast.error('Begründung muss mindestens 6 Zeichen lang sein, falls angegeben.');
+      return;
+    }
     try {
       await rejectProvider(promptReject, reason.trim() || undefined);
       toast.success('Anbieter wurde abgelehnt.');
@@ -131,8 +139,12 @@ export default function Providers() {
   // ---------------------------------------------------------------------------
   // Prompt: suspend (reason REQUIRED per audit rules)
   // ---------------------------------------------------------------------------
-  const executeSuspendWithReason = async (reason: string) => {
+  const executeSuspend = async (reason: string) => {
     if (!promptSuspend) return;
+    if (reason.trim().length < 6) {
+      toast.error('Begründung für Sperrung muss mindestens 6 Zeichen lang sein.');
+      return;
+    }
     try {
       await suspendProvider(promptSuspend, reason.trim() || undefined);
       toast.success('Anbieter wurde gesperrt.');
@@ -206,12 +218,12 @@ export default function Providers() {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Business / Typ</th>
-                <th>Stadt</th>
-                <th>Status</th>
-                <th>Registriert</th>
-                <th style={{ textAlign: 'right' }}>Aktionen</th>
+                <th scope="col">Name</th>
+                <th scope="col">Business / Typ</th>
+                <th scope="col">Stadt</th>
+                <th scope="col">Status</th>
+                <th scope="col">Registriert</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -382,6 +394,7 @@ export default function Providers() {
       {selectedProvider && (
         <div className="modal-overlay" onClick={() => setSelectedProvider(null)}>
           <div
+            ref={providerDetailsRef}
             className="modal"
             style={{ maxWidth: '600px' }}
             onClick={(e) => e.stopPropagation()}
@@ -551,7 +564,7 @@ export default function Providers() {
         placeholder="z.B. wiederholte Verstöße gegen die Nutzungsbedingungen"
         multiline
         required
-        onConfirm={executeSuspendWithReason}
+        onConfirm={executeSuspend}
       />
 
       <AlertDialog

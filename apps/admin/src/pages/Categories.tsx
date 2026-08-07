@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Edit2, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import {
   createCategory,
@@ -12,6 +12,7 @@ import {
   ConfirmDialog,
   LoadingSpinner,
   PageError,
+  useDialogLifecycle,
   useToasts,
 } from '../components/ui';
 import { formatApiError } from '../utils/apiError';
@@ -22,6 +23,7 @@ const emptyForm: FormState = { name: '', description: '', sortOrder: 0, isActive
 export default function Categories() {
   const toast = useToasts();
   const nameErrorId = useId();
+  const sortErrorId = useId();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,9 +34,13 @@ export default function Categories() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [formNameError, setFormNameError] = useState('');
+  const [formSortError, setFormSortError] = useState('');
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [alertError, setAlertError] = useState<{ title: string; message: string } | null>(null);
+
+  const categoryModalRef = useRef<HTMLDivElement | null>(null);
+  useDialogLifecycle(isModalOpen, () => setIsModalOpen(false), categoryModalRef);
 
   const clearRowError = (id: string) => {
     setRowErrors((prev) => {
@@ -69,6 +75,7 @@ export default function Categories() {
     setEditingId(null);
     setForm(emptyForm);
     setFormNameError('');
+    setFormSortError('');
     setIsModalOpen(true);
   };
 
@@ -81,20 +88,23 @@ export default function Categories() {
       isActive: cat.isActive,
     });
     setFormNameError('');
+    setFormSortError('');
     setIsModalOpen(true);
   };
 
   const validateForm = (): boolean => {
+    let ok = true;
+    setFormNameError('');
+    setFormSortError('');
     if (!form.name.trim()) {
       setFormNameError('Name ist erforderlich.');
-      return false;
+      ok = false;
     }
     if (form.sortOrder < 0 || Number.isNaN(form.sortOrder)) {
-      setFormNameError('Reihenfolge muss >= 0 sein.');
-      return false;
+      setFormSortError('Reihenfolge muss >= 0 sein.');
+      ok = false;
     }
-    setFormNameError('');
-    return true;
+    return ok;
   };
 
   const saveCategory = async () => {
@@ -119,6 +129,7 @@ export default function Categories() {
       setEditingId(null);
       setForm(emptyForm);
       setFormNameError('');
+      setFormSortError('');
     } catch (err: unknown) {
       const detail = formatApiError(err);
       setAlertError({ title: 'Speichern fehlgeschlagen', message: detail });
@@ -180,11 +191,11 @@ export default function Categories() {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Beschreibung</th>
-                <th>Reihenfolge</th>
-                <th>Aktiv</th>
-                <th style={{ textAlign: 'right' }}>Aktionen</th>
+                <th scope="col">Name</th>
+                <th scope="col">Beschreibung</th>
+                <th scope="col">Reihenfolge</th>
+                <th scope="col">Aktiv</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -266,7 +277,11 @@ export default function Categories() {
           aria-labelledby="hc-category-title"
           onClick={() => setIsModalOpen(false)}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={categoryModalRef}
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header" id="hc-category-title">
               {editingId ? 'Kategorie bearbeiten' : 'Neue Kategorie'}
             </div>
@@ -330,10 +345,22 @@ export default function Categories() {
                   min={0}
                   className="input-field"
                   value={form.sortOrder}
-                  onChange={(e) =>
-                    setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 });
+                    if (formSortError) setFormSortError('');
+                  }}
+                  aria-invalid={Boolean(formSortError) || undefined}
+                  aria-describedby={formSortError ? sortErrorId : undefined}
                 />
+                {formSortError && (
+                  <div
+                    id={sortErrorId}
+                    role="alert"
+                    style={{ marginTop: 4, color: 'var(--danger)', fontSize: '0.75rem' }}
+                  >
+                    {formSortError}
+                  </div>
+                )}
               </div>
               <div>
                 <label
