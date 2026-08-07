@@ -17,7 +17,7 @@ import {
   useDialogLifecycle,
   useToasts,
 } from '../components/ui';
-import { formatApiError } from '../utils/apiError';
+import { formatApiError, tryExtractNameFieldError } from '../utils/apiError';
 
 type FormState = {
   name: string;
@@ -170,6 +170,15 @@ export default function PopularStyles() {
       setFormSortError('');
       setFormColorError('');
     } catch (err: unknown) {
+      const nameMsg = tryExtractNameFieldError(err);
+      if (nameMsg) {
+        setFormNameError(nameMsg);
+        setTimeout(() => {
+          const input = document.getElementById('hc-style-name');
+          if (input && input instanceof HTMLElement) input.focus();
+        }, 30);
+        return;
+      }
       const detail = formatApiError(err);
       setAlertError({ title: 'Speichern fehlgeschlagen', message: detail });
     }

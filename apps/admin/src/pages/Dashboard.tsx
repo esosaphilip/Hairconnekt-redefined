@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { AlertCircle, CheckCircle, Sparkles, Users } from 'lucide-react';
 import { getAdminStats, type AdminStatsResponse } from '../api';
 import { LoadingSpinner, PageError, useToasts } from '../components/ui';
@@ -14,6 +14,7 @@ interface CardData {
 
 export default function Dashboard() {
   const toast = useToasts();
+  const cardsBaseId = useId();
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [stats, setStats] = useState<AdminStatsResponse | null>(null);
@@ -86,17 +87,22 @@ export default function Dashboard() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '1.5rem',
           }}
-          aria-live="polite"
+          role="group"
+          aria-label="Dashboard Übersicht"
         >
           {cards.map((card) => {
             const Icon = card.icon;
+            const safeLabel = card.label.replace(/\s+/g, '-').toLowerCase();
+            const labelId = `${cardsBaseId}-${safeLabel}`;
             return (
-              <div
+              <section
                 key={card.label}
                 className="card"
+                aria-labelledby={labelId}
                 style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}
               >
                 <div
+                  aria-hidden="true"
                   style={{
                     background: card.background,
                     padding: '1rem',
@@ -108,18 +114,34 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p
+                    id={labelId}
                     style={{
                       color: 'var(--text-muted)',
                       fontSize: '0.875rem',
                       fontWeight: 600,
                       textTransform: 'uppercase',
+                      margin: 0,
                     }}
                   >
                     {card.label}
                   </p>
-                  <h2 style={{ fontSize: '2rem', margin: '0.25rem 0 0' }}>{card.value}</h2>
+                  <div
+                    aria-live="polite"
+                    aria-atomic="true"
+                    style={{ display: 'inline-block' }}
+                  >
+                    <h2
+                      style={{
+                        fontSize: '2rem',
+                        margin: '0.25rem 0 0',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {card.value}
+                    </h2>
+                  </div>
                 </div>
-              </div>
+              </section>
             );
           })}
         </div>

@@ -34,3 +34,24 @@ export const formatApiError = (err: unknown): string => {
   return 'Unbekannter Fehler.';
 };
 
+const NAME_KEYWORDS = [
+  'existiert bereits',
+  'already exists',
+  'duplicate key',
+  'unique constraint',
+  'Name ist erforderlich',
+];
+
+export function tryExtractNameFieldError(err: unknown): string | null {
+  if (!axios.isAxiosError(err)) return null;
+  const status = err.response?.status;
+  if (status !== 400 && status !== 409 && status !== 422) return null;
+  const backendMessage = stringifyMessage(err.response?.data);
+  if (!backendMessage) return null;
+  const haystack = backendMessage.toLowerCase();
+  const hit = NAME_KEYWORDS.some((kw) => haystack.includes(kw.toLowerCase()));
+  if (!hit) return null;
+  // Strip leading/trailing "Status: 409 • " prefix possibly embedded by other callers
+  return backendMessage.replace(/^Status:\s*\d+\s*[•\u2022-]\s*/i, '').trim() || backendMessage;
+}
+

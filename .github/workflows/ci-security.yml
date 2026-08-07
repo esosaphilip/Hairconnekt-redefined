@@ -74,11 +74,25 @@ jobs:
           cache: npm
           cache-dependency-path: apps/admin/package-lock.json
 
+      - name: Cache admin TS build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/admin/dist
+            apps/admin/*.tsbuildinfo
+          key: ${{ runner.os }}-admin-build-${{ hashFiles('apps/admin/package-lock.json', 'apps/admin/tsconfig*.json', 'apps/admin/vite.config.*', 'apps/admin/src/**/*.{ts,tsx,css}') }}
+          restore-keys: |
+            ${{ runner.os }}-admin-build-${{ hashFiles('apps/admin/package-lock.json', 'apps/admin/tsconfig*.json', 'apps/admin/vite.config.*') }}-
+            ${{ runner.os }}-admin-build-
+
       - name: Install admin deps
         run: npm ci
 
       - name: Lint admin
         run: npm run lint
+
+      - name: Type-check admin (standalone tsc --noEmit)
+        run: npx tsc --noEmit
 
       - name: Build admin
         run: npm run build

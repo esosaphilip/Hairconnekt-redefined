@@ -15,7 +15,7 @@ import {
   useDialogLifecycle,
   useToasts,
 } from '../components/ui';
-import { formatApiError } from '../utils/apiError';
+import { formatApiError, tryExtractNameFieldError } from '../utils/apiError';
 
 type FormState = { name: string; description: string; sortOrder: number; isActive: boolean };
 const emptyForm: FormState = { name: '', description: '', sortOrder: 0, isActive: true };
@@ -131,6 +131,15 @@ export default function Categories() {
       setFormNameError('');
       setFormSortError('');
     } catch (err: unknown) {
+      const nameMsg = tryExtractNameFieldError(err);
+      if (nameMsg) {
+        setFormNameError(nameMsg);
+        setTimeout(() => {
+          const input = document.getElementById('hc-category-name');
+          if (input && input instanceof HTMLElement) input.focus();
+        }, 30);
+        return;
+      }
       const detail = formatApiError(err);
       setAlertError({ title: 'Speichern fehlgeschlagen', message: detail });
     }
@@ -199,7 +208,10 @@ export default function Categories() {
               </tr>
             </thead>
             <tbody>
-              {categories.map((cat) => (
+              {categories.map((cat) => {
+                const rowErrorId = `hc-cat-rowerr-${cat.id}`;
+                const rowError = rowErrors[cat.id];
+                return (
                 <tr key={cat.id}>
                   <td style={{ fontWeight: 500 }}>{cat.name}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{cat.description || '-'}</td>
@@ -213,6 +225,7 @@ export default function Categories() {
                         checked={cat.isActive}
                         onChange={() => toggleActive(cat)}
                         aria-label={`Aktiv-Status für ${cat.name} umschalten`}
+                        aria-describedby={rowError ? rowErrorId : undefined}
                       />
                       <span
                         className={`badge ${cat.isActive ? 'badge-approved' : 'badge-suspended'}`}
@@ -220,8 +233,9 @@ export default function Categories() {
                         {cat.isActive ? 'Aktiv' : 'Inaktiv'}
                       </span>
                     </label>
-                    {rowErrors[cat.id] && (
+                    {rowError && (
                       <div
+                        id={rowErrorId}
                         role="alert"
                         style={{
                           marginTop: 4,
@@ -229,7 +243,7 @@ export default function Categories() {
                           fontSize: '0.75rem',
                         }}
                       >
-                        Aktualisierung fehlgeschlagen. {rowErrors[cat.id]}
+                        Aktualisierung fehlgeschlagen. {rowError}
                       </div>
                     )}
                   </td>
@@ -239,6 +253,7 @@ export default function Categories() {
                       style={{ padding: '0.4rem', marginRight: '0.5rem' }}
                       onClick={() => openEdit(cat)}
                       aria-label={`Kategorie ${cat.name} bearbeiten`}
+                      aria-describedby={rowError ? rowErrorId : undefined}
                     >
                       <Edit2 size={16} />
                     </button>
@@ -247,12 +262,14 @@ export default function Categories() {
                       style={{ padding: '0.4rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
                       onClick={() => setDeletingId(cat.id)}
                       aria-label={`Kategorie ${cat.name} löschen`}
+                      aria-describedby={rowError ? rowErrorId : undefined}
                     >
                       <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {categories.length === 0 && !isLoading && (
                 <tr>
                   <td

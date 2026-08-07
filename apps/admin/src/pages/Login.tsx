@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { adminLogin } from '../api';
@@ -13,6 +14,7 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
@@ -177,23 +179,48 @@ export default function Login() {
             >
               Passwort
             </label>
-            <input
-              id={passwordInputId}
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              className="input-field"
-              placeholder="Passwort"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (passwordError) setPasswordError('');
-              }}
-              aria-invalid={Boolean(passwordError) || undefined}
-              aria-describedby={passwordError ? passwordErrorId : undefined}
-              disabled={isSubmitting}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id={passwordInputId}
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                autoComplete="current-password"
+                className="input-field"
+                placeholder="Passwort"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError('');
+                }}
+                aria-invalid={Boolean(passwordError) || undefined}
+                aria-describedby={passwordError ? passwordErrorId : undefined}
+                disabled={isSubmitting}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                disabled={isSubmitting}
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                aria-pressed={showPassword}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '0.35rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {passwordError && (
               <div
                 id={passwordErrorId}

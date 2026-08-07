@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -45,8 +46,17 @@ export class PopularStylesService {
         ? body.sortOrder
         : await this.nextSortOrder();
 
+    const name = (body.name ?? '').trim();
+    if (!name) {
+      throw new BadRequestException('Name ist erforderlich.');
+    }
+    const dup = await this.popularStyleRepo.findOne({ where: { name } });
+    if (dup) {
+      throw new ConflictException('Style mit diesem Namen existiert bereits.');
+    }
+
     const entity = this.popularStyleRepo.create({
-      name: body.name,
+      name,
       emoji: body.emoji ?? '✨',
       colorHex: body.colorHex ?? '#C8860A',
       sortOrder,
@@ -55,7 +65,15 @@ export class PopularStylesService {
       imageKey: null,
     });
 
-    const saved = await this.popularStyleRepo.save(entity);
+    let saved: PopularStyle;
+    try {
+      saved = await this.popularStyleRepo.save(entity);
+    } catch (err: unknown) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('Style mit diesem Namen existiert bereits.');
+      }
+      throw err;
+    }
     return PopularStyleAdminDto.fromEntity(saved);
   }
 
@@ -63,13 +81,30 @@ export class PopularStylesService {
     const style = await this.popularStyleRepo.findOne({ where: { id } });
     if (!style) throw new NotFoundException('Popular style not found');
 
-    if (typeof body.name === 'string') style.name = body.name;
+    const nextName = typeof body.name === 'string' ? body.name.trim() : undefined;
+    if (typeof nextName === 'string') {
+      if (nextName.length === 0) throw new BadRequestException('Name ist erforderlich.');
+      const dup = await this.popularStyleRepo.findOne({ where: { name: nextName } });
+      if (dup && dup.id !== id) {
+        throw new ConflictException('Style mit diesem Namen existiert bereits.');
+      }
+    }
+
+    if (nextName !== undefined) style.name = nextName;
     if (typeof body.emoji === 'string') style.emoji = body.emoji;
     if (typeof body.colorHex === 'string') style.colorHex = body.colorHex;
     if (typeof body.sortOrder === 'number') style.sortOrder = body.sortOrder;
     if (typeof body.isActive === 'boolean') style.isActive = body.isActive;
 
-    const saved = await this.popularStyleRepo.save(style);
+    let saved: PopularStyle;
+    try {
+      saved = await this.popularStyleRepo.save(style);
+    } catch (err: unknown) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('Style mit diesem Namen existiert bereits.');
+      }
+      throw err;
+    }
     return PopularStyleAdminDto.fromEntity(saved);
   }
 
@@ -159,4 +194,17 @@ export class PopularStylesService {
     const max = Number(row?.max ?? 0);
     return (Number.isFinite(max) ? max : 0) + 1;
   }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: string; message?: string; driverError?: { code?: string } };
+  const code = e.code ?? e.driverError?.code;
+  if (typeof code === 'string') {
+    return code === '23505' || code === 'ER_DUP_ENTRY' || code.startsWith('SQLITE_CONSTRAINT_UNIQUE');
+  }
+  if (typeof e.message === 'string') {
+    return /duplicate key|unique constraint|already exists/i.test(e.message);
+  }
+  return false;
 }

@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -194,6 +195,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [running, setRunning] = useState(false);
   const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  const rootId = useId();
+  const titleId = `${rootId}-title`;
+  const descId = `${rootId}-desc`;
   useDialogLifecycle(open, onClose, dialogRootRef);
   if (!open) return null;
 
@@ -220,7 +224,8 @@ export function ConfirmDialog({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="hc-confirm-title"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
     >
       <div
         ref={dialogRootRef}
@@ -229,7 +234,7 @@ export function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span id="hc-confirm-title" style={{ fontWeight: 600 }}>{title}</span>
+          <span id={titleId} style={{ fontWeight: 600 }}>{title}</span>
           <button
             type="button"
             aria-label="Dialog schließen"
@@ -239,9 +244,15 @@ export function ConfirmDialog({
             <X size={18} />
           </button>
         </div>
-        <div className="modal-body" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          {description ?? null}
-        </div>
+        {description ? (
+          <div
+            id={descId}
+            className="modal-body"
+            style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}
+          >
+            {description}
+          </div>
+        ) : null}
         <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-outline" onClick={onClose} disabled={running}>
             {cancelLabel}
@@ -277,6 +288,9 @@ export function AlertDialog({
   confirmLabel = 'OK',
 }: AlertDialogProps) {
   const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  const rootId = useId();
+  const titleId = `${rootId}-title`;
+  const descId = `${rootId}-desc`;
   useDialogLifecycle(open, onClose, dialogRootRef);
   if (!open) return null;
   return (
@@ -285,7 +299,8 @@ export function AlertDialog({
       onClick={onClose}
       role="alertdialog"
       aria-modal="true"
-      aria-labelledby="hc-alert-title"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
     >
       <div
         ref={dialogRootRef}
@@ -294,7 +309,7 @@ export function AlertDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span id="hc-alert-title" style={{ fontWeight: 600 }}>{title}</span>
+          <span id={titleId} style={{ fontWeight: 600 }}>{title}</span>
           <button
             type="button"
             aria-label="Dialog schließen"
@@ -304,9 +319,15 @@ export function AlertDialog({
             <X size={18} />
           </button>
         </div>
-        <div className="modal-body" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          {description ?? null}
-        </div>
+        {description ? (
+          <div
+            id={descId}
+            className="modal-body"
+            style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}
+          >
+            {description}
+          </div>
+        ) : null}
         <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-primary" onClick={onClose} autoFocus>
             {confirmLabel}
@@ -352,6 +373,14 @@ export function PromptDialog({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dialogRootRef = useRef<HTMLDivElement | null>(null);
+  const rootId = useId();
+  const titleId = `${rootId}-title`;
+  const descId = `${rootId}-desc`;
+  const validationId = `${rootId}-validation`;
+  const inputDescribedBy = [
+    description ? descId : null,
+    validationError ? validationId : null,
+  ].filter(Boolean).join(' ') || undefined;
   useDialogLifecycle(open, onClose, dialogRootRef);
 
   if (open && value === initialValue && !running) {
@@ -398,7 +427,8 @@ export function PromptDialog({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="hc-prompt-title"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
     >
       <div
         ref={dialogRootRef}
@@ -407,7 +437,7 @@ export function PromptDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span id="hc-prompt-title" style={{ fontWeight: 600 }}>{title}</span>
+          <span id={titleId} style={{ fontWeight: 600 }}>{title}</span>
           <button
             type="button"
             aria-label="Dialog schließen"
@@ -419,7 +449,12 @@ export function PromptDialog({
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {description ? (
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{description}</div>
+            <div
+              id={descId}
+              style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}
+            >
+              {description}
+            </div>
           ) : null}
           {multiline ? (
             <textarea
@@ -433,6 +468,8 @@ export function PromptDialog({
               }}
               placeholder={placeholder}
               aria-invalid={Boolean(validationError) || undefined}
+              aria-describedby={inputDescribedBy}
+              aria-required={required || undefined}
             />
           ) : (
             <input
@@ -452,10 +489,12 @@ export function PromptDialog({
                 }
               }}
               aria-invalid={Boolean(validationError) || undefined}
+              aria-describedby={inputDescribedBy}
+              aria-required={required || undefined}
             />
           )}
           {validationError && (
-            <div role="alert" style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>
+            <div id={validationId} role="alert" style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>
               {validationError}
             </div>
           )}
