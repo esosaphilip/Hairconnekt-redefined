@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -7,11 +7,13 @@ import Providers from './pages/Providers';
 import Users from './pages/Users';
 import Categories from './pages/Categories';
 import PopularStyles from './pages/PopularStyles';
-import { getAdminSession, type AdminUserSummary } from './api';
+import { getAdminSession, setOnAuthExpired, type AdminUserSummary } from './api';
 import './index.css';
 
-// Protected Route Wrapper
+const LOGIN_PATH = '/login';
+
 const ProtectedRoute = () => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'ready' | 'unauthorized'>(
     'loading',
   );
@@ -19,6 +21,16 @@ const ProtectedRoute = () => {
 
   useEffect(() => {
     let mounted = true;
+
+    setOnAuthExpired(() => {
+      if (!mounted) {
+        window.location.replace(LOGIN_PATH);
+        return;
+      }
+      setUser(null);
+      setStatus('unauthorized');
+    });
+
     getAdminSession()
       .then((data) => {
         if (!mounted) return;
@@ -32,12 +44,21 @@ const ProtectedRoute = () => {
 
     return () => {
       mounted = false;
+      setOnAuthExpired(null);
     };
   }, []);
+
+  useEffect(() => {
+    if (status === 'unauthorized') {
+      navigate(LOGIN_PATH, { replace: true });
+    }
+  }, [status, navigate]);
 
   if (status === 'loading') {
     return (
       <div
+        role="status"
+        aria-live="polite"
         style={{
           minHeight: '100vh',
           display: 'flex',
@@ -51,8 +72,8 @@ const ProtectedRoute = () => {
     );
   }
 
-  if (status === 'unauthorized' || !user) {
-    return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to={LOGIN_PATH} replace />;
   }
 
   return <Layout user={user} />;

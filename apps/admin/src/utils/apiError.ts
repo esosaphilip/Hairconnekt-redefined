@@ -1,10 +1,17 @@
 import axios from 'axios';
 
+type MessageHolder = {
+  message: unknown;
+};
+
+const isMessageHolder = (value: object): value is MessageHolder =>
+  'message' in value;
+
 const stringifyMessage = (value: unknown): string => {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) return value.map((v) => stringifyMessage(v)).filter(Boolean).join(', ');
-  if (value && typeof value === 'object' && 'message' in (value as any)) {
-    return stringifyMessage((value as any).message);
+  if (value && typeof value === 'object' && isMessageHolder(value)) {
+    return stringifyMessage(value.message);
   }
   return '';
 };
@@ -12,7 +19,8 @@ const stringifyMessage = (value: unknown): string => {
 export const formatApiError = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status;
-    const requestId = (err.response?.headers as any)?.['x-request-id'];
+    const headers = err.response?.headers as Record<string, string | undefined> | undefined;
+    const requestId = headers?.['x-request-id'];
     const backendMessage = stringifyMessage(err.response?.data);
 
     const parts: string[] = [];

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ShieldAlert, Trash2 } from 'lucide-react';
 import { bulkDeleteUsers, deleteUser, getUsers, type AdminUser } from '../api';
 
@@ -11,7 +11,7 @@ export default function Users() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
 
-  const loadUsers = async (nextPage = page) => {
+  const loadUsers = useCallback(async (nextPage: number) => {
     try {
       setIsLoading(true);
       const offset = (nextPage - 1) * limit;
@@ -23,11 +23,11 @@ export default function Users() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [limit, showDeleted]);
 
   useEffect(() => {
     loadUsers(page);
-  }, [page, showDeleted]);
+  }, [page, loadUsers]);
 
   const onDelete = async (user: AdminUser) => {
     if (user.role === 'admin') return;

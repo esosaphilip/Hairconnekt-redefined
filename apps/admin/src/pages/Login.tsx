@@ -1,67 +1,221 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { adminLogin } from '../api';
+import { formatApiError } from '../utils/apiError';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login() {
+  const emailErrorId = useId();
+  const passwordErrorId = useId();
+  const globalErrorId = useId();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  const validate = (): boolean => {
+    let ok = true;
+
+    if (!email.trim()) {
+      setEmailError('Email ist erforderlich.');
+      ok = false;
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      ok = false;
+    } else {
+      setEmailError('');
+    }
+
+    if (!password) {
+      setPasswordError('Passwort ist erforderlich.');
+      ok = false;
+    } else if (password.length < 6) {
+      setPasswordError('Passwort muss mindestens 6 Zeichen lang sein.');
+      ok = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return ok;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    if (!validate()) return;
+    if (isSubmitting) return;
+
     try {
-      const res = await adminLogin(email, password);
+      setIsSubmitting(true);
+      const res = await adminLogin(email.trim(), password);
       if (res?.user) {
         navigate('/dashboard');
+      } else {
+        setError('Anmeldung fehlgeschlagen.');
       }
     } catch (err: unknown) {
-      const maybe = err as {
-        message?: unknown;
-        response?: { status?: unknown };
-      };
-      if (maybe?.message === 'Network Error') {
-        setError('Connection failed. Backend might be unreachable or blocking CORS.');
-      } else if (maybe?.response && maybe.response.status === 401) {
-        setError('Falsches Passwort oder falsche Email!');
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        if (status === 401) {
+          setError('Falsches Passwort oder falsche E-Mail!');
+        } else if (status === 429 || status === 423) {
+          setError(
+            'Zu viele fehlgeschlagene Anmeldeversuche. Bitte warten Sie 15 Minuten oder setzen Sie Ihr Passwort zurück.',
+          );
+        } else if (status === 403) {
+          setError('Zugriff verweigert. Dieses Konto ist gesperrt oder hat keine Admin-Rechte.');
+        } else if (err.message === 'Network Error') {
+          setError(
+            'Verbindung fehlgeschlagen. Backend ist möglicherweise nicht erreichbar oder blockiert CORS.',
+          );
+        } else {
+          const detail = formatApiError(err);
+          setError(`Anmeldung fehlgeschlagen. ${detail}`);
+        }
+      } else if (err instanceof Error) {
+        setError(`Anmeldung fehlgeschlagen. ${err.message}`);
       } else {
-        const message = typeof maybe?.message === 'string' ? maybe.message : 'Ungültige Anmeldedaten';
-        setError(`Error: ${message}`);
+        setError('Ungültige Anmeldedaten.');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const emailInputId = 'admin-login-email';
+  const passwordInputId = 'admin-login-password';
 
   return (
     <div className="login-page">
       <div className="card login-card">
         <h1 style={{ marginBottom: '0.5rem', color: 'var(--primary)' }}>HairConnekt</h1>
         <p style={{ marginBottom: '2rem', color: 'var(--text-muted)' }}>Admin Panel Login</p>
-        
-        {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', padding: '0.75rem', background: '#fee2e2', borderRadius: '8px' }}>{error}</div>}
-        
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {error && (
+          <div
+            id={globalErrorId}
+            role="alert"
+            aria-live="assertive"
+            style={{
+              color: 'var(--danger)',
+              marginBottom: '1rem',
+              padding: '0.75rem',
+              background: '#fee2e2',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleLogin}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          noValidate
+        >
           <div>
-            <input 
-              type="email" 
-              className="input-field" 
-              placeholder="Email-Adresse" 
+            <label
+              htmlFor={emailInputId}
+              style={{
+                display: 'block',
+                marginBottom: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                textAlign: 'left',
+              }}
+            >
+              E-Mail-Adresse
+            </label>
+            <input
+              id={emailInputId}
+              type="email"
+              name="email"
+              autoComplete="email"
+              className="input-field"
+              placeholder="Email-Adresse"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError('');
+              }}
+              aria-invalid={Boolean(emailError) || undefined}
+              aria-describedby={emailError ? emailErrorId : undefined}
+              disabled={isSubmitting}
+              required
             />
+            {emailError && (
+              <div
+                id={emailErrorId}
+                style={{
+                  marginTop: '0.375rem',
+                  color: 'var(--danger)',
+                  fontSize: '0.75rem',
+                  textAlign: 'left',
+                }}
+              >
+                {emailError}
+              </div>
+            )}
           </div>
           <div>
-            <input 
-              type="password" 
-              className="input-field" 
-              placeholder="Passwort" 
+            <label
+              htmlFor={passwordInputId}
+              style={{
+                display: 'block',
+                marginBottom: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                textAlign: 'left',
+              }}
+            >
+              Passwort
+            </label>
+            <input
+              id={passwordInputId}
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              className="input-field"
+              placeholder="Passwort"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) setPasswordError('');
+              }}
+              aria-invalid={Boolean(passwordError) || undefined}
+              aria-describedby={passwordError ? passwordErrorId : undefined}
+              disabled={isSubmitting}
+              required
             />
+            {passwordError && (
+              <div
+                id={passwordErrorId}
+                style={{
+                  marginTop: '0.375rem',
+                  color: 'var(--danger)',
+                  fontSize: '0.75rem',
+                  textAlign: 'left',
+                }}
+              >
+                {passwordError}
+              </div>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-            Anmelden
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{ marginTop: '1rem' }}
+            disabled={isSubmitting}
+            aria-busy={isSubmitting || undefined}
+          >
+            {isSubmitting ? 'Anmeldung läuft…' : 'Anmelden'}
           </button>
         </form>
       </div>

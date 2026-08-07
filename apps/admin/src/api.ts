@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
 const normalizeBaseUrl = (value: string): string => {
   const trimmed = value.trim().replace(/\/+$/, '');
@@ -27,19 +27,52 @@ const csrfClient = axios.create({
 let adminCsrfToken: string | null = null;
 let adminCsrfPromise: Promise<string> | null = null;
 
+const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedAdminSession: AdminSessionResponse | null = null;
+let cachedAdminSessionAt = 0;
+
+type AuthExpiredHandler = () => void;
+let onAuthExpired: AuthExpiredHandler | null = null;
+
+export function setOnAuthExpired(handler: AuthExpiredHandler | null): void {
+  onAuthExpired = handler;
+}
+
+function clearAdminSessionCache(): void {
+  cachedAdminSession = null;
+  cachedAdminSessionAt = 0;
+}
+
+function triggerAuthExpired(): void {
+  clearAdminSessionCache();
+  adminCsrfToken = null;
+  adminCsrfPromise = null;
+  onAuthExpired?.();
+}
+
 const isUnsafeMethod = (method?: string): boolean =>
   ['post', 'put', 'patch', 'delete'].includes((method ?? 'get').toLowerCase());
 
 const isAdminCsrfBootstrapRequest = (url?: string): boolean =>
   (url ?? '').includes('/auth/admin-csrf');
 
+type SettableHeaders = {
+  set: (key: string, value: string) => void;
+};
+
+const isSettableHeaders = (value: unknown): value is SettableHeaders =>
+  value !== null &&
+  typeof value === 'object' &&
+  'set' in value &&
+  typeof (value as SettableHeaders).set === 'function';
+
 const setHeaderValue = (
   headers: unknown,
   key: string,
   value: string,
 ): void => {
-  if (headers && typeof headers === 'object' && 'set' in headers && typeof (headers as any).set === 'function') {
-    (headers as any).set(key, value);
+  if (isSettableHeaders(headers)) {
+    headers.set(key, value);
     return;
   }
 
@@ -85,13 +118,24 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Response interceptor to handle 401s globally
+type RetryableAxiosConfig = AxiosRequestConfig & {
+  __csrfRetried?: boolean;
+};
+
+// Response interceptor to handle 401s globally + CSRF retry
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const config = error?.config as any;
+    const status = error?.response?.status as number | undefined;
+
+    if (status === 401) {
+      triggerAuthExpired();
+      return Promise.reject(error);
+    }
+
+    const config = error?.config as RetryableAxiosConfig | undefined;
     const csrfFailed =
-      error?.response?.status === 403 &&
+      status === 403 &&
       typeof error?.response?.data?.message === 'string' &&
       error.response.data.message.toLowerCase().includes('csrf');
 
@@ -103,6 +147,8 @@ api.interceptors.response.use(
       !isAdminCsrfBootstrapRequest(config.url)
     ) {
       config.__csrfRetried = true;
+      adminCsrfToken = null;
+      adminCsrfPromise = null;
       const token = await fetchAdminCsrfToken(true);
       config.headers = config.headers ?? {};
       setHeaderValue(config.headers, 'X-CSRF-Token', token);
@@ -324,13 +370,28 @@ export async function adminLogin(
 }
 
 export async function getAdminSession(): Promise<AdminSessionResponse> {
+  const now = Date.now();
+  if (
+    cachedAdminSession &&
+    now - cachedAdminSessionAt < SESSION_CACHE_TTL_MS
+  ) {
+    return cachedAdminSession;
+  }
   const res = await api.get('/auth/admin-session');
-  return res.data as AdminSessionResponse;
+  const data = res.data as AdminSessionResponse;
+  cachedAdminSession = data;
+  cachedAdminSessionAt = now;
+  return data;
 }
 
 export async function adminLogout(): Promise<void> {
-  await api.post('/auth/admin-logout');
-  adminCsrfToken = null;
+  try {
+    await api.post('/auth/admin-logout');
+  } finally {
+    adminCsrfToken = null;
+    adminCsrfPromise = null;
+    clearAdminSessionCache();
+  }
 }
 
 export function getAdminProviderIdDocumentUrl(providerId: string): string {

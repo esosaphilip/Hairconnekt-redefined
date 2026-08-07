@@ -12,7 +12,9 @@ export default function Layout({ user }: LayoutProps) {
   const handleLogout = async () => {
     try {
       await adminLogout();
-    } catch {}
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
     navigate('/login');
   };
 
