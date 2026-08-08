@@ -25,6 +25,8 @@ import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { Request } from 'express';
 
+type AuthRequest = Request & { user: { sub?: string; id?: string; role?: string } };
+
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminUsersController {
@@ -40,20 +42,15 @@ export class AdminUsersController {
 
   private async softDeleteUserById(
     id: string,
-    admin?: User,
-    request?: Request,
   ): Promise<'deleted' | 'skipped_admin' | 'not_found' | 'already_deleted'> {
     const user = await this.userRepo.findOne({ where: { id }, withDeleted: true });
     if (!user) {
-      await this.auditDelete(admin, request, id, 'not_found');
       return 'not_found';
     }
     if (user.role === UserRole.ADMIN) {
-      await this.auditDelete(admin, request, user.id, 'skipped_admin', user);
       return 'skipped_admin';
     }
     if (user.deletedAt) {
-      await this.auditDelete(admin, request, user.id, 'already_deleted', user);
       return 'already_deleted';
     }
 
@@ -73,47 +70,7 @@ export class AdminUsersController {
     await this.userRepo.update(id, { isActive: false });
     await this.userRepo.softDelete(id);
 
-    await this.auditDelete(admin, request, user.id, 'deleted', user, {
-      providerId: provider?.id ?? null,
-      providerSuspended: Boolean(provider && !provider.deletedAt),
-    });
-
     return 'deleted';
-  }
-
-  private async auditDelete(
-    admin: User | undefined,
-    request: Request | undefined,
-    targetId: string,
-    outcome: 'deleted' | 'skipped_admin' | 'not_found' | 'already_deleted',
-    user?: User,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    await this.auditService.record({
-      actorUserId: admin?.id ?? null,
-      actorRole: admin?.role ?? null,
-      action: 'user.soft_deleted',
-      targetType: 'user',
-      targetId,
-      outcome: outcome === 'deleted' ? 'success' : 'failure',
-      request,
-      reason: outcome === 'deleted' ? null : outcome,
-      beforeState: user
-        ? {
-            role: user.role,
-            isActive: user.isActive,
-            deletedAt: user.deletedAt ? user.deletedAt.toISOString() : null,
-          }
-        : null,
-      afterState:
-        outcome === 'deleted'
-          ? {
-              isActive: false,
-              deletedAt: true,
-            }
-          : null,
-      metadata: metadata ?? null,
-    });
   }
 
   @Get()
@@ -159,29 +116,49 @@ export class AdminUsersController {
   @Post('bulk-delete')
   async bulkDelete(
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
     @Body() body: AdminUsersBulkDeleteDto,
   ) {
-    const results = await Promise.all(
-      body.ids.map((id) => this.softDeleteUserById(id, admin, req)),
-    );
-    const deleted = results.filter((r) => r === 'deleted').length;
-    const skippedAdmin = results.filter((r) => r === 'skipped_admin').length;
-    const notFound = results.filter((r) => r === 'not_found').length;
-    const alreadyDeleted = results.filter((r) => r === 'already_deleted').length;
+    const ids = body.ids;
+    const results: Array<{ id: string; result: 'deleted' | 'skipped_admin' | 'not_found' | 'already_deleted'; user?: User }> = [];
+
+    for (const id of ids) {
+      const user = await this.userRepo.findOne({ where: { id }, withDeleted: true });
+      const result = await this.softDeleteUserById(id);
+      results.push({ id, result, user: user ?? undefined });
+    }
+
+    const deleted = results.filter((r) => r.result === 'deleted').length;
+    const skippedAdmin = results.filter((r) => r.result === 'skipped_admin').length;
+    const notFound = results.filter((r) => r.result === 'not_found').length;
+    const alreadyDeleted = results.filter((r) => r.result === 'already_deleted').length;
+    const anySuccess = deleted > 0;
 
     await this.auditService.record({
       actorUserId: admin.id,
       actorRole: admin.role,
-      action: 'user.bulk_delete.executed',
+      action: 'admin.users.bulk_delete',
       targetType: 'user',
+      targetIds: ids,
+      outcome: anySuccess ? 'success' : 'failure',
       request: req,
       metadata: {
-        ids: body.ids,
+        ids,
         deleted,
         skippedAdmin,
         notFound,
         alreadyDeleted,
+        perItem: results.map((r) => ({
+          id: r.id,
+          result: r.result,
+          beforeState: r.user
+            ? {
+                role: r.user.role,
+                isActive: r.user.isActive,
+                deletedAt: r.user.deletedAt ? r.user.deletedAt.toISOString() : null,
+              }
+            : null,
+        })),
       },
     });
 
@@ -198,12 +175,58 @@ export class AdminUsersController {
   async delete(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
   ) {
-    const res = await this.softDeleteUserById(id, admin, req);
-    if (res === 'not_found') throw new NotFoundException('Benutzer nicht gefunden.');
-    if (res === 'skipped_admin') {
-      throw new BadRequestException('Admin Benutzer können nicht gelöscht werden.');
+    const user = await this.userRepo.findOne({ where: { id }, withDeleted: true });
+
+    const beforeState = user
+      ? {
+          role: user.role,
+          isActive: user.isActive,
+          deletedAt: user.deletedAt ? user.deletedAt.toISOString() : null,
+        }
+      : null;
+
+    try {
+      const res = await this.softDeleteUserById(id);
+
+      if (res === 'not_found') {
+        throw new NotFoundException('Benutzer nicht gefunden.');
+      }
+      if (res === 'skipped_admin') {
+        throw new BadRequestException('Admin Benutzer können nicht gelöscht werden.');
+      }
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.user.delete',
+        targetType: 'user',
+        targetId: id,
+        outcome: 'success',
+        request: req,
+        beforeState,
+        afterState: res === 'deleted' ? { isActive: false, deletedAt: true } : null,
+        metadata: {
+          result: res,
+        },
+      });
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.user.delete',
+        targetType: 'user',
+        targetId: id,
+        outcome: 'failure',
+        request: req,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
     }
   }
 }

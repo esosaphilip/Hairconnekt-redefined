@@ -343,7 +343,7 @@ export default function RescheduleAppointment() {
             <Text style={styles.currentBookingServices}>{serviceNames}</Text>
             <View style={styles.currentBookingDateTime}>
               <Feather name="calendar" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
-              <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate)}</Text>
+              <Text style={styles.currentBookingText}>{formatOutputDate(booking?.scheduledDate ?? '')}</Text>
               <Text style={styles.currentBookingDot}> • </Text>
               <Feather name="clock" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>
@@ -400,7 +400,7 @@ export default function RescheduleAppointment() {
               ) : (
                 <View style={styles.slotsGrid}>
                   {slots.map((slot, idx) => {
-                    const slotTime = slot.time ?? slot.startTime;
+                    const slotTime = slot.time ?? slot.startTime ?? '';
                     const active = selectedTime === slotTime;
                     return (
                       <TouchableOpacity

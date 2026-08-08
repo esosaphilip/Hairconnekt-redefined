@@ -2,12 +2,15 @@
 // Shared TypeScript interfaces — used by both mobile app and backend
 // NEVER import backend-specific code here (no NestJS decorators, no TypeORM)
 
-export type UserRole = 'client' | 'provider';
+export type UserRole = 'client' | 'provider' | 'admin';
 export type ProviderType = 'freelancer' | 'salon' | 'mobile' | 'barber';
 export type ProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type CancellationPolicy = '24h' | '48h' | '72h';
 export type ServicePriceType = 'fixed' | 'from';
+export type PaymentStatus = 'pending' | 'paid';
+export type CancelledBy = 'client' | 'provider' | 'system';
+export type Gender = 'male' | 'female' | 'diverse' | 'unspecified';
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -78,7 +81,7 @@ export interface BookingResponseDto {
   scheduledTime: string; // HH:mm
   totalPrice: number;
   paymentMethod: string;
-  paymentStatus: 'pending' | 'paid';
+  paymentStatus: PaymentStatus;
   platformFeePercent: number;
   platformFeeAmount: number;
   providerPayout: number;

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import type { UserRole } from '@hairconnekt/types';
 import { tokenStorage } from '../utils/token-storage';
 import { debugLog } from '../utils/logger';
 import { AuthService } from '../services/authService';
@@ -6,7 +7,7 @@ import { AuthService } from '../services/authService';
 export interface User {
   id: string;
   email: string;
-  role: 'client' | 'provider';
+  role: UserRole;
   firstName: string;
   lastName: string;
 }

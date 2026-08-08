@@ -10,6 +10,7 @@ export type AuditRecordInput = {
   action: string;
   targetType?: string | null;
   targetId?: string | null;
+  targetIds?: string[] | null;
   outcome?: 'success' | 'failure';
   reason?: string | null;
   request?: Request;
@@ -34,6 +35,7 @@ export class AuditService {
       action: input.action,
       targetType: input.targetType ?? null,
       targetId: input.targetId ?? null,
+      targetIds: input.targetIds ?? null,
       outcome: input.outcome ?? 'success',
       reason: input.reason ?? null,
       requestPath: this.getRequestPath(input.request),

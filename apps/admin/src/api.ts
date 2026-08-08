@@ -1,4 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
+import type { ProviderStatus } from '@hairconnekt/types';
+
+export type { ProviderStatus };
 
 const normalizeBaseUrl = (value: string): string => {
   const trimmed = value.trim().replace(/\/+$/, '');
@@ -160,8 +163,6 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-export type ProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export type AdminUserSummary = {
   id?: string;

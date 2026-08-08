@@ -25,6 +25,9 @@ export class AuditLog {
   @Column({ type: 'varchar', nullable: true })
   targetId: string | null;
 
+  @Column({ type: 'varchar', nullable: true, array: true })
+  targetIds: string[] | null;
+
   @Column({ type: 'varchar', default: 'success' })
   outcome: string;
 

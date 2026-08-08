@@ -323,7 +323,7 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={styles.infoValue}>€{formatAmount(booking.totalPrice, lang)}</Text>
           </View>
 
-          {(booking.platformFeeAmount > 0) && (
+          {((booking.platformFeeAmount ?? 0) > 0) && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>
                 {t('bookingPlatformFee')} ({booking.platformFeePercent}%)

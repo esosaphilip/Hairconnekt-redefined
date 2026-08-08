@@ -4,6 +4,7 @@ import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 import { AppointmentSchedulerService } from './appointment-scheduler.service';
 import { Booking } from '../entities/booking.entity';
+import { BookingDailyCounter } from '../entities/booking-daily-counter.entity';
 import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
@@ -15,6 +16,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [
     TypeOrmModule.forFeature([
       Booking,
+      BookingDailyCounter,
       Service,
       Provider,
       AvailabilitySchedule,

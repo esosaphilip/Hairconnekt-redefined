@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@hairconnekt/types": "file:../../packages/types",
     "@types/react": "~19.2.10",
     "typescript": "~5.9.2"
   },

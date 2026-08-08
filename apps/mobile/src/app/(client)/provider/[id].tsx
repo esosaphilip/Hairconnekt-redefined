@@ -421,7 +421,7 @@ export default function ProviderProfile() {
             style={styles.messageBtn}
             onPress={() => {
               const recipientId = provider?.userId ?? provider?.user?.id;
-              openChat(recipientId);
+              if (recipientId) openChat(recipientId);
             }}
           >
             <Text style={styles.messageBtnText}>{t('profileMessage')}</Text>

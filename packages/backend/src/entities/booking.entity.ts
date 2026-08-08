@@ -99,6 +99,12 @@ export class Booking {
   @Column({ type: 'timestamp', nullable: true })
   cancelledAt: Date;
 
+  @Column({ type: 'boolean', default: false })
+  notificationsPending: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  notificationsError: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

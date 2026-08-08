@@ -21,6 +21,26 @@ function createQueryBuilder(getOneResult) {
       calls.push({ method: 'andWhere', sql, params });
       return this;
     },
+    leftJoinAndSelect() {
+      calls.push({ method: 'leftJoinAndSelect' });
+      return this;
+    },
+    setLock() {
+      calls.push({ method: 'setLock' });
+      return this;
+    },
+    update() {
+      calls.push({ method: 'update' });
+      return this;
+    },
+    set() {
+      calls.push({ method: 'set' });
+      return this;
+    },
+    execute() {
+      calls.push({ method: 'execute' });
+      return Promise.resolve({ affected: 1 });
+    },
     async getOne() {
       return typeof getOneResult === 'function'
         ? getOneResult(calls)
@@ -115,11 +135,15 @@ test('createBooking keeps cancelled slots reusable and creates a pending booking
   const notifications = createNotificationsMock();
   const allDayBlockQuery = createQueryBuilder(null);
   const slotConflictQuery = createQueryBuilder(null);
+  const idempotencyQuery = createQueryBuilder(null);
 
   let createdBooking;
 
   const bookingRepo = {
-    createQueryBuilder: () => slotConflictQuery,
+    createQueryBuilder: () => {
+      const qb = slotConflictQuery;
+      return qb;
+    },
     create(payload) {
       createdBooking = { ...payload };
       return createdBooking;

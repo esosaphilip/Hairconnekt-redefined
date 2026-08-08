@@ -66,6 +66,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@hairconnekt/types": "file:../../packages/types",
     "@types/cookie-parser": "^1.4.10",
     "@types/disposable-email-domains": "^1.0.6"
   }

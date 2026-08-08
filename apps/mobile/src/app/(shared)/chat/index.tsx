@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import type { UserRole } from '@hairconnekt/types';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -17,7 +18,7 @@ export default function ChatListScreen() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [role, setRole] = useState<'client' | 'provider' | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
   const [errorMessage, setErrorMessage] = useState('');
@@ -82,6 +83,7 @@ export default function ChatListScreen() {
   };
 
   const handlePress = (item: Conversation) => {
+    // typedRoutes: route string is computed/dynamic.
     router.push(`/(shared)/chat/${item.id}` as any);
   };
 

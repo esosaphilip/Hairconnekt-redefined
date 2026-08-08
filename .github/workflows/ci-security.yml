@@ -41,6 +41,86 @@ jobs:
       - name: Run bookings service tests
         run: npm run test:bookings
 
+  backend_integration:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend_quality]
+    defaults:
+      run:
+        working-directory: packages/backend
+    services:
+      postgres:
+        image: postgis/postgis:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: hairconnekt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U testuser -d hairconnekt_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/backend/package-lock.json
+
+      - name: Install backend deps
+        run: npm ci
+
+      - name: Run migrations against test DB
+        env:
+          DATABASE_URL: postgres://testuser:testpass@127.0.0.1:5432/hairconnekt_test
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: 5432
+          DATABASE_USER: testuser
+          DATABASE_PASSWORD: testpass
+          DATABASE_NAME: hairconnekt_test
+          NODE_ENV: test
+        run: |
+          npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js \
+            -d src/data-source.ts migration:run
+
+      - name: Start backend server in background
+        env:
+          DATABASE_URL: postgres://testuser:testpass@127.0.0.1:5432/hairconnekt_test
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: 5432
+          DATABASE_USER: testuser
+          DATABASE_PASSWORD: testpass
+          DATABASE_NAME: hairconnekt_test
+          NODE_ENV: test
+          JWT_ACCESS_SECRET: integration-test-secret-access
+          JWT_REFRESH_SECRET: integration-test-secret-refresh
+          ADMIN_SESSION_SECRET: integration-test-admin-session
+          PORT: 3000
+          CORS_ORIGIN: '*'
+        run: |
+          nohup npx ts-node -r tsconfig-paths/register src/main.ts > /tmp/backend-server.log 2>&1 &
+          echo "Server PID: $!"
+          # Wait up to 45 seconds for the server to be ready
+          for i in {1..45}; do
+            if curl -s http://localhost:3000/api/v1/health >/dev/null 2>&1; then
+              echo "Server is up after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          # Final check
+          curl -sf http://localhost:3000/api/v1/health || { echo "Server failed to start"; cat /tmp/backend-server.log; exit 1; }
+
+      - name: Run integration tests (run_tests.sh)
+        env:
+          BASE_URL: http://localhost:3000
+          TEST_PASSWORD: IntegrationTest!2026
+        run: bash run_tests.sh
+
   mobile_quality:
     name: Mobile Quality
     runs-on: ubuntu-latest
@@ -147,10 +227,6 @@ jobs:
       - name: Audit production dependencies
         run: |
           if [ "${{ matrix.name }}" = "admin" ]; then
-            # Admin uses BrowserRouter + plain axios; several React Router HIGH advisories
-            # apply only to RSC/Actions/SSR features which are unreachable.
-            # scripts/audit-ci.mjs allows the reviewed RSC-only list and fails on any
-            # CRITICAL advisory or any HIGH advisory outside that allowlist.
             npm run audit:ci
           else
             npm audit --omit=dev --audit-level=high

@@ -1,4 +1,5 @@
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+import type { BookingStatus } from '@hairconnekt/types';
+export type { BookingStatus };
 
 export interface Service {
   id: string;

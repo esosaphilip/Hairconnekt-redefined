@@ -1,7 +1,9 @@
+import type { UserRole } from '@hairconnekt/types';
+
 export interface User {
   id: string;
   email: string;
-  role: 'client' | 'provider';
+  role: UserRole;
   firstName: string;
   lastName: string;
   phone?: string;

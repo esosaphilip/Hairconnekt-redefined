@@ -2,9 +2,31 @@
 // Store sensitive auth state in OS-backed secure storage.
 // Non-sensitive preferences remain in AsyncStorage.
 
+import type { UserRole } from '@hairconnekt/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import * as SecureStore from 'expo-secure-store';
+
+interface StoredUserShape {
+  id: string;
+  email: string;
+  role: UserRole;
+  firstName: string;
+  lastName: string;
+  [key: string]: unknown;
+}
+
+const isUserShape = (v: unknown): v is StoredUserShape => {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.id === 'string' &&
+    typeof o.email === 'string' &&
+    (o.role === 'client' || o.role === 'provider' || o.role === 'admin') &&
+    typeof o.firstName === 'string' &&
+    typeof o.lastName === 'string'
+  );
+};
 
 const KEYS = {
   ACCESS_TOKEN: 'hc_access_token',
@@ -25,11 +47,13 @@ export const tokenStorage = {
     return SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
   },
 
-  async getUserRole(): Promise<'client' | 'provider' | null> {
-    return SecureStore.getItemAsync(KEYS.USER_ROLE) as Promise<'client' | 'provider' | null>;
+  async getUserRole(): Promise<UserRole | null> {
+    const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
+    if (raw === 'client' || raw === 'provider' || raw === 'admin') return raw;
+    return null;
   },
 
-  async save(accessToken: string, refreshToken: string, role: 'client' | 'provider'): Promise<void> {
+  async save(accessToken: string, refreshToken: string, role: UserRole): Promise<void> {
     await Promise.all([
       SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken),
       SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken),
@@ -38,11 +62,14 @@ export const tokenStorage = {
   },
 
   /** Switch client ↔ provider mode without re-login (same keys as save). */
-  async setUserRole(role: 'client' | 'provider'): Promise<void> {
+  async setUserRole(role: UserRole): Promise<void> {
     await SecureStore.setItemAsync(KEYS.USER_ROLE, role);
   },
 
-  async setUser(user: any): Promise<void> {
+  async setUser(user: unknown): Promise<void> {
+    if (!isUserShape(user)) {
+      return;
+    }
     await SecureStore.setItemAsync(KEYS.USER_JSON, JSON.stringify(user));
   },
 

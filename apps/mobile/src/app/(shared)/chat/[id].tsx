@@ -415,26 +415,34 @@ export default function SharedChatScreen() {
           ) : null}
 
           {msg.mediaType === 'image' && msg.mediaUrl ? (
-            <TouchableOpacity
-              onPress={() => {
-                void openExternalUrl(msg.mediaUrl, 'chat image');
-              }}
-            >
-              <Image
-                source={{ uri: msg.mediaUrl }}
-                style={styles.mediaBubbleImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
+            (() => {
+              const imageUrl = msg.mediaUrl;
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    void openExternalUrl(imageUrl, 'chat image');
+                  }}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.mediaBubbleImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              );
+            })()
           ) : null}
 
           {msg.mediaType === 'document' && msg.mediaUrl ? (
-            <TouchableOpacity
-              style={styles.mediaBubbleDoc}
-              onPress={() => {
-                void openExternalUrl(msg.mediaUrl, 'chat document');
-              }}
-            >
+            (() => {
+              const docUrl = msg.mediaUrl;
+              return (
+                <TouchableOpacity
+                  style={styles.mediaBubbleDoc}
+                  onPress={() => {
+                    void openExternalUrl(docUrl, 'chat document');
+                  }}
+                >
               <Feather
                 name="file-text"
                 size={fontSizes.xl}
@@ -456,7 +464,9 @@ export default function SharedChatScreen() {
                 color={isOwn ? colors.background : colors.teal}
                 style={{ marginLeft: spacing.xxs }}
               />
-            </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            })()
           ) : null}
         </View>
         <View style={[styles.metaRow, isOwn ? styles.metaRowOwn : styles.metaRowOther]}>

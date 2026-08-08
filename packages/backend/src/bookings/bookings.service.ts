@@ -6,9 +6,10 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Raw } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, In, Raw, Repository } from 'typeorm';
 import { Booking, BookingStatus, CancelledBy } from '../entities/booking.entity';
+import { BookingDailyCounter } from '../entities/booking-daily-counter.entity';
 import { Service } from '../entities/service.entity';
 import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
@@ -18,6 +19,8 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+
+type NotificationPayload = Parameters<NotificationsService['sendToUser']>[0];
 
 @Injectable()
 export class BookingsService {
@@ -35,11 +38,12 @@ export class BookingsService {
     @InjectRepository(TimeBlock)
     private readonly timeBlockRepo: Repository<TimeBlock>,
     private readonly notificationsService: NotificationsService,
+    @InjectDataSource() private readonly dataSource?: DataSource,
   ) {}
 
   private async sendNotificationSafely(
     context: string,
-    payload: Parameters<NotificationsService['sendToUser']>[0],
+    payload: NotificationPayload,
   ): Promise<void> {
     try {
       await this.notificationsService.sendToUser(payload);
@@ -49,25 +53,91 @@ export class BookingsService {
           error instanceof Error ? error.message : 'Unknown error'
         }`,
       );
+      throw error;
     }
   }
 
-  private generateBookingNumber(dateStr: string): string {
-    const compactDate = dateStr.replace(/-/g, '');
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
-    return `HC-${compactDate}-${randomSuffix}`;
+  private async fireNotificationsAndUpdateFlags(
+    bookingId: string,
+    notificationTasks: Array<{ context: string; payload: NotificationPayload }>,
+  ): Promise<void> {
+    if (notificationTasks.length === 0) return;
+
+    let notificationsPending = false;
+    let notificationsError: string | null = null;
+    const errors: string[] = [];
+
+    for (const task of notificationTasks) {
+      try {
+        await this.sendNotificationSafely(task.context, task.payload);
+      } catch (error) {
+        notificationsPending = true;
+        const errStr =
+          error instanceof Error
+            ? `${error.message}${error.stack ? '\n' + error.stack.slice(0, 1500) : ''}`
+            : String(error);
+        errors.push(`[${task.context}] ${errStr.slice(0, 400)}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      notificationsError = errors.join('; ').slice(0, 2000);
+    }
+
+    try {
+      await this.bookingRepo
+        .createQueryBuilder()
+        .update(Booking)
+        .set({ notificationsPending, notificationsError })
+        .where('id = :id', { id: bookingId })
+        .execute();
+    } catch (updateErr) {
+      this.logger.error(
+        `Failed to update notification flags for booking ${bookingId}: ${
+          updateErr instanceof Error ? updateErr.message : String(updateErr)
+        }`,
+      );
+    }
   }
 
-  // Helper: convert HH:MM or HH:MM:SS into total minutes since midnight
+  private async generateBookingNumber(
+    scheduledDate: string,
+    manager: EntityManager,
+  ): Promise<string> {
+    const compactDate = scheduledDate.replace(/-/g, '');
+    const counterDate = scheduledDate;
+
+    if (!manager) {
+      const fallbackSuffix = Math.floor(1000 + Math.random() * 9000).toString();
+      return `HC-${compactDate}-${fallbackSuffix}`;
+    }
+
+    const repo = manager.getRepository(BookingDailyCounter);
+
+    const row = await repo
+      .createQueryBuilder('c')
+      .where('c.date = :date', { date: counterDate })
+      .setLock('pessimistic_write')
+      .getOne();
+
+    let counter: number;
+    if (!row) {
+      counter = 1;
+      await repo.insert({ date: counterDate, counter: 1 });
+    } else {
+      counter = row.counter + 1;
+      await repo.update({ id: row.id }, { counter });
+    }
+
+    const suffix = counter.toString().padStart(4, '0');
+    return `HC-${compactDate}-${suffix}`;
+  }
+
   private timeToMinutes(time: string): number {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
   }
 
-  /**
-   * validateBookingSlot — called by createBooking() and rescheduleBooking()
-   * Throws a specific exception for each failure reason.
-   */
   private async validateBookingSlot(
     providerId: string,
     scheduledDate: string,
@@ -178,6 +248,42 @@ export class BookingsService {
     }
   }
 
+  private async findIdempotentPendingBooking(
+    clientId: string,
+    providerId: string,
+    scheduledDate: string,
+    scheduledTime: string,
+    serviceIds: string[],
+  ): Promise<Booking | null> {
+    const existing = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.services', 'service')
+      .where('booking.clientId = :clientId', { clientId })
+      .andWhere('booking.providerId = :providerId', { providerId })
+      .andWhere('booking.scheduledDate = :scheduledDate', { scheduledDate })
+      .andWhere('booking.scheduledTime = :scheduledTime', { scheduledTime })
+      .andWhere('booking.status = :status', { status: BookingStatus.PENDING })
+      .getOne();
+
+    if (!existing) return null;
+
+    const existingIds = existing.services.map((s) => s.id).sort();
+    const requestedIds = [...serviceIds].sort();
+    if (existingIds.length !== requestedIds.length) return null;
+    for (let i = 0; i < existingIds.length; i++) {
+      if (existingIds[i] !== requestedIds[i]) return null;
+    }
+
+    return existing;
+  }
+
+  private async loadFullBooking(id: string): Promise<Booking | null> {
+    return this.bookingRepo.findOne({
+      where: { id },
+      relations: ['services', 'provider', 'provider.user', 'client'],
+    });
+  }
+
   async createBooking(clientId: string, dto: CreateBookingDto) {
     const { providerId, serviceIds, scheduledDate, scheduledTime, isMobile, clientNotes } = dto;
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -214,36 +320,105 @@ export class BookingsService {
 
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
 
-    const booking = this.bookingRepo.create({
-      bookingNumber: this.generateBookingNumber(scheduledDate),
+    const idempotentBooking = await this.findIdempotentPendingBooking(
       clientId,
       providerId,
-      status: BookingStatus.PENDING,
       scheduledDate,
       scheduledTime,
-      isMobile,
-      clientNotes: clientNotes || '',
-      services,
-      totalPrice,
-      paymentMethod: 'CASH', // Locked safely in Phase 1 constraints mapping explicitly
-    });
+      serviceIds,
+    );
+    if (idempotentBooking) {
+      const full = await this.loadFullBooking(idempotentBooking.id);
+      return {
+        message: 'Booking created successfully',
+        booking: full ?? idempotentBooking,
+      };
+    }
 
-    const savedBooking = await this.bookingRepo.save(booking);
-    const fullBooking = await this.bookingRepo.findOne({
-      where: { id: savedBooking.id },
-      relations: ['services', 'provider', 'provider.user', 'client'],
-    });
+    const useTransaction = !!this.dataSource;
+    let savedBookingId: string;
+    let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
+
+    if (useTransaction && this.dataSource) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        const manager = queryRunner.manager;
+
+        const bookingNumber = await this.generateBookingNumber(scheduledDate, manager);
+
+        const booking = manager.getRepository(Booking).create({
+          bookingNumber,
+          clientId,
+          providerId,
+          status: BookingStatus.PENDING,
+          scheduledDate,
+          scheduledTime,
+          isMobile,
+          clientNotes: clientNotes || '',
+          services,
+          totalPrice,
+          paymentMethod: 'CASH',
+          notificationsPending: false,
+          notificationsError: null,
+        });
+
+        const saved = await manager.getRepository(Booking).save(booking);
+        savedBookingId = saved.id;
+
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      const bookingNumber = await this.generateBookingNumber(
+        scheduledDate,
+        null as unknown as EntityManager,
+      );
+
+      const booking = this.bookingRepo.create({
+        bookingNumber,
+        clientId,
+        providerId,
+        status: BookingStatus.PENDING,
+        scheduledDate,
+        scheduledTime,
+        isMobile,
+        clientNotes: clientNotes || '',
+        services,
+        totalPrice,
+        paymentMethod: 'CASH',
+        notificationsPending: false,
+        notificationsError: null,
+      });
+
+      const saved = await this.bookingRepo.save(booking);
+      savedBookingId = saved.id;
+    }
+
+    const fullBooking = await this.loadFullBooking(savedBookingId);
 
     if (fullBooking?.provider?.userId && fullBooking?.client) {
-      await this.sendNotificationSafely('booking creation', {
-        userId: fullBooking.provider.userId,
-        type: 'new_booking',
-        titleDe: 'Neue Buchungsanfrage',
-        titleEn: 'New Booking Request',
-        bodyDe: `${fullBooking.client.firstName} möchte einen Termin am ${fullBooking.scheduledDate} um ${fullBooking.scheduledTime} Uhr`,
-        bodyEn: `${fullBooking.client.firstName} wants to book on ${fullBooking.scheduledDate} at ${fullBooking.scheduledTime}`,
-        data: { screen: `/(provider)/booking-request/${fullBooking.id}`, bookingId: fullBooking.id },
+      notificationTasks.push({
+        context: 'booking creation',
+        payload: {
+          userId: fullBooking.provider.userId,
+          type: 'new_booking',
+          titleDe: 'Neue Buchungsanfrage',
+          titleEn: 'New Booking Request',
+          bodyDe: `${fullBooking.client.firstName} möchte einen Termin am ${fullBooking.scheduledDate} um ${fullBooking.scheduledTime} Uhr`,
+          bodyEn: `${fullBooking.client.firstName} wants to book on ${fullBooking.scheduledDate} at ${fullBooking.scheduledTime}`,
+          data: { screen: `/(provider)/booking-request/${fullBooking.id}`, bookingId: fullBooking.id },
+        },
       });
+    }
+
+    if (notificationTasks.length > 0) {
+      void this.fireNotificationsAndUpdateFlags(savedBookingId, notificationTasks);
     }
 
     return {
@@ -296,7 +471,6 @@ export class BookingsService {
     if (todayOnly) {
       where.scheduledDate = new Date().toISOString().split('T')[0];
     } else if (month) {
-      // month format: YYYY-MM
       where.scheduledDate = Raw(alias => `${alias} >= '${month}-01' AND ${alias} < '${month}-01'::date + INTERVAL '1 month'`);
     } else if (statusStr) {
       const rawStatuses = statusStr
@@ -342,133 +516,230 @@ export class BookingsService {
       throw new BadRequestException('scheduledTime must be in HH:MM format');
     }
 
-    const booking = await this.bookingRepo.findOne({
+    const initialBooking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider', 'provider.user', 'client'],
     });
     
-    if (!booking) {
+    if (!initialBooking) {
       throw new NotFoundException('Buchung nicht gefunden.');
     }
 
     const userId = user.sub || user.id;
-    if (user.role === UserRole.CLIENT && booking.clientId !== userId) {
+    if (user.role === UserRole.CLIENT && initialBooking.clientId !== userId) {
       throw new ForbiddenException('Keine Berechtigung.');
     }
 
-    // Only PENDING and CONFIRMED bookings can be rescheduled
     const allowedStatuses: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
-    if (!allowedStatuses.includes(booking.status)) {
+    if (!allowedStatuses.includes(initialBooking.status)) {
       throw new BadRequestException(
         'Dieser Termin kann nicht verschoben werden.'
       );
     }
 
     await this.validateBookingSlot(
-      booking.providerId,
+      initialBooking.providerId,
       dto.scheduledDate,
       dto.scheduledTime,
       id,
     );
 
-    booking.scheduledDate = dto.scheduledDate;
-    booking.scheduledTime = dto.scheduledTime;
-    booking.status = BookingStatus.PENDING;
+    const useTransaction = !!this.dataSource;
+    let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
 
-    if (dto.reason) {
-      booking.clientNotes = booking.clientNotes
-        ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
-        : `[Reschedule Reason]: ${dto.reason}`;
+    if (useTransaction && this.dataSource) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        const manager = queryRunner.manager;
+        const repo = manager.getRepository(Booking);
+
+        const booking = await repo.findOne({ where: { id } });
+        if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
+
+        booking.scheduledDate = dto.scheduledDate;
+        booking.scheduledTime = dto.scheduledTime;
+        booking.status = BookingStatus.PENDING;
+
+        if (dto.reason) {
+          booking.clientNotes = booking.clientNotes
+            ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
+            : `[Reschedule Reason]: ${dto.reason}`;
+        }
+
+        await repo.save(booking);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      const booking = await this.bookingRepo.findOne({ where: { id } });
+      if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
+
+      booking.scheduledDate = dto.scheduledDate;
+      booking.scheduledTime = dto.scheduledTime;
+      booking.status = BookingStatus.PENDING;
+
+      if (dto.reason) {
+        booking.clientNotes = booking.clientNotes
+          ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
+          : `[Reschedule Reason]: ${dto.reason}`;
+      }
+
+      await this.bookingRepo.save(booking);
     }
 
-    await this.bookingRepo.save(booking);
-
-    if (booking?.provider?.userId && booking?.client) {
-      await this.sendNotificationSafely('booking reschedule', {
-        userId: booking.provider.userId,
-        type: 'booking_rescheduled',
-        titleDe: 'Terminverschiebung angefragt',
-        titleEn: 'Reschedule Requested',
-        bodyDe: `${booking.client.firstName} möchte den Termin auf ${dto.scheduledDate} um ${dto.scheduledTime} Uhr verschieben`,
-        bodyEn: `${booking.client.firstName} wants to reschedule to ${dto.scheduledDate} at ${dto.scheduledTime}`,
-        data: { screen: `/(provider)/booking-request/${booking.id}`, bookingId: booking.id },
+    const bookingAfter = await this.loadFullBooking(id);
+    if (bookingAfter?.provider?.userId && bookingAfter?.client) {
+      notificationTasks.push({
+        context: 'booking reschedule',
+        payload: {
+          userId: bookingAfter.provider.userId,
+          type: 'booking_rescheduled',
+          titleDe: 'Terminverschiebung angefragt',
+          titleEn: 'Reschedule Requested',
+          bodyDe: `${bookingAfter.client.firstName} möchte den Termin auf ${dto.scheduledDate} um ${dto.scheduledTime} Uhr verschieben`,
+          bodyEn: `${bookingAfter.client.firstName} wants to reschedule to ${dto.scheduledDate} at ${dto.scheduledTime}`,
+          data: { screen: `/(provider)/booking-request/${bookingAfter.id}`, bookingId: bookingAfter.id },
+        },
       });
+    }
+
+    if (notificationTasks.length > 0 && bookingAfter) {
+      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
     }
 
     return this.findOne(id, user);
   }
 
   async cancelBooking(id: string, user: any, dto: CancelBookingDto) {
-    const booking = await this.bookingRepo.findOne({
+    const initialBooking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider', 'provider.user', 'client'],
     });
 
-    if (!booking) {
+    if (!initialBooking) {
       throw new NotFoundException('Booking not found');
     }
 
     const userId = user.sub || user.id;
+    let cancelledBy: CancelledBy;
+
     if (user.role === UserRole.CLIENT) {
-      if (booking.clientId !== userId) {
+      if (initialBooking.clientId !== userId) {
         throw new NotFoundException('Booking not found');
       }
-      booking.cancelledBy = CancelledBy.CLIENT;
+      cancelledBy = CancelledBy.CLIENT;
     } else if (user.role === UserRole.PROVIDER) {
       const provider = await this.providerRepo.findOne({ where: { userId } });
-      if (!provider || booking.providerId !== provider.id) {
+      if (!provider || initialBooking.providerId !== provider.id) {
         throw new NotFoundException('Booking not found');
       }
-      booking.cancelledBy = CancelledBy.PROVIDER;
+      cancelledBy = CancelledBy.PROVIDER;
     } else {
       throw new ForbiddenException('Keine Berechtigung.');
     }
 
-    if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {
+    if (initialBooking.status !== BookingStatus.PENDING && initialBooking.status !== BookingStatus.CONFIRMED) {
       throw new BadRequestException('Only PENDING or CONFIRMED bookings can be cancelled');
     }
 
-    booking.status = BookingStatus.CANCELLED; 
-    booking.cancelledAt = new Date();
+    const useTransaction = !!this.dataSource;
+    let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
 
-    const cancelDetails = dto.notes 
-      ? `[Cancel Reason]: ${dto.reason}\n${dto.notes}` 
-      : `[Cancel Reason]: ${dto.reason}`;
+    if (useTransaction && this.dataSource) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        const manager = queryRunner.manager;
+        const repo = manager.getRepository(Booking);
 
-    booking.clientNotes = booking.clientNotes 
-        ? `${booking.clientNotes}\n\n${cancelDetails}` 
+        const booking = await repo.findOne({ where: { id } });
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        booking.cancelledBy = cancelledBy;
+        booking.status = BookingStatus.CANCELLED;
+        booking.cancelledAt = new Date();
+
+        const cancelDetails = dto.notes
+          ? `[Cancel Reason]: ${dto.reason}\n${dto.notes}`
+          : `[Cancel Reason]: ${dto.reason}`;
+
+        booking.clientNotes = booking.clientNotes
+          ? `${booking.clientNotes}\n\n${cancelDetails}`
+          : cancelDetails;
+
+        await repo.save(booking);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      const booking = await this.bookingRepo.findOne({ where: { id } });
+      if (!booking) throw new NotFoundException('Booking not found');
+
+      booking.cancelledBy = cancelledBy;
+      booking.status = BookingStatus.CANCELLED;
+      booking.cancelledAt = new Date();
+
+      const cancelDetails = dto.notes
+        ? `[Cancel Reason]: ${dto.reason}\n${dto.notes}`
+        : `[Cancel Reason]: ${dto.reason}`;
+
+      booking.clientNotes = booking.clientNotes
+        ? `${booking.clientNotes}\n\n${cancelDetails}`
         : cancelDetails;
 
-    await this.bookingRepo.save(booking);
-
-    if (booking.cancelledBy === CancelledBy.CLIENT && booking?.provider?.userId && booking?.client) {
-      await this.sendNotificationSafely('booking cancellation by client', {
-        userId: booking.provider.userId,
-        type: 'booking_cancelled_by_client',
-        titleDe: 'Termin storniert',
-        titleEn: 'Appointment Cancelled',
-        bodyDe: `${booking.client.firstName} hat den Termin am ${booking.scheduledDate} um ${booking.scheduledTime} Uhr storniert`,
-        bodyEn: `${booking.client.firstName} cancelled the appointment on ${booking.scheduledDate} at ${booking.scheduledTime}`,
-        data: { screen: '/(provider)/calendar', bookingId: booking.id },
-      });
+      await this.bookingRepo.save(booking);
     }
 
-    if (booking.cancelledBy === CancelledBy.PROVIDER && booking?.provider) {
-      await this.sendNotificationSafely('booking cancellation by provider', {
-        userId: booking.clientId,
-        type: 'booking_cancelled_by_provider',
-        titleDe: 'Termin abgesagt',
-        titleEn: 'Appointment Cancelled',
-        bodyDe: `${booking.provider.businessName} hat deinen Termin am ${booking.scheduledDate} leider abgesagt`,
-        bodyEn: `${booking.provider.businessName} has cancelled your appointment on ${booking.scheduledDate}`,
-        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
-      });
+    const bookingAfter = await this.loadFullBooking(id);
+    if (bookingAfter) {
+      if (cancelledBy === CancelledBy.CLIENT && bookingAfter.provider?.userId && bookingAfter.client) {
+        notificationTasks.push({
+          context: 'booking cancellation by client',
+          payload: {
+            userId: bookingAfter.provider.userId,
+            type: 'booking_cancelled_by_client',
+            titleDe: 'Termin storniert',
+            titleEn: 'Appointment Cancelled',
+            bodyDe: `${bookingAfter.client.firstName} hat den Termin am ${bookingAfter.scheduledDate} um ${bookingAfter.scheduledTime} Uhr storniert`,
+            bodyEn: `${bookingAfter.client.firstName} cancelled the appointment on ${bookingAfter.scheduledDate} at ${bookingAfter.scheduledTime}`,
+            data: { screen: '/(provider)/calendar', bookingId: bookingAfter.id },
+          },
+        });
+      }
+
+      if (cancelledBy === CancelledBy.PROVIDER && bookingAfter.provider) {
+        notificationTasks.push({
+          context: 'booking cancellation by provider',
+          payload: {
+            userId: bookingAfter.clientId,
+            type: 'booking_cancelled_by_provider',
+            titleDe: 'Termin abgesagt',
+            titleEn: 'Appointment Cancelled',
+            bodyDe: `${bookingAfter.provider.businessName} hat deinen Termin am ${bookingAfter.scheduledDate} leider abgesagt`,
+            bodyEn: `${bookingAfter.provider.businessName} has cancelled your appointment on ${bookingAfter.scheduledDate}`,
+            data: { screen: `/(client)/appointments/${bookingAfter.id}`, bookingId: bookingAfter.id },
+          },
+        });
+      }
+
+      if (notificationTasks.length > 0) {
+        void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      }
     }
 
     return this.findOne(id, user);
   }
-
-  // --- Provider booking lifecycle ---
 
   private async findBookingForProvider(bookingId: string, user: any) {
     const userId = user.sub || user.id;
@@ -485,90 +756,212 @@ export class BookingsService {
     return booking;
   }
 
+  private async transitionStatusWithTx(
+    bookingId: string,
+    allowedFrom: BookingStatus[],
+    targetStatus: BookingStatus,
+    apply: (booking: Booking) => void,
+  ): Promise<void> {
+    const useTransaction = !!this.dataSource;
+
+    if (useTransaction && this.dataSource) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        const manager = queryRunner.manager;
+        const repo = manager.getRepository(Booking);
+
+        const booking = await repo.findOne({ where: { id: bookingId } });
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        if (!allowedFrom.includes(booking.status)) {
+          throw new BadRequestException(`Invalid status transition from ${booking.status}`);
+        }
+
+        apply(booking);
+        await repo.save(booking);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      const booking = await this.bookingRepo.findOne({ where: { id: bookingId } });
+      if (!booking) throw new NotFoundException('Booking not found');
+
+      if (!allowedFrom.includes(booking.status)) {
+        throw new BadRequestException(`Invalid status transition from ${booking.status}`);
+      }
+
+      apply(booking);
+      await this.bookingRepo.save(booking);
+    }
+  }
+
   async acceptBooking(id: string, user: any) {
-    const booking = await this.findBookingForProvider(id, user);
-    if (booking.status === BookingStatus.CONFIRMED) {
+    const preCheck = await this.findBookingForProvider(id, user);
+    if (preCheck.status === BookingStatus.CONFIRMED) {
       return this.findOne(id, user);
     }
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Nur ausstehende Buchungen können bestätigt werden.');
+
+    let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
+
+    try {
+      await this.transitionStatusWithTx(
+        id,
+        [BookingStatus.PENDING],
+        BookingStatus.CONFIRMED,
+        (b) => {
+          b.status = BookingStatus.CONFIRMED;
+        },
+      );
+    } catch (e) {
+      if (e instanceof BadRequestException) {
+        throw new BadRequestException('Nur ausstehende Buchungen können bestätigt werden.');
+      }
+      throw e;
     }
-    booking.status = BookingStatus.CONFIRMED;
-    await this.bookingRepo.save(booking);
-    if (booking?.provider) {
-      await this.sendNotificationSafely('booking acceptance', {
-        userId: booking.clientId,
-        type: 'booking_confirmed',
-        titleDe: 'Buchung bestätigt ✓',
-        titleEn: 'Booking Confirmed ✓',
-        bodyDe: `Dein Termin mit ${booking.provider.businessName} am ${booking.scheduledDate} wurde bestätigt`,
-        bodyEn: `Your appointment with ${booking.provider.businessName} on ${booking.scheduledDate} is confirmed`,
-        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
+
+    const bookingAfter = await this.loadFullBooking(id);
+    if (bookingAfter?.provider) {
+      notificationTasks.push({
+        context: 'booking acceptance',
+        payload: {
+          userId: bookingAfter.clientId,
+          type: 'booking_confirmed',
+          titleDe: 'Buchung bestätigt ✓',
+          titleEn: 'Booking Confirmed ✓',
+          bodyDe: `Dein Termin mit ${bookingAfter.provider.businessName} am ${bookingAfter.scheduledDate} wurde bestätigt`,
+          bodyEn: `Your appointment with ${bookingAfter.provider.businessName} on ${bookingAfter.scheduledDate} is confirmed`,
+          data: { screen: `/(client)/appointments/${bookingAfter.id}`, bookingId: bookingAfter.id },
+        },
       });
     }
+
+    if (notificationTasks.length > 0 && bookingAfter) {
+      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+    }
+
     return this.findOne(id, user);
   }
 
   async declineBooking(id: string, user: any) {
-    const booking = await this.findBookingForProvider(id, user);
-    if (booking.status === BookingStatus.CANCELLED) {
+    const preCheck = await this.findBookingForProvider(id, user);
+    if (preCheck.status === BookingStatus.CANCELLED) {
       return this.findOne(id, user);
     }
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Nur ausstehende Buchungen können abgelehnt werden.');
+
+    try {
+      await this.transitionStatusWithTx(
+        id,
+        [BookingStatus.PENDING],
+        BookingStatus.CANCELLED,
+        (b) => {
+          b.status = BookingStatus.CANCELLED;
+          b.cancelledBy = CancelledBy.PROVIDER;
+          b.cancelledAt = new Date();
+        },
+      );
+    } catch (e) {
+      if (e instanceof BadRequestException) {
+        throw new BadRequestException('Nur ausstehende Buchungen können abgelehnt werden.');
+      }
+      throw e;
     }
-    booking.status = BookingStatus.CANCELLED;
-    booking.cancelledBy = CancelledBy.PROVIDER;
-    booking.cancelledAt = new Date();
-    await this.bookingRepo.save(booking);
-    if (booking?.provider) {
-      await this.sendNotificationSafely('booking decline', {
-        userId: booking.clientId,
-        type: 'booking_declined',
-        titleDe: 'Buchung abgelehnt',
-        titleEn: 'Booking Declined',
-        bodyDe: `${booking.provider.businessName} kann deinen Termin am ${booking.scheduledDate} leider nicht wahrnehmen`,
-        bodyEn: `${booking.provider.businessName} cannot take your appointment on ${booking.scheduledDate}`,
-        data: { screen: `/(client)/appointments/${booking.id}`, bookingId: booking.id },
-      });
+
+    const bookingAfter = await this.loadFullBooking(id);
+    if (bookingAfter?.provider) {
+      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, [
+        {
+          context: 'booking decline',
+          payload: {
+            userId: bookingAfter.clientId,
+            type: 'booking_declined',
+            titleDe: 'Buchung abgelehnt',
+            titleEn: 'Booking Declined',
+            bodyDe: `${bookingAfter.provider.businessName} kann deinen Termin am ${bookingAfter.scheduledDate} leider nicht wahrnehmen`,
+            bodyEn: `${bookingAfter.provider.businessName} cannot take your appointment on ${bookingAfter.scheduledDate}`,
+            data: { screen: `/(client)/appointments/${bookingAfter.id}`, bookingId: bookingAfter.id },
+          },
+        },
+      ]);
     }
+
     return this.findOne(id, user);
   }
 
   async startBooking(id: string, user: any) {
-    const booking = await this.findBookingForProvider(id, user);
-    if (booking.status === BookingStatus.IN_PROGRESS) {
+    const preCheck = await this.findBookingForProvider(id, user);
+    if (preCheck.status === BookingStatus.IN_PROGRESS) {
       return this.findOne(id, user);
     }
-    if (booking.status !== BookingStatus.CONFIRMED) {
-      throw new BadRequestException('Nur bestätigte Buchungen können gestartet werden.');
+
+    try {
+      await this.transitionStatusWithTx(
+        id,
+        [BookingStatus.CONFIRMED],
+        BookingStatus.IN_PROGRESS,
+        (b) => {
+          b.status = BookingStatus.IN_PROGRESS;
+        },
+      );
+    } catch (e) {
+      if (e instanceof BadRequestException) {
+        throw new BadRequestException('Nur bestätigte Buchungen können gestartet werden.');
+      }
+      throw e;
     }
-    booking.status = BookingStatus.IN_PROGRESS;
-    await this.bookingRepo.save(booking);
+
     return this.findOne(id, user);
   }
 
   async completeBooking(id: string, user: any) {
-    const booking = await this.findBookingForProvider(id, user);
-    if (booking.status === BookingStatus.COMPLETED) {
+    const preCheck = await this.findBookingForProvider(id, user);
+    if (preCheck.status === BookingStatus.COMPLETED) {
       return this.findOne(id, user);
     }
-    if (booking.status !== BookingStatus.IN_PROGRESS) {
-      throw new BadRequestException('Nur laufende Buchungen können abgeschlossen werden.');
+
+    let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
+
+    try {
+      await this.transitionStatusWithTx(
+        id,
+        [BookingStatus.IN_PROGRESS],
+        BookingStatus.COMPLETED,
+        (b) => {
+          b.status = BookingStatus.COMPLETED;
+        },
+      );
+    } catch (e) {
+      if (e instanceof BadRequestException) {
+        throw new BadRequestException('Nur laufende Buchungen können abgeschlossen werden.');
+      }
+      throw e;
     }
-    booking.status = BookingStatus.COMPLETED;
-    await this.bookingRepo.save(booking);
-    if (booking?.provider) {
-      await this.sendNotificationSafely('booking completion', {
-        userId: booking.clientId,
-        type: 'booking_completed',
-        titleDe: 'Termin abgeschlossen — Bewertung abgeben?',
-        titleEn: 'Appointment done — Leave a review?',
-        bodyDe: `Wie war dein Termin mit ${booking.provider.businessName}? Jetzt bewerten!`,
-        bodyEn: `How was your appointment with ${booking.provider.businessName}? Leave a review!`,
-        data: { screen: `/(client)/review/${booking.id}`, bookingId: booking.id },
+
+    const bookingAfter = await this.loadFullBooking(id);
+    if (bookingAfter?.provider) {
+      notificationTasks.push({
+        context: 'booking completion',
+        payload: {
+          userId: bookingAfter.clientId,
+          type: 'booking_completed',
+          titleDe: 'Termin abgeschlossen — Bewertung abgeben?',
+          titleEn: 'Appointment done — Leave a review?',
+          bodyDe: `Wie war dein Termin mit ${bookingAfter.provider.businessName}? Jetzt bewerten!`,
+          bodyEn: `How was your appointment with ${bookingAfter.provider.businessName}? Leave a review!`,
+          data: { screen: `/(client)/review/${bookingAfter.id}`, bookingId: bookingAfter.id },
+        },
       });
     }
+
+    if (notificationTasks.length > 0 && bookingAfter) {
+      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+    }
+
     return this.findOne(id, user);
   }
 }

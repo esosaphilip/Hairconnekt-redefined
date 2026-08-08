@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Patch, Param,
+  Controller, Get, Patch, Param, Delete,
   UseGuards, ParseUUIDPipe, Query, Body,
   BadRequestException,
   NotFoundException,
@@ -21,6 +21,8 @@ import type { Request, Response } from 'express';
 import { R2Service } from '../common/storage/r2.service';
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+
+type AuthRequest = Request & { user: { sub?: string; id?: string; role?: string } };
 
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -46,7 +48,6 @@ export class AdminProvidersController {
     );
   }
 
-  // GET /admin/providers?status=pending
   @Get()
   async findAll(@Query('status') status?: string) {
     const parsedStatus = this.parseStatus(status);
@@ -81,7 +82,6 @@ export class AdminProvidersController {
     return rows.map(ProviderAdminDto.fromRaw);
   }
 
-  // GET /admin/providers/geocoding/report — provider geo data health
   @Get('geocoding/report')
   async getGeocodingReport() {
     const providers = await this.providerRepo.find({
@@ -131,7 +131,6 @@ export class AdminProvidersController {
     };
   }
 
-  // GET /admin/providers/:id — full provider detail
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const row = await this.providerRepo
@@ -165,7 +164,7 @@ export class AdminProvidersController {
   async getIdDocument(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
     @Res() res: Response,
   ) {
     const provider = await this.providerRepo.findOne({
@@ -183,7 +182,7 @@ export class AdminProvidersController {
     await this.auditService.record({
       actorUserId: admin.id,
       actorRole: admin.role,
-      action: 'provider.id_document.accessed',
+      action: 'admin.provider.id_document_accessed',
       targetType: 'provider',
       targetId: provider.id,
       request: req,
@@ -195,12 +194,11 @@ export class AdminProvidersController {
     return res.redirect(signedUrl);
   }
 
-  // PATCH /admin/providers/:id/approve — approve provider
   @Patch(':id/approve')
   async approve(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
   ) {
     const provider = await this.providerRepo.findOne({
       where: { id },
@@ -208,54 +206,69 @@ export class AdminProvidersController {
     });
     if (!provider) throw new NotFoundException('Provider not found');
 
-    const res = await this.providerRepo.update(id, { status: ProviderStatus.APPROVED });
-    if (!res.affected) throw new NotFoundException('Provider not found');
+    const beforeState = { status: provider.status };
 
     try {
-      await this.notificationsService.sendToUser({
-        userId: provider.userId,
-        type: 'provider_approved',
-        titleDe: 'Profil freigeschaltet! 🎉',
-        titleEn: 'Profile Approved! 🎉',
-        bodyDe: 'Dein HairConnekt-Profil wurde genehmigt. Du kannst jetzt Buchungen empfangen!',
-        bodyEn: 'Your HairConnekt profile has been approved. You can now receive bookings!',
-        data: { screen: '/(provider)/' },
+      const res = await this.providerRepo.update(id, { status: ProviderStatus.APPROVED });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      try {
+        await this.notificationsService.sendToUser({
+          userId: provider.userId,
+          type: 'provider_approved',
+          titleDe: 'Profil freigeschaltet! 🎉',
+          titleEn: 'Profile Approved! 🎉',
+          bodyDe: 'Dein HairConnekt-Profil wurde genehmigt. Du kannst jetzt Buchungen empfangen!',
+          bodyEn: 'Your HairConnekt profile has been approved. You can now receive bookings!',
+          data: { screen: '/(provider)/' },
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to notify approved provider ${provider.userId}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.approve',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        beforeState,
+        afterState: { status: ProviderStatus.APPROVED },
+        metadata: {
+          notificationType: 'provider_approved',
+        },
       });
+
+      return { success: true };
     } catch (error) {
-      this.logger.warn(
-        `Failed to notify approved provider ${provider.userId}: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-      );
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.approve',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
     }
-
-    await this.auditService.record({
-      actorUserId: admin.id,
-      actorRole: admin.role,
-      action: 'provider.status.changed',
-      targetType: 'provider',
-      targetId: provider.id,
-      request: req,
-      beforeState: {
-        status: provider.status,
-      },
-      afterState: {
-        status: ProviderStatus.APPROVED,
-      },
-      metadata: {
-        notificationType: 'provider_approved',
-      },
-    });
-
-    return { success: true };
   }
 
-  // PATCH /admin/providers/:id/reject — reject provider
   @Patch(':id/reject')
   async reject(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
     @Body() body: ProviderStatusReasonDto,
   ) {
     const provider = await this.providerRepo.findOne({
@@ -264,32 +277,50 @@ export class AdminProvidersController {
     });
     if (!provider) throw new NotFoundException('Provider not found');
 
-    const res = await this.providerRepo.update(id, { status: ProviderStatus.REJECTED });
-    if (!res.affected) throw new NotFoundException('Provider not found');
-    await this.auditService.record({
-      actorUserId: admin.id,
-      actorRole: admin.role,
-      action: 'provider.status.changed',
-      targetType: 'provider',
-      targetId: provider.id,
-      request: req,
-      reason: body.reason ?? null,
-      beforeState: {
-        status: provider.status,
-      },
-      afterState: {
-        status: ProviderStatus.REJECTED,
-      },
-    });
-    return { success: true };
+    const beforeState = { status: provider.status };
+
+    try {
+      const res = await this.providerRepo.update(id, { status: ProviderStatus.REJECTED });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.reject',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: { status: ProviderStatus.REJECTED },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.reject',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
   }
 
-  // PATCH /admin/providers/:id/suspend — suspend approved provider
   @Patch(':id/suspend')
   async suspend(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: User,
-    @Req() req: Request,
+    @Req() req: AuthRequest,
     @Body() body: ProviderStatusReasonDto,
   ) {
     const provider = await this.providerRepo.findOne({
@@ -298,24 +329,155 @@ export class AdminProvidersController {
     });
     if (!provider) throw new NotFoundException('Provider not found');
 
-    const res = await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
-    if (!res.affected) throw new NotFoundException('Provider not found');
-    await this.auditService.record({
-      actorUserId: admin.id,
-      actorRole: admin.role,
-      action: 'provider.status.changed',
-      targetType: 'provider',
-      targetId: provider.id,
-      request: req,
-      reason: body.reason ?? null,
-      beforeState: {
-        status: provider.status,
-      },
-      afterState: {
-        status: ProviderStatus.SUSPENDED,
-      },
+    const beforeState = { status: provider.status };
+
+    try {
+      const res = await this.providerRepo.update(id, { status: ProviderStatus.SUSPENDED });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.suspend',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: { status: ProviderStatus.SUSPENDED },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.suspend',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
+  }
+
+  @Patch(':id/status')
+  async changeStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: AuthRequest,
+    @Body() body: ProviderStatusReasonDto & { status: ProviderStatus },
+  ) {
+    if (!body.status || !Object.values(ProviderStatus).includes(body.status)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'status'],
     });
-    return { success: true };
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const beforeState = { status: provider.status };
+    const newStatus = body.status;
+
+    try {
+      const res = await this.providerRepo.update(id, { status: newStatus });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.status_change',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: { status: newStatus },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.status_change',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        reason: body.reason ?? null,
+        beforeState,
+        afterState: null,
+        metadata: {
+          desiredStatus: newStatus,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
+  }
+
+  @Delete(':id')
+  async deleteProvider(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: AuthRequest,
+  ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      withDeleted: true,
+      select: ['id', 'status', 'businessName', 'createdAt'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const beforeState = {
+      id: provider.id,
+      status: provider.status,
+      businessName: provider.businessName,
+      deleted: !!provider.deletedAt,
+    };
+
+    try {
+      await this.providerRepo.softDelete(id);
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.delete',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        beforeState,
+        afterState: { deleted: true },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.delete',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
   }
 
   private parseStatus(status?: string): ProviderStatus | undefined {
