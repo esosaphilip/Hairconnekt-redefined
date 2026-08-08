@@ -38,6 +38,9 @@ jobs:
       - name: Build backend
         run: npm run build
 
+      - name: Run bookings service tests
+        run: npm run test:bookings
+
   mobile_quality:
     name: Mobile Quality
     runs-on: ubuntu-latest

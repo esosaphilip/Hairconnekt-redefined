@@ -37,8 +37,8 @@ export default function Login() {
     if (!password) {
       setPasswordError('Passwort ist erforderlich.');
       ok = false;
-    } else if (password.length < 6) {
-      setPasswordError('Passwort muss mindestens 6 Zeichen lang sein.');
+    } else if (password.length < 8) {
+      setPasswordError('Passwort muss mindestens 8 Zeichen lang sein.');
       ok = false;
     } else {
       setPasswordError('');
@@ -185,6 +185,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 autoComplete="current-password"
+                minLength={8}
                 className="input-field"
                 placeholder="Passwort"
                 value={password}

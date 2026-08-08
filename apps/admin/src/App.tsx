@@ -8,6 +8,7 @@ import Users from './pages/Users';
 import Categories from './pages/Categories';
 import PopularStyles from './pages/PopularStyles';
 import { ToastProvider } from './components/ui';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { getAdminSession, setOnAuthExpired, type AdminUserSummary } from './api';
 import './index.css';
 
@@ -86,22 +87,24 @@ const ProtectedRoute = () => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        <Route path="/" element={<ProtectedRoute />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="providers" element={<Providers />} />
-          <Route path="users" element={<Users />} />
-          <Route path="popular-styles" element={<PopularStyles />} />
-          <Route path="categories" element={<Categories />} />
-        </Route>
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route path="/" element={<ProtectedRoute />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="providers" element={<Providers />} />
+            <Route path="users" element={<Users />} />
+            <Route path="popular-styles" element={<PopularStyles />} />
+            <Route path="categories" element={<Categories />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

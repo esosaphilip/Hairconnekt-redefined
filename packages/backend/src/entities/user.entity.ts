@@ -21,19 +21,19 @@ export class User {
   email: string;
 
   @Column({ type: 'varchar', nullable: true })
-  phone: string;
+  phone: string | null;
 
   @Column({ type: 'varchar', nullable: true, select: false })
-  passwordHash: string;
+  passwordHash: string | null;
 
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
 
   @Column({ type: 'varchar', nullable: true })
-  avatarUrl: string;
+  avatarUrl: string | null;
 
   @Column({ type: 'date', nullable: true })
-  birthDate: Date;
+  birthDate: Date | null;
 
   @Column({ type: 'enum', enum: Gender, default: Gender.UNSPECIFIED })
   gender: Gender;
@@ -51,10 +51,10 @@ export class User {
   isPhoneVerified: boolean;
 
   @Column({ type: 'varchar', nullable: true })
-  googleId: string;
+  googleId: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  expoPushToken: string;
+  expoPushToken: string | null;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
@@ -66,5 +66,5 @@ export class User {
   updatedAt: Date;
 
   @DeleteDateColumn()
-  deletedAt: Date;
+  deletedAt: Date | null;
 }

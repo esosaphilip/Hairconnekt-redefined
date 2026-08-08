@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request, Get, Query, Param, Patch, HttpCode, HttpStatus } from '@nestjs/common';
+import { type Request as ExpressRequest } from 'express';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
@@ -12,6 +13,8 @@ import { UserRole } from '../entities/user.entity';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
+type AuthRequest = ExpressRequest & { user: { sub?: string; id?: string; role?: string } };
+
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
@@ -21,8 +24,8 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 20, ttl: 60 } })
-  async createBooking(@Request() req, @Body() createBookingDto: CreateBookingDto) {
-    const clientId = req.user.sub || req.user.id;
+  async createBooking(@Request() req: AuthRequest, @Body() createBookingDto: CreateBookingDto) {
+    const clientId = (req.user.sub ?? req.user.id)!;
     return this.bookingsService.createBooking(clientId, createBookingDto);
   }
 
@@ -30,7 +33,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookings(
-    @Request() req, 
+    @Request() req: AuthRequest, 
     @Query('status') status: string,
     @Query('today') today: string,
     @Query('month') month: string,
@@ -43,7 +46,7 @@ export class BookingsController {
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
-  async getBookingById(@Request() req, @Param('id') id: string) {
+  async getBookingById(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.findOne(id, req.user);
   }
 
@@ -53,7 +56,7 @@ export class BookingsController {
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async rescheduleBooking(
-    @Request() req,
+    @Request() req: AuthRequest,
     @Param('id') id: string,
     @Body() dto: RescheduleBookingDto
   ) {
@@ -66,7 +69,7 @@ export class BookingsController {
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async cancelBooking(
-    @Request() req,
+    @Request() req: AuthRequest,
     @Param('id') id: string,
     @Body() dto: CancelBookingDto
   ) {
@@ -78,7 +81,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
-  async acceptBooking(@Request() req, @Param('id') id: string) {
+  async acceptBooking(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.acceptBooking(id, req.user);
   }
 
@@ -87,7 +90,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
-  async declineBooking(@Request() req, @Param('id') id: string) {
+  async declineBooking(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.declineBooking(id, req.user);
   }
 
@@ -96,7 +99,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
-  async startBooking(@Request() req, @Param('id') id: string) {
+  async startBooking(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.startBooking(id, req.user);
   }
 
@@ -105,7 +108,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
-  async completeBooking(@Request() req, @Param('id') id: string) {
+  async completeBooking(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.completeBooking(id, req.user);
   }
 }

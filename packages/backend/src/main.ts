@@ -77,7 +77,7 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
-  app.use((req, res, next) => {
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!isAdminCsrfProtectedRequest(req as any)) {
       return next();
     }
@@ -95,7 +95,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
-  app.use((req, res, next) => {
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     const existingRequestId = req.header('x-request-id');
     const requestId =
       existingRequestId && existingRequestId.trim() !== ''
@@ -154,7 +154,7 @@ async function bootstrap() {
     app.enableCors({ origin: true, credentials: true });
   } else {
     app.enableCors({
-      origin: (origin, callback) => {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         if (!origin) return callback(null, true);
         return callback(null, allowedOrigins.has(origin));
       },

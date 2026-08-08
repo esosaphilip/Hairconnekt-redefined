@@ -16,7 +16,7 @@ export class Address {
   user: User;
 
   @Column({ type: 'varchar', nullable: true })
-  label: string; // e.g. "Zuhause", "Arbeit"
+  label: string | null; // e.g. "Zuhause", "Arbeit"
 
   @Column({ type: 'varchar' })
   street: string;

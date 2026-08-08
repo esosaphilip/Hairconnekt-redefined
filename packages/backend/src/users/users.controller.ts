@@ -3,6 +3,7 @@ import {
   UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException,
   HttpCode, HttpStatus,
 } from '@nestjs/common';
+import { type Request as ExpressRequest } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -21,6 +22,8 @@ import {
   UpdateUserProfileDto,
 } from './dto/user-endpoints.dto';
 
+type AuthRequest = ExpressRequest & { user: { sub?: string; id?: string; role?: string } };
+
 @Controller('users')
 export class UsersController {
   constructor(
@@ -32,8 +35,8 @@ export class UsersController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getMe(@Request() req) {
-    const userId = req.user.sub || req.user.id;
+  async getMe(@Request() req: AuthRequest) {
+    const userId = (req.user.sub ?? req.user.id)!;
     return this.usersService.getMe(userId);
   }
 

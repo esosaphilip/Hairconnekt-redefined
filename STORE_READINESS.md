@@ -57,7 +57,7 @@ It includes:
 
 ### App Links (Android)
 - [ ] If `autoVerify: true` is enabled, `https://hairconnekt.de/.well-known/assetlinks.json` exists and validates successfully for the production package (`de.hairconnekt.app`) and the correct signing certificate fingerprint (Play App Signing).
-- [ ] If links should also open from `https://www.hairconnekt.de/*`, ensure `assetlinks.json` exists for `www` as well (or serve the same file on both hosts).
+- [ ] Intentionally NOT handled: `https://www.hairconnekt.de/*` was removed from `app.config.ts` intent filters on 2026-08-09 (commit 92416aa + Batch-1 follow-up). If www traffic should also open the app via App Links, re-add the `www.hairconnekt.de` entry here, create a matching `assetlinks.json` on the www host (or serve the same file on both hosts via DNS/CDN), and confirm the server redirect chain does not break `autoVerify`.
 - [ ] Confirm the domain(s) you want handled match the app config `android.intentFilters`.
 
 ### Play ADI registration (if required by your Play Console setup)

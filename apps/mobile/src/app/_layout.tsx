@@ -28,6 +28,7 @@ import { getSafeNotificationRoute } from '@/utils/safe-navigation';
 import { apiFetch } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
 import { colors } from '@/theme';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Keep splash visible while fonts load
 SplashScreen.preventAutoHideAsync();
@@ -204,17 +205,19 @@ function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <LanguageProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(client)" />
-          <Stack.Screen name="(provider)" />
-          <Stack.Screen name="(shared)" />
-        </Stack>
-      </LanguageProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <LanguageProvider>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(client)" />
+            <Stack.Screen name="(provider)" />
+            <Stack.Screen name="(shared)" />
+          </Stack>
+        </LanguageProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

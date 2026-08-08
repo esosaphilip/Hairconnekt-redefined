@@ -180,7 +180,7 @@ export class ChatService {
       participant2Id: recipientId,
       lastMessageAt: null,
       lastMessagePreview: null,
-    });
+    } as Partial<Conversation>);
     const saved = await this.conversationRepo.save(convo);
     return { id: saved.id };
   }
@@ -285,7 +285,7 @@ export class ChatService {
       content: text,
       isRead: false,
       readAt: null,
-    });
+    } as Partial<Message>);
     const saved = await this.messageRepo.save(msg);
 
     const preview = text.length > 140 ? `${text.slice(0, 140)}` : text;
@@ -343,7 +343,7 @@ export class ChatService {
       mediaType,
       mediaFilename: mediaType === 'document' ? file.originalname ?? null : null,
       mediaKey: key,
-    });
+    } as Partial<Message>);
     const saved = await this.messageRepo.save(msg);
 
     convo.lastMessageAt = saved.createdAt;

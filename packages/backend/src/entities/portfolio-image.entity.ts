@@ -19,10 +19,10 @@ export class PortfolioImage {
   imageUrl: string;
 
   @Column({ type: 'varchar', length: 200, nullable: true })
-  caption: string;
+  caption: string | null;
 
   @Column({ type: 'varchar', array: true, nullable: true })
-  styleTags: string[];
+  styleTags: string[] | null;
 
   @Column({ type: 'int', default: 0 })
   sortOrder: number;

@@ -67,7 +67,7 @@ export class UsersService {
       city: data.city as string,
       postalCode: data.postalCode as string,
       isDefault: data.isDefault ?? false,
-    });
+    } as Partial<Address>);
     return this.addressRepository.save(row);
   }
 

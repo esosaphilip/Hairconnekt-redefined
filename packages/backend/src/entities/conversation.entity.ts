@@ -24,10 +24,10 @@ export class Conversation {
   participant2: User;
 
   @Column({ type: 'timestamp', nullable: true })
-  lastMessageAt: Date;
+  lastMessageAt: Date | null;
 
   @Column({ type: 'varchar', nullable: true })
-  lastMessagePreview: string;
+  lastMessagePreview: string | null;
 
   @OneToMany(() => Message, (m) => m.conversation)
   messages: Message[];

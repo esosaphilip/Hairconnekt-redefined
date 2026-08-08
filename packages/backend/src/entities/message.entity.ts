@@ -42,7 +42,7 @@ export class Message {
   isRead: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
-  readAt: Date;
+  readAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

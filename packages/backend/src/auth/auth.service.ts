@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import * as disposableEmailDomains from 'disposable-email-domains';
@@ -291,7 +291,7 @@ export class AuthService {
     }
 
     const req = await this.passwordResetRepo.findOne({
-      where: { userId: user.id, usedAt: null },
+      where: { userId: user.id, usedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
 
@@ -327,7 +327,7 @@ export class AuthService {
       .digest('hex');
 
     const req = await this.passwordResetRepo.findOne({
-      where: { resetTokenHash: tokenHash, usedAt: null },
+      where: { resetTokenHash: tokenHash, usedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
 

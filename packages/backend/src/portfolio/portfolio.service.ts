@@ -79,7 +79,7 @@ export class PortfolioService {
       caption: caption || null,
       styleTags: styleTags.length > 0 ? styleTags : null,
       sortOrder: count,
-    });
+    } as Partial<PortfolioImage>);
 
     return this.portfolioRepo.save(image);
   }
