@@ -30,7 +30,7 @@ export class Service {
   @Column({ type: 'int' })
   durationMin: number;
 
-  @Column({ type: 'enum', enum: ServicePriceType, default: ServicePriceType.FIXED })
+  @Column({ type: 'enum', enum: ServicePriceType, default: ServicePriceType.FIXED, enumName: 'service_price_type_enum' })
   priceType: ServicePriceType;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })

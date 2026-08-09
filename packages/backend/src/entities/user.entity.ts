@@ -26,7 +26,7 @@ export class User {
   @Column({ type: 'varchar', nullable: true, select: false })
   passwordHash: string | null;
 
-  @Column({ type: 'enum', enum: UserRole })
+  @Column({ type: 'enum', enum: UserRole, enumName: 'user_role_enum' })
   role: UserRole;
 
   @Column({ type: 'varchar', nullable: true })
@@ -35,7 +35,7 @@ export class User {
   @Column({ type: 'date', nullable: true })
   birthDate: Date | null;
 
-  @Column({ type: 'enum', enum: Gender, default: Gender.UNSPECIFIED })
+  @Column({ type: 'enum', enum: Gender, default: Gender.UNSPECIFIED, enumName: 'gender_enum' })
   gender: Gender;
 
   @Column({ type: 'boolean', default: false })

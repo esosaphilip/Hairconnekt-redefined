@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as express from 'express';
 import * as cookieParser from 'cookie-parser';
+import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ErrorReporter } from './common/error-reporting/error-reporter';
@@ -191,6 +192,21 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new GlobalExceptionFilter(errorReporter));
+
+  const dataSource = app.get(DataSource);
+  if (dataSource && typeof dataSource.runMigrations === 'function') {
+    try {
+      const migrations = await dataSource.runMigrations({ transaction: 'each' });
+      if (migrations && migrations.length > 0) {
+        console.log(`[bootstrap] Applied ${migrations.length} migration(s): ${migrations.map((m: { name?: string }) => m?.name ?? String(m)).join(', ')}`);
+      } else {
+        console.log('[bootstrap] No pending migrations. Schema up-to-date.');
+      }
+    } catch (migrationError: unknown) {
+      console.error('[bootstrap] Migration runner failed. Refusing to start to avoid schema-drift data corruption.', migrationError instanceof Error ? migrationError.stack : String(migrationError));
+      process.exit(1);
+    }
+  }
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Backend running on port ${process.env.PORT ?? 3000}`);

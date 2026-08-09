@@ -47,7 +47,7 @@ export class Booking {
   @JoinTable({ name: 'booking_services' })
   services: Service[];
 
-  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING })
+  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING, enumName: 'booking_status_enum' })
   status: BookingStatus;
 
   @Column({ type: 'date' })
@@ -68,7 +68,7 @@ export class Booking {
   @Column({ type: 'varchar', default: 'CASH' })
   paymentMethod: string;
 
-  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING, enumName: 'payment_status_enum' })
   paymentStatus: PaymentStatus;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
@@ -93,7 +93,7 @@ export class Booking {
   @Column({ type: 'varchar', nullable: true })
   addressPostalCode: string;
 
-  @Column({ type: 'enum', enum: CancelledBy, nullable: true })
+  @Column({ type: 'enum', enum: CancelledBy, nullable: true, enumName: 'cancelled_by_enum' })
   cancelledBy: CancelledBy;
 
   @Column({ type: 'varchar', nullable: true })

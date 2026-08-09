@@ -32,6 +32,7 @@ import { getDatabaseSslConfig } from './common/database/database-ssl';
       ssl: getDatabaseSslConfig(),
       autoLoadEntities: true,
       synchronize: false, // Disable auto-sync in production
+      migrations: [`${__dirname}/migrations/*{.ts,.js}`],
       logging:
         (process.env.NODE_ENV ?? 'development') === 'development'
           ? 'all'

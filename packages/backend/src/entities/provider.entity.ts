@@ -20,7 +20,7 @@ export class Provider {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'enum', enum: ProviderType })
+  @Column({ type: 'enum', enum: ProviderType, enumName: 'provider_type_enum' })
   providerType: ProviderType;
 
   @Column({ type: 'varchar' })
@@ -53,10 +53,10 @@ export class Provider {
   @Column({ type: 'varchar', array: true, nullable: true })
   languages: string[];
 
-  @Column({ type: 'enum', enum: CancellationPolicy, default: CancellationPolicy.H24 })
+  @Column({ type: 'enum', enum: CancellationPolicy, default: CancellationPolicy.H24, enumName: 'cancellation_policy_enum' })
   cancellationPolicy: CancellationPolicy;
 
-  @Column({ type: 'enum', enum: ProviderStatus, default: ProviderStatus.PENDING })
+  @Column({ type: 'enum', enum: ProviderStatus, default: ProviderStatus.PENDING, enumName: 'provider_status_enum' })
   status: ProviderStatus;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
