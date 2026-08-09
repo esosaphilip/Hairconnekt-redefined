@@ -5,7 +5,7 @@ export class CreatePopularStyles20260809000020 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE TABLE "popular_styles" (
+      CREATE TABLE IF NOT EXISTS "popular_styles" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "name" character varying NOT NULL,
         "imageUrl" character varying,
@@ -21,16 +21,16 @@ export class CreatePopularStyles20260809000020 implements MigrationInterface {
       )
     `);
     await queryRunner.query(
-      `CREATE INDEX "IDX_popular_styles_isActive" ON "popular_styles" ("isActive")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_popular_styles_isActive" ON "popular_styles" ("isActive")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_popular_styles_sortOrder" ON "popular_styles" ("sortOrder")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_popular_styles_sortOrder" ON "popular_styles" ("sortOrder")`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_popular_styles_sortOrder"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_popular_styles_isActive"`);
-    await queryRunner.query(`DROP TABLE "popular_styles"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_popular_styles_sortOrder"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_popular_styles_isActive"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "popular_styles"`);
   }
 }
