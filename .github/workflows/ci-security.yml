@@ -82,6 +82,7 @@ jobs:
           DATABASE_USER: testuser
           DATABASE_PASSWORD: testpass
           DATABASE_NAME: hairconnekt_test
+          DATABASE_SSL: "false"
           NODE_ENV: test
         run: |
           npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js \
@@ -95,6 +96,7 @@ jobs:
           DATABASE_USER: testuser
           DATABASE_PASSWORD: testpass
           DATABASE_NAME: hairconnekt_test
+          DATABASE_SSL: "false"
           NODE_ENV: test
           JWT_ACCESS_SECRET: integration-test-secret-access
           JWT_REFRESH_SECRET: integration-test-secret-refresh
