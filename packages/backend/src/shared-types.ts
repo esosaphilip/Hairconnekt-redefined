@@ -1,19 +1,17 @@
-import type {
-  UserRole as SharedUserRole,
-  BookingStatus as SharedBookingStatus,
-  ProviderStatus as SharedProviderStatus,
-  ProviderType as SharedProviderType,
-  CancellationPolicy as SharedCancellationPolicy,
-  ServicePriceType as SharedServicePriceType,
-  PaymentStatus as SharedPaymentStatus,
-  CancelledBy as SharedCancelledBy,
-  Gender as SharedGender,
-} from '@hairconnekt/types';
-
 import { UserRole, Gender } from './entities/user.entity';
 import { ProviderType, CancellationPolicy, ProviderStatus } from './entities/provider.entity';
 import { BookingStatus, PaymentStatus, CancelledBy } from './entities/booking.entity';
 import { ServicePriceType } from './entities/service.entity';
+
+type SharedUserRole = 'client' | 'provider' | 'admin';
+type SharedProviderType = 'freelancer' | 'salon' | 'mobile' | 'barber';
+type SharedProviderStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+type SharedBookingStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+type SharedCancellationPolicy = '24h' | '48h' | '72h';
+type SharedServicePriceType = 'fixed' | 'from';
+type SharedPaymentStatus = 'pending' | 'paid';
+type SharedCancelledBy = 'client' | 'provider' | 'system';
+type SharedGender = 'male' | 'female' | 'diverse' | 'unspecified';
 
 type AssertEqual<T, U extends T> = void;
 
