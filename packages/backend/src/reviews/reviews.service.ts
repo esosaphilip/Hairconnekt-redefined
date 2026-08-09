@@ -4,9 +4,10 @@ import { Repository } from 'typeorm';
 import { Review } from '../entities/review.entity';
 import { Booking, BookingStatus } from '../entities/booking.entity';
 import { Provider } from '../entities/provider.entity';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessService } from '../authorization/access.service';
 
 @Injectable()
 export class ReviewsService {
@@ -22,10 +23,16 @@ export class ReviewsService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private notificationsService: NotificationsService,
+    private readonly access: AccessService,
   ) {}
 
   async createReview(user: any, dto: CreateReviewDto) {
-    const userId = user.sub || user.id;
+    const actor = this.access.ensureAuthenticatedActor(user);
+    await this.access.authorizeReview(actor, 'review:create', undefined, {
+      bookingId: dto.bookingId,
+    });
+
+    const userId = actor.id;
 
     const booking = await this.bookingRepository.findOne({
       where: { id: dto.bookingId },
@@ -110,6 +117,9 @@ export class ReviewsService {
     response: string,
     allowEdit: boolean,
   ) {
+    const actor = { id: providerUserId, role: UserRole.PROVIDER };
+    await this.access.authorizeReview(actor, 'review:respond', reviewId);
+
     const provider = await this.providerRepository.findOne({
       where: { userId: providerUserId },
     });

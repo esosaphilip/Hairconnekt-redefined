@@ -1,9 +1,10 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Index,
 } from 'typeorm';
 import { Provider } from './provider.entity';
 
 @Entity('time_blocks')
+@Index(['providerId', 'startDate', 'endDate'])
 export class TimeBlock {
   @PrimaryGeneratedColumn('uuid')
   id: string;

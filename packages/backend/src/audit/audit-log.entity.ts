@@ -3,9 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('audit_logs')
+@Index(['actorUserId', 'action', 'createdAt'])
+@Index(['targetType', 'targetId', 'createdAt'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

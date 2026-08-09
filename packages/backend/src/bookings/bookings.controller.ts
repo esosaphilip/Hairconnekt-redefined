@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request, Get, Query, Param, Patch, HttpCode, HttpStatus } from '@nestjs/common';
+import { parsePagination } from '../common/pagination';
 import { type Request as ExpressRequest } from 'express';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -37,10 +38,11 @@ export class BookingsController {
     @Query('status') status: string,
     @Query('today') today: string,
     @Query('month') month: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20'
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string
   ) {
-    return this.bookingsService.findAll(req.user, status, Number(page), Number(limit), today === 'true', month);
+    const { page, limit } = parsePagination(pageStr, limitStr);
+    return this.bookingsService.findAll(req.user, status, page, limit, today === 'true', month);
   }
 
   @Get(':id')

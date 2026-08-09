@@ -3,6 +3,7 @@ import {
   UseInterceptors, UploadedFile, BadRequestException, HttpCode, HttpStatus,
   NotFoundException, Patch, Delete, Param, ParseUUIDPipe,
 } from '@nestjs/common';
+import { parsePagination } from '../common/pagination';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -283,12 +284,11 @@ export class ProvidersController {
   @Get(':id/reviews')
   async getPublicReviews(
     @Param('id', ParseUUIDPipe) providerId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
     @Query('rating') rating?: string,
   ) {
-    const parsedPage = page ? Number(page) : 1;
-    const parsedLimit = limit ? Number(limit) : 20;
+    const { page, limit } = parsePagination(pageStr, limitStr);
     const parsedRating =
       rating !== undefined && rating !== null && rating !== ''
         ? Number(rating)
@@ -296,8 +296,8 @@ export class ProvidersController {
 
     return this.providersService.getPublicReviews(
       providerId,
-      Number.isFinite(parsedPage) ? parsedPage : 1,
-      Number.isFinite(parsedLimit) ? parsedLimit : 20,
+      page,
+      limit,
       parsedRating !== undefined && Number.isFinite(parsedRating)
         ? parsedRating
         : undefined,

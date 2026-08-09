@@ -2,15 +2,21 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Favourite } from '../entities/favourite.entity';
+import { UserRole } from '../entities/user.entity';
+import { AccessService } from '../authorization/access.service';
 
 @Injectable()
 export class FavouritesService {
   constructor(
     @InjectRepository(Favourite)
     private favouriteRepository: Repository<Favourite>,
+    private readonly access: AccessService,
   ) {}
 
   async getFavourites(userId: string) {
+    const actor = { id: userId, role: UserRole.CLIENT };
+    await this.access.authorizeFavourite(actor, 'favourite:read', { clientId: userId });
+
     const favourites = await this.favouriteRepository.find({
       where: { clientId: userId },
       relations: ['provider', 'provider.user'],
@@ -39,6 +45,9 @@ export class FavouritesService {
   }
 
   async addFavourite(userId: string, providerId: string): Promise<void> {
+    const actor = { id: userId, role: UserRole.CLIENT };
+    await this.access.authorizeFavourite(actor, 'favourite:add', { clientId: userId, providerId });
+
     // Check if already favourited
     const existing = await this.favouriteRepository.findOne({
       where: { clientId: userId, providerId }
@@ -58,6 +67,9 @@ export class FavouritesService {
   }
 
   async removeFavourite(userId: string, providerId: string): Promise<void> {
+    const actor = { id: userId, role: UserRole.CLIENT };
+    await this.access.authorizeFavourite(actor, 'favourite:remove', { clientId: userId, providerId });
+
     const result = await this.favouriteRepository.delete({ clientId: userId, providerId });
     if (result.affected === 0) {
       throw new NotFoundException('Favourite not found');

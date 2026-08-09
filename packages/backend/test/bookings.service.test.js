@@ -60,6 +60,23 @@ function createNotificationsMock() {
   };
 }
 
+function createAccessMock() {
+  return {
+    async authorizeBooking() {
+      return undefined;
+    },
+    ensureAuthenticatedActor(user) {
+      if (!user) {
+        return { id: 'anon', role: 'user' };
+      }
+      return {
+        id: user.sub || user.id || 'user-1',
+        role: user.role || 'client',
+      };
+    },
+  };
+}
+
 test('createBooking rejects an already-booked active slot', async () => {
   const dto = {
     providerId: 'provider-1',
@@ -103,6 +120,7 @@ test('createBooking rejects an already-booked active slot', async () => {
       find: async () => [],
     },
     createNotificationsMock(),
+    createAccessMock(),
   );
 
   await assert.rejects(
@@ -202,6 +220,7 @@ test('createBooking keeps cancelled slots reusable and creates a pending booking
       find: async () => [],
     },
     notifications,
+    createAccessMock(),
   );
 
   const result = await service.createBooking('client-1', dto);
@@ -267,6 +286,7 @@ test('provider lifecycle endpoints move a booking through valid statuses', async
     {},
     {},
     notifications,
+    createAccessMock(),
   );
 
   const providerUser = {

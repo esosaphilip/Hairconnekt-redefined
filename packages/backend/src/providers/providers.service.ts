@@ -1,6 +1,7 @@
 import {
   Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException, Logger
 } from '@nestjs/common';
+import { MAX_PAGE_SIZE } from '../common/pagination';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In, Brackets } from 'typeorm';
 import { Provider, ProviderStatus } from '../entities/provider.entity';
@@ -131,7 +132,13 @@ export class ProvidersService {
   }
 
   async findAll(query: Record<string, string>, user?: { id?: string; sub?: string; role?: string }) {
-    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const hasExplicitLimit = typeof query.limit === 'string' && query.limit.trim() !== '';
+    const rawLimit = Number(query.limit ?? 20);
+    const uncappedLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 20;
+    if (hasExplicitLimit && uncappedLimit > MAX_PAGE_SIZE) {
+      throw new BadRequestException(`\`limit\` darf maximal ${MAX_PAGE_SIZE} betragen.`);
+    }
+    const limit = Math.max(1, Math.min(uncappedLimit, MAX_PAGE_SIZE));
     const page = Math.max(Number(query.page) || 1, 1);
     const trimmedSearch = query.search?.trim();
     const search = trimmedSearch ? trimmedSearch.toLowerCase() : undefined;

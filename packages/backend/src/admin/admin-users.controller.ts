@@ -13,6 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { MAX_PAGE_SIZE } from '../common/pagination';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -79,7 +80,13 @@ export class AdminUsersController {
     @Query('offset') offset?: string,
     @Query('includeDeleted') includeDeleted?: string,
   ) {
-    const parsedLimit = Math.max(1, Math.min(100, Number(limit ?? 20) || 20));
+    const hasExplicitLimit = typeof limit === 'string' && limit.trim() !== '';
+    const rawLimit = Number(limit ?? 20);
+    const parsedLimitUncapped = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 20;
+    if (hasExplicitLimit && parsedLimitUncapped > MAX_PAGE_SIZE) {
+      throw new BadRequestException(`\`limit\` darf maximal ${MAX_PAGE_SIZE} betragen.`);
+    }
+    const parsedLimit = Math.max(1, Math.min(MAX_PAGE_SIZE, parsedLimitUncapped));
     const parsedOffset = Math.max(0, Number(offset ?? 0) || 0);
     const parsedIncludeDeleted =
       String(includeDeleted ?? '')

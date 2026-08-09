@@ -19,6 +19,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessService } from '../authorization/access.service';
 
 type NotificationPayload = Parameters<NotificationsService['sendToUser']>[0];
 
@@ -38,6 +39,7 @@ export class BookingsService {
     @InjectRepository(TimeBlock)
     private readonly timeBlockRepo: Repository<TimeBlock>,
     private readonly notificationsService: NotificationsService,
+    private readonly access: AccessService,
     @InjectDataSource() private readonly dataSource?: DataSource,
   ) {}
 
@@ -285,6 +287,12 @@ export class BookingsService {
   }
 
   async createBooking(clientId: string, dto: CreateBookingDto) {
+    const actor = { id: clientId, role: UserRole.CLIENT };
+    await this.access.authorizeBooking(actor, 'booking:create', undefined, {
+      clientId: actor.id,
+      providerId: dto.providerId,
+    });
+
     const { providerId, serviceIds, scheduledDate, scheduledTime, isMobile, clientNotes } = dto;
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const timeRegex = /^\d{2}:\d{2}$/;
@@ -428,6 +436,9 @@ export class BookingsService {
   }
 
   async findOne(id: string, user: any) {
+    const actor = this.access.ensureAuthenticatedActor(user);
+    await this.access.authorizeBooking(actor, 'booking:read', id);
+
     const booking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider', 'provider.user', 'services', 'client'],
@@ -437,24 +448,13 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    const userId = user.sub || user.id;
-    if (user.role === UserRole.CLIENT && booking.clientId !== userId) {
-      throw new NotFoundException('Booking not found');
-    }
-    
-    if (user.role === UserRole.PROVIDER) {
-      const provider = await this.providerRepo.findOne({ where: { userId } });
-      if (!provider || booking.providerId !== provider.id) {
-        throw new NotFoundException('Booking not found');
-      }
-    }
-
     return booking;
   }
 
   async findAll(user: any, statusStr: string, page: number, limit: number, todayOnly = false, month?: string) {
-    const userId = user.sub || user.id;
-    const role = user.role;
+    const actor = this.access.ensureAuthenticatedActor(user);
+    const userId = actor.id;
+    const role = actor.role;
 
     const where: any = {};
     if (role === UserRole.CLIENT) {
@@ -505,6 +505,9 @@ export class BookingsService {
   }
 
   async rescheduleBooking(id: string, user: any, dto: RescheduleBookingDto) {
+    const actor = this.access.ensureAuthenticatedActor(user);
+    await this.access.authorizeBooking(actor, 'booking:update', id);
+
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const timeRegex = /^\d{2}:\d{2}$/;
 
@@ -523,11 +526,6 @@ export class BookingsService {
     
     if (!initialBooking) {
       throw new NotFoundException('Buchung nicht gefunden.');
-    }
-
-    const userId = user.sub || user.id;
-    if (user.role === UserRole.CLIENT && initialBooking.clientId !== userId) {
-      throw new ForbiddenException('Keine Berechtigung.');
     }
 
     const allowedStatuses: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
@@ -617,6 +615,9 @@ export class BookingsService {
   }
 
   async cancelBooking(id: string, user: any, dto: CancelBookingDto) {
+    const actor = this.access.ensureAuthenticatedActor(user);
+    const loadedBooking = await this.access.authorizeBooking(actor, 'booking:cancel', id) as Booking;
+
     const initialBooking = await this.bookingRepo.findOne({
       where: { id },
       relations: ['provider', 'provider.user', 'client'],
@@ -626,22 +627,14 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    const userId = user.sub || user.id;
     let cancelledBy: CancelledBy;
 
-    if (user.role === UserRole.CLIENT) {
-      if (initialBooking.clientId !== userId) {
-        throw new NotFoundException('Booking not found');
-      }
+    if (actor.role === UserRole.CLIENT) {
       cancelledBy = CancelledBy.CLIENT;
-    } else if (user.role === UserRole.PROVIDER) {
-      const provider = await this.providerRepo.findOne({ where: { userId } });
-      if (!provider || initialBooking.providerId !== provider.id) {
-        throw new NotFoundException('Booking not found');
-      }
+    } else if (actor.role === UserRole.PROVIDER) {
       cancelledBy = CancelledBy.PROVIDER;
     } else {
-      throw new ForbiddenException('Keine Berechtigung.');
+      cancelledBy = loadedBooking.cancelledBy ?? CancelledBy.CLIENT;
     }
 
     if (initialBooking.status !== BookingStatus.PENDING && initialBooking.status !== BookingStatus.CONFIRMED) {
@@ -742,17 +735,15 @@ export class BookingsService {
   }
 
   private async findBookingForProvider(bookingId: string, user: any) {
-    const userId = user.sub || user.id;
+    const actor = this.access.ensureAuthenticatedActor(user);
+    await this.access.authorizeBooking(actor, 'booking:accept', bookingId);
+
     const booking = await this.bookingRepo.findOne({
       where: { id: bookingId },
       relations: ['provider', 'provider.user', 'services', 'client'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const provider = await this.providerRepo.findOne({ where: { userId } });
-    if (!provider || booking.providerId !== provider.id) {
-      throw new ForbiddenException('Du hast keine Berechtigung für diese Buchung.');
-    }
     return booking;
   }
 

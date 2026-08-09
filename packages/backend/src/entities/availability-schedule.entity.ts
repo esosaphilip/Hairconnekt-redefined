@@ -1,10 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique, Index
 } from 'typeorm';
 import { Provider } from './provider.entity';
 
 @Entity('availability_schedules')
 @Unique(['providerId', 'dayOfWeek'])
+@Index(['providerId', 'dayOfWeek'])
 export class AvailabilitySchedule {
   @PrimaryGeneratedColumn('uuid')
   id: string;

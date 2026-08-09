@@ -1,10 +1,13 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Index,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import { User } from './user.entity';
 
 @Entity('messages')
+@Index(['conversationId', 'createdAt'])
+@Index(['senderId', 'createdAt'])
+@Index(['conversationId', 'senderId', 'isRead'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;

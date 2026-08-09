@@ -1,5 +1,5 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -9,6 +9,7 @@ export class Address {
   id: string;
 
   @Column({ type: 'uuid' })
+  @Index()
   userId: string;
 
   @ManyToOne(() => User)

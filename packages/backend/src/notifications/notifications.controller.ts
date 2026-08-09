@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { parsePagination } from '../common/pagination';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,8 +24,7 @@ export class NotificationsController {
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
   ) {
-    const page = Math.max(1, Number(pageStr ?? '1') || 1);
-    const limit = Math.min(50, Math.max(1, Number(limitStr ?? '20') || 20));
+    const { page, limit } = parsePagination(pageStr, limitStr);
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.notificationRepo.findAndCount({

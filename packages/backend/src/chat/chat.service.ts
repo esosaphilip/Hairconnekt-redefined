@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { ChatPresenceService } from './chat-presence.service';
 import { R2Service } from '../common/storage/r2.service';
 import { v4 as uuidv4 } from 'uuid';
+import { AccessService } from '../authorization/access.service';
 
 type ConversationListItem = {
   id: string;
@@ -73,6 +74,7 @@ export class ChatService {
     private readonly bookingRepo: Repository<Booking>,
     private readonly presence: ChatPresenceService,
     private readonly r2Service: R2Service,
+    private readonly access: AccessService,
   ) {}
 
   private getOtherUserId(conversation: Conversation, userId: string): string {
@@ -82,13 +84,8 @@ export class ChatService {
   }
 
   private async getConversationForUserOrThrow(userId: string, conversationId: string): Promise<Conversation> {
-    const convo = await this.conversationRepo.findOne({ where: { id: conversationId } });
-    if (!convo) {
-      throw new NotFoundException('Konversation nicht gefunden.');
-    }
-    if (convo.participant1Id !== userId && convo.participant2Id !== userId) {
-      throw new ForbiddenException('Nicht autorisiert.');
-    }
+    const actor = { id: userId, role: (await this.userRepo.findOne({ where: { id: userId }, select: ['role'] }))?.role || 'client' as any };
+    const convo = await this.access.authorizeConversation(actor, 'conversation:read', conversationId) as Conversation;
     return convo;
   }
 

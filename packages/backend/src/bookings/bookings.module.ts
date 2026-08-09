@@ -11,6 +11,7 @@ import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { TimeBlock } from '../entities/time-block.entity';
 import { User } from '../entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthorizationModule } from '../authorization/authorization.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       User,
     ]),
     NotificationsModule,
+    AuthorizationModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService, AppointmentSchedulerService],

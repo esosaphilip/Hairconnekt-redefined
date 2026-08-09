@@ -1,17 +1,20 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn,
-  CreateDateColumn, UpdateDateColumn, OneToOne,
+  CreateDateColumn, UpdateDateColumn, OneToOne, Index,
 } from 'typeorm';
 import { Booking } from './booking.entity';
 import { User } from './user.entity';
 import { Provider } from './provider.entity';
 
 @Entity('reviews')
+@Index(['providerId', 'createdAt'])
+@Index(['clientId', 'createdAt'])
 export class Review {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid', unique: true })
+  @Index()
   bookingId: string;  // UNIQUE — one review per booking
 
   @OneToOne(() => Booking)

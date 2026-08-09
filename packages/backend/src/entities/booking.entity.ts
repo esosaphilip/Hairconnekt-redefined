@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-  UpdateDateColumn, ManyToOne, JoinColumn, ManyToMany, JoinTable,
+  UpdateDateColumn, ManyToOne, JoinColumn, ManyToMany, JoinTable, Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Provider } from './provider.entity';
@@ -19,6 +19,9 @@ export enum PaymentStatus { PENDING = 'pending', PAID = 'paid' }
 export enum CancelledBy { CLIENT = 'client', PROVIDER = 'provider', SYSTEM = 'system' }
 
 @Entity('bookings')
+@Index(['providerId', 'scheduledDate', 'scheduledTime'])
+@Index(['clientId', 'status', 'scheduledDate'])
+@Index(['providerId', 'status', 'scheduledDate'])
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -97,6 +100,7 @@ export class Booking {
   cancellationReason: string;
 
   @Column({ type: 'timestamp', nullable: true })
+  @Index()
   cancelledAt: Date;
 
   @Column({ type: 'boolean', default: false })

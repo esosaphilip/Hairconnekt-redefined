@@ -1,11 +1,12 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index,
 } from 'typeorm';
 import { Provider } from './provider.entity';
 
 export enum ServicePriceType { FIXED = 'fixed', FROM = 'from' }
 
 @Entity('services')
+@Index(['providerId', 'categoryId', 'isActive'])
 export class Service {
   @PrimaryGeneratedColumn('uuid')
   id: string;

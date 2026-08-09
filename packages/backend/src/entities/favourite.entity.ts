@@ -1,5 +1,5 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Unique,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Unique, Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Provider } from './provider.entity';
@@ -18,6 +18,7 @@ export class Favourite {
   client: User;
 
   @Column({ type: 'uuid' })
+  @Index()
   providerId: string;
 
   @ManyToOne(() => Provider)
