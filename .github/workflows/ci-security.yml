@@ -50,7 +50,7 @@ jobs:
         working-directory: packages/backend
     services:
       postgres:
-        image: postgis/postgis:16
+        image: postgis/postgis:16-3.5
         env:
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
@@ -226,7 +226,7 @@ jobs:
 
       - name: Audit production dependencies
         run: |
-          if [ "${{ matrix.name }}" = "admin" ]; then
+          if [ "${{ matrix.name }}" = "admin" ] || [ "${{ matrix.name }}" = "mobile" ]; then
             npm run audit:ci
           else
             npm audit --omit=dev --audit-level=high
