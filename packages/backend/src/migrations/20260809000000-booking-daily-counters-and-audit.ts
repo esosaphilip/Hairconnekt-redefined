@@ -71,7 +71,7 @@ export class BookingDailyCountersAndAudit20260809000000 implements MigrationInte
         FROM booking_date_counts
       )
       INSERT INTO "booking_daily_counters" ("date", "counter")
-      SELECT booking_date::text, cnt
+      SELECT booking_date, cnt
       FROM parsed_dates
       WHERE booking_date IS NOT NULL
       ON CONFLICT ("date") DO UPDATE SET "counter" = EXCLUDED."counter"
