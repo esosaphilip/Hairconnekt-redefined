@@ -11,25 +11,25 @@ export class PopularStyle {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   imageUrl: string | null;
 
-  @Column({ default: '✨' })
+  @Column({ type: 'varchar', default: '✨' })
   emoji: string;
 
-  @Column({ default: '#C8860A' })
+  @Column({ type: 'varchar', default: '#C8860A' })
   colorHex: string;
 
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 0 })
   sortOrder: number;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   imageKey: string | null;
 
   @CreateDateColumn()
