@@ -1,12 +1,22 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateInvitations20260811000000 implements MigrationInterface {
-  name = 'CreateInvitations20260811000000';
+export class FixInvitationsCamelCaseColumns20260812000001 implements MigrationInterface {
+  name = 'FixInvitationsCamelCaseColumns20260812000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DO $$ BEGIN
       CREATE TYPE invitation_status_enum AS ENUM('pending','accepted','revoked','expired');
     EXCEPTION WHEN duplicate_object THEN NULL; END $$;`);
+
+    const legacyRow = await queryRunner.query(
+      `SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'invitations' AND column_name = 'tokenhash' LIMIT 1;`,
+    );
+    const hasLegacyLowerCaseColumns = Array.isArray(legacyRow) && legacyRow.length > 0;
+
+    if (hasLegacyLowerCaseColumns) {
+      await queryRunner.query(`DROP TABLE IF EXISTS invitations CASCADE;`);
+    }
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS invitations (

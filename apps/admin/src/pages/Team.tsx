@@ -52,10 +52,22 @@ const STATUS_BADGE: Record<InvitationStatus, { label: string; bg: string; color:
   expired: { label: 'ABG', bg: '#fee2e2', color: '#991b1b' },
 };
 
+const USERS_PAGE_SIZE = 50;
+
 async function getAdminUsers(): Promise<AdminUser[]> {
-  const res = await getUsers({ limit: 100, offset: 0 });
-  const list = Array.isArray(res?.data) ? res.data : [];
-  return list
+  const all: ApiAdminUser[] = [];
+  let offset = 0;
+  let total: number | null = null;
+  do {
+    const res = await getUsers({ limit: USERS_PAGE_SIZE, offset });
+    const page = Array.isArray(res?.data) ? res.data : [];
+    all.push(...page);
+    if (typeof res?.total === 'number' && total === null) total = res.total;
+    if (page.length < USERS_PAGE_SIZE) break;
+    offset += USERS_PAGE_SIZE;
+    if (total !== null && offset >= total) break;
+  } while (offset < 10000);
+  return all
     .filter((u: ApiAdminUser) => u.role === 'admin')
     .map((u: ApiAdminUser) => ({
       id: u.id,
