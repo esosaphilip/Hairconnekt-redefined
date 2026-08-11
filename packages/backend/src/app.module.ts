@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { InvitationsModule } from './invitations/invitations.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
@@ -41,6 +42,7 @@ import { getDatabaseSslConfig } from './common/database/database-ssl';
       retryDelay: 3000,
     }),
     AuthModule,
+    InvitationsModule,
     BookingsModule,
     ReviewsModule,
     UsersModule,

@@ -7,6 +7,8 @@ import Providers from './pages/Providers';
 import Users from './pages/Users';
 import Categories from './pages/Categories';
 import PopularStyles from './pages/PopularStyles';
+import Team from './pages/Team';
+import AcceptInvite from './pages/AcceptInvite';
 import { ToastProvider } from './components/ui';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { getAdminSession, setOnAuthExpired, type AdminUserSummary } from './api';
@@ -91,6 +93,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
 
           <Route path="/" element={<ProtectedRoute />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
@@ -98,6 +101,7 @@ function App() {
             <Route path="providers" element={<Providers />} />
             <Route path="users" element={<Users />} />
             <Route path="popular-styles" element={<PopularStyles />} />
+            <Route path="team" element={<Team />} />
             <Route path="categories" element={<Categories />} />
           </Route>
 

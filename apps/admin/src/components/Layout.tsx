@@ -41,6 +41,10 @@ export default function Layout({ user }: LayoutProps) {
             <Sparkles size={20} aria-hidden="true" />
             <span style={{ marginLeft: '10px' }}>Beliebte Styles</span>
           </NavLink>
+          <NavLink to="/team" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+            <Users size={20} aria-hidden="true" />
+            <span style={{ marginLeft: '10px' }}>Team</span>
+          </NavLink>
           <NavLink to="/categories" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
             <Tag size={20} aria-hidden="true" />
             <span style={{ marginLeft: '10px' }}>Kategorien</span>
