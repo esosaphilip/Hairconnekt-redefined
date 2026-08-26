@@ -1,65 +1,62 @@
-// Error Message Constants
-export const ERROR_MESSAGES = {
-  // Network errors
+import type { Lang } from '@/contexts/LanguageContext';
+import { TRANSLATIONS } from '@/contexts/LanguageContext';
+
+type TransDict = typeof TRANSLATIONS;
+type TransKey = keyof TransDict;
+
+export function pickError(key: TransKey, lang: Lang = 'de'): string {
+  const entry = (TRANSLATIONS as Record<TransKey, { de: string; en: string } | undefined>)[key];
+  return entry?.[lang] ?? entry?.de ?? String(key);
+}
+
+export const ERROR_KEYS = {
   NETWORK: {
-    NO_CONNECTION: 'Keine Internetverbindung',
-    TIMEOUT: 'Zeitüberschreitung bei der Anfrage',
-    SERVER_UNAVAILABLE: 'Server nicht erreichbar',
+    NO_CONNECTION: 'errorNetworkNoConnection' as TransKey,
+    TIMEOUT: 'errorNetworkTimeout' as TransKey,
+    SERVER_UNAVAILABLE: 'errorNetworkServerUnavailable' as TransKey,
   },
-  
-  // Authentication errors
   AUTH: {
-    INVALID_CREDENTIALS: 'Ungültige Anmeldedaten',
-    TOKEN_EXPIRED: 'Sitzung abgelaufen',
-    NO_TOKEN: 'Keine Authentifizierung',
-    UNAUTHORIZED: 'Nicht autorisiert',
-    FORBIDDEN: 'Zugriff verweigert',
+    INVALID_CREDENTIALS: 'errorAuthInvalidCredentials' as TransKey,
+    TOKEN_EXPIRED: 'errorAuthTokenExpired' as TransKey,
+    NO_TOKEN: 'errorAuthNoToken' as TransKey,
+    UNAUTHORIZED: 'errorAuthUnauthorized' as TransKey,
+    FORBIDDEN: 'errorAuthForbidden' as TransKey,
   },
-  
-  // Validation errors
   VALIDATION: {
-    REQUIRED_FIELD: 'Dieses Feld ist erforderlich',
-    INVALID_EMAIL: 'Ungültige E-Mail-Adresse',
-    INVALID_PHONE: 'Ungültige Telefonnummer',
-    PASSWORD_TOO_SHORT: 'Passwort muss mindestens 8 Zeichen haben',
-    PASSWORDS_DONT_MATCH: 'Passwörter stimmen nicht überein',
-    INVALID_DATE: 'Ungültiges Datum',
-    INVALID_TIME: 'Ungültige Uhrzeit',
-    INVALID_INPUT: 'Ungültige Eingabe',
+    REQUIRED_FIELD: 'errorValidationRequiredField' as TransKey,
+    INVALID_EMAIL: 'errorValidationInvalidEmail' as TransKey,
+    INVALID_PHONE: 'errorValidationInvalidPhone' as TransKey,
+    PASSWORD_TOO_SHORT: 'errorValidationPasswordTooShort' as TransKey,
+    PASSWORDS_DONT_MATCH: 'errorValidationPasswordsDontMatch' as TransKey,
+    INVALID_DATE: 'errorValidationInvalidDate' as TransKey,
+    INVALID_TIME: 'errorValidationInvalidTime' as TransKey,
+    INVALID_INPUT: 'errorValidationInvalidInput' as TransKey,
   },
-  
-  // Booking errors
   BOOKING: {
-    NOT_FOUND: 'Termin nicht gefunden',
-    ALREADY_BOOKED: 'Dieser Termin ist bereits belegt',
-    INVALID_STATUS: 'Ungültiger Terminstatus',
-    CANNOT_CANCEL: 'Termin kann nicht storniert werden',
-    CANNOT_RESCHEDULE: 'Termin kann nicht verschoben werden',
-    PAST_DATE: 'Datum liegt in der Vergangenheit',
-    SERVICE_UNAVAILABLE: 'Dienst nicht verfügbar',
+    NOT_FOUND: 'errorBookingNotFound' as TransKey,
+    ALREADY_BOOKED: 'errorBookingAlreadyBooked' as TransKey,
+    INVALID_STATUS: 'errorBookingInvalidStatus' as TransKey,
+    CANNOT_CANCEL: 'errorBookingCannotCancel' as TransKey,
+    CANNOT_RESCHEDULE: 'errorBookingCannotReschedule' as TransKey,
+    PAST_DATE: 'errorBookingPastDate' as TransKey,
+    SERVICE_UNAVAILABLE: 'errorBookingServiceUnavailable' as TransKey,
   },
-  
-  // Chat errors
   CHAT: {
-    CONVERSATION_NOT_FOUND: 'Gespräch nicht gefunden',
-    MESSAGE_NOT_FOUND: 'Nachricht nicht gefunden',
-    CANNOT_SEND: 'Nachricht konnte nicht gesendet werden',
-    PERMISSION_DENIED: 'Keine Berechtigung für dieses Gespräch',
+    CONVERSATION_NOT_FOUND: 'errorChatConversationNotFound' as TransKey,
+    MESSAGE_NOT_FOUND: 'errorChatMessageNotFound' as TransKey,
+    CANNOT_SEND: 'errorChatCannotSend' as TransKey,
+    PERMISSION_DENIED: 'errorChatPermissionDenied' as TransKey,
   },
-  
-  // File upload errors
   FILE: {
-    TOO_LARGE: 'Datei ist zu groß',
-    INVALID_FORMAT: 'Ungültiges Dateiformat',
-    UPLOAD_FAILED: 'Upload fehlgeschlagen',
+    TOO_LARGE: 'errorFileTooLarge' as TransKey,
+    INVALID_FORMAT: 'errorFileInvalidFormat' as TransKey,
+    UPLOAD_FAILED: 'errorFileUploadFailed' as TransKey,
   },
-  
-  // Generic errors
   GENERIC: {
-    UNKNOWN_ERROR: 'Ein unbekannter Fehler ist aufgetreten',
-    SOMETHING_WENT_WRONG: 'Etwas ist schiefgelaufen',
-    TRY_AGAIN: 'Bitte versuche es erneut',
-    CONTACT_SUPPORT: 'Bitte kontaktiere den Support',
+    UNKNOWN_ERROR: 'errorGenericUnknownError' as TransKey,
+    SOMETHING_WENT_WRONG: 'errorGenericSomethingWentWrong' as TransKey,
+    TRY_AGAIN: 'errorGenericTryAgain' as TransKey,
+    CONTACT_SUPPORT: 'errorGenericContactSupport' as TransKey,
   },
 } as const;
 
@@ -82,49 +79,47 @@ export const ERROR_SEVERITY = {
   CRITICAL: 'critical',
 } as const;
 
-// User-Friendly Error Messages
-export const getUserFriendlyError = (error: any, context?: string): string => {
-  const defaultMessage = ERROR_MESSAGES.GENERIC.UNKNOWN_ERROR;
-  
+export const getUserFriendlyError = (error: unknown, lang: Lang = 'de', context?: string): string => {
+  const defaultMessage = pickError(ERROR_KEYS.GENERIC.UNKNOWN_ERROR, lang);
+
   if (!error) return defaultMessage;
-  
-  // Handle HTTP status codes
-  if (error.status || error.response?.status) {
-    const status = error.status || error.response?.status;
-    
-    switch (status) {
-      case 400:
-        return ERROR_MESSAGES.VALIDATION.INVALID_INPUT;
-      case 401:
-        return ERROR_MESSAGES.AUTH.UNAUTHORIZED;
-      case 403:
-        return ERROR_MESSAGES.AUTH.FORBIDDEN;
-      case 404:
-        return context === 'booking' 
-          ? ERROR_MESSAGES.BOOKING.NOT_FOUND
-          : ERROR_MESSAGES.GENERIC.UNKNOWN_ERROR;
-      case 409:
-        return ERROR_MESSAGES.BOOKING.ALREADY_BOOKED;
-      case 422:
-        return ERROR_MESSAGES.VALIDATION.INVALID_INPUT;
-      case 500:
-        return ERROR_MESSAGES.NETWORK.SERVER_UNAVAILABLE;
-      case 503:
-        return ERROR_MESSAGES.NETWORK.SERVER_UNAVAILABLE;
-      default:
-        return defaultMessage;
+
+  if (error && typeof error === 'object') {
+    const err = error as { status?: number; response?: { status?: number }; code?: string; message?: string };
+    const status = err.status ?? err.response?.status;
+
+    if (typeof status === 'number') {
+      switch (status) {
+        case 400:
+          return pickError(ERROR_KEYS.VALIDATION.INVALID_INPUT, lang);
+        case 401:
+          return pickError(ERROR_KEYS.AUTH.UNAUTHORIZED, lang);
+        case 403:
+          return pickError(ERROR_KEYS.AUTH.FORBIDDEN, lang);
+        case 404:
+          return context === 'booking'
+            ? pickError(ERROR_KEYS.BOOKING.NOT_FOUND, lang)
+            : pickError(ERROR_KEYS.GENERIC.UNKNOWN_ERROR, lang);
+        case 409:
+          return pickError(ERROR_KEYS.BOOKING.ALREADY_BOOKED, lang);
+        case 422:
+          return pickError(ERROR_KEYS.VALIDATION.INVALID_INPUT, lang);
+        case 500:
+        case 503:
+          return pickError(ERROR_KEYS.NETWORK.SERVER_UNAVAILABLE, lang);
+        default:
+          return defaultMessage;
+      }
+    }
+
+    if (err.code === 'NETWORK_ERROR' || (typeof err.message === 'string' && err.message.includes('network'))) {
+      return pickError(ERROR_KEYS.NETWORK.NO_CONNECTION, lang);
+    }
+
+    if (err.code === 'TIMEOUT' || (typeof err.message === 'string' && err.message.includes('timeout'))) {
+      return pickError(ERROR_KEYS.NETWORK.TIMEOUT, lang);
     }
   }
-  
-  // Handle network errors
-  if (error.code === 'NETWORK_ERROR' || error.message?.includes('network')) {
-    return ERROR_MESSAGES.NETWORK.NO_CONNECTION;
-  }
-  
-  // Handle timeout errors
-  if (error.code === 'TIMEOUT' || error.message?.includes('timeout')) {
-    return ERROR_MESSAGES.NETWORK.TIMEOUT;
-  }
-  
+
   return defaultMessage;
 };

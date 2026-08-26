@@ -53,6 +53,16 @@ const baseConfig: ExpoConfig = {
         ],
         category: ['BROWSABLE', 'DEFAULT'],
       },
+      {
+        action: 'VIEW',
+        data: [
+          {
+            scheme: 'hairconnekt',
+            host: '*',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
     ],
     predictiveBackGestureEnabled: false,
   },

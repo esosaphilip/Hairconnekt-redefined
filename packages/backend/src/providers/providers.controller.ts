@@ -3,6 +3,7 @@ import {
   UseInterceptors, UploadedFile, BadRequestException, HttpCode, HttpStatus,
   NotFoundException, Patch, Delete, Param, ParseUUIDPipe,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { parsePagination } from '../common/pagination';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -251,11 +252,10 @@ export class ProvidersController {
   // ═══════════════════════════════════════════════════════
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.CLIENT, Role.PROVIDER)
+  @Throttle({ default: { limit: 30, ttl: 60 } })
   async findAll(
     @Query() query: Record<string, string>,
-    @CurrentUser() user: User,
+    @CurrentUser() user?: User,
   ) {
     return this.providersService.findAll(query, user);
   }
@@ -266,6 +266,7 @@ export class ProvidersController {
   // ═══════════════════════════════════════════════════════
 
   @Get(':id')
+  @Throttle({ default: { limit: 60, ttl: 60 } })
   async getPublicProfile(
     @Param('id', ParseUUIDPipe) providerId: string,
     @Query('lat') lat?: string,
@@ -275,6 +276,7 @@ export class ProvidersController {
   }
 
   @Get(':id/services')
+  @Throttle({ default: { limit: 60, ttl: 60 } })
   async getPublicServices(@Param('id', ParseUUIDPipe) providerId: string) {
     return this.providersService.getPublicServices(providerId);
   }
@@ -282,6 +284,7 @@ export class ProvidersController {
 
 
   @Get(':id/reviews')
+  @Throttle({ default: { limit: 60, ttl: 60 } })
   async getPublicReviews(
     @Param('id', ParseUUIDPipe) providerId: string,
     @Query('page') pageStr?: string,
@@ -305,6 +308,7 @@ export class ProvidersController {
   }
 
   @Get(':id/slots')
+  @Throttle({ default: { limit: 60, ttl: 60 } })
   async getSlots(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('date') date: string,

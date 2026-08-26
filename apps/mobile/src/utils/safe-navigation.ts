@@ -9,9 +9,12 @@ const NOTIFICATION_ROUTE_PATTERNS: RegExp[] = [
   /^\/\(provider\)\/$/,
   /^\/\(provider\)\/calendar$/,
   /^\/\(provider\)\/reviews$/,
+  /^\/\(provider\)\/pending$/,
   /^\/\(provider\)\/booking-request\/[0-9a-f-]+$/i,
   /^\/\(client\)\/appointments\/[0-9a-f-]+$/i,
   /^\/\(client\)\/review\/[0-9a-f-]+$/i,
+  /^\/\(client\)\/profile\/reviews$/,
+  /^\/\(shared\)\/chat$/,
   /^\/\(shared\)\/chat\/[0-9a-f-]+$/i,
 ];
 

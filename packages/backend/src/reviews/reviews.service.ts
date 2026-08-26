@@ -108,7 +108,16 @@ export class ReviewsService {
       avgRating: Number(averageRating.toFixed(1)),
     });
 
-    return review;
+    return {
+      id: review.id,
+      bookingId: review.bookingId,
+      providerId: review.providerId,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      providerResponse: review.providerResponse ?? null,
+      respondedAt: review.respondedAt ?? null,
+    };
   }
 
   async respondToReview(

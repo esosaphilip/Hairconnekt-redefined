@@ -10,6 +10,7 @@ import { useFavourites } from '../../contexts/FavouritesContext';
 import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
+import { tokenStorage } from '@/utils/token-storage';
 
 
 type SortOption = 'empfohlen' | 'entfernung' | 'bewertung';
@@ -117,7 +118,7 @@ export default function ClientSearch() {
       
       const url = `/providers?limit=20&page=${pageNumber}&sort=${sortOption}${searchParam}${categoryParam}${availParam}${locationParam}`;
 
-      const response = await apiJson<any>(url, { auth: true });
+      const response = await apiJson<any>(url);
 
       const newData = response.data || response;
       const meta = response.meta ?? {};
@@ -340,7 +341,14 @@ export default function ClientSearch() {
                     isFavourited: isFavourite(item.id)
                   }}
                   onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
-                  onFavourite={() => toggleFavourite(item.id)}
+                  onFavourite={async () => {
+                    const tokens = await tokenStorage.getTokens();
+                    if (!tokens.accessToken) {
+                      router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/search`)}` as any);
+                      return;
+                    }
+                    void toggleFavourite(item.id);
+                  }}
                 />
               )}
               onEndReached={handleLoadMore}

@@ -8,6 +8,7 @@ import { mapHttpError } from '../../../utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
+import { tokenStorage } from '@/utils/token-storage';
 
 type BookingService = {
   id: string;
@@ -81,7 +82,13 @@ export default function ClientBookingServices() {
 
       setSections(newSections);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       const status = error instanceof ApiError ? error.status : undefined;
+      if (msg.includes('No authentication token') || status === 401) {
+        const destination = `/(client)/booking/services?providerId=${encodeURIComponent(providerIdValue)}`;
+        router.replace(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+        return;
+      }
       setErrorMessage(mapHttpError(status, undefined, lang));
       setErrorVisible(true);
     } finally {

@@ -100,6 +100,8 @@ export class AuthService {
       phone: dto.phone,
       passwordHash,
       role: dto.role,
+      acceptedTerms: true,
+      acceptedTermsAt: new Date(),
     });
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -454,25 +456,132 @@ export class AuthService {
 
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────
   private async sendVerificationEmail(to: string, firstName: string, code: string): Promise<void> {
+    const encodedEmail = encodeURIComponent(to);
+    const encodedCode = encodeURIComponent(code);
+    const appDeepLink = `hairconnekt:///(auth)/verify-email?email=${encodedEmail}&code=${encodedCode}`;
+    const webFallbackLink = `https://hairconnekt.de/verify-email?email=${encodedEmail}&code=${encodedCode}`;
+
+    const buttonHtml = `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:20px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="border-radius:12px;background-color:#F26B5E;padding:14px 28px;">
+                  <a href="${appDeepLink}"
+                     style="display:inline-block;text-decoration:none;font-size:15px;font-weight:700;color:#ffffff;letter-spacing:0.01em;">
+                    App öffnen &amp; bestätigen
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:10px;">
+        <tr>
+          <td align="center" style="font-size:12px;color:#888888;line-height:1.5;">
+            Funktioniert der Button nicht?<br/>
+            Gib den unten stehenden Code direkt in der HairConnekt-App ein.
+          </td>
+        </tr>
+      </table>
+    `;
+
+    const buttonText =
+      `\n\nApp öffnen & bestätigen (Deep-Link):\n${appDeepLink}\n\nAlternativ (Web-Fallback):\n${webFallbackLink}\n`;
+
     await sendEmail({
       to,
       subject: 'HairConnekt – E-Mail bestätigen',
       html: `
-        <h2>Hallo ${firstName},</h2>
-        <p>Bitte bestätige deine E-Mail-Adresse mit diesem Code:</p>
-        <h1 style="letter-spacing:8px;font-size:36px;">${code}</h1>
-        <p>Der Code ist 30 Minuten gültig.</p>
-        <p>Falls du dich nicht bei HairConnekt registriert hast, ignoriere diese E-Mail.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f7f7f7;padding:24px 12px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+                <tr>
+                  <td style="padding:22px 24px 8px 24px;">
+                    <div style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#777777;">
+                      HairConnekt
+                    </div>
+                    <div style="font-size:22px;line-height:1.25;color:#111111;margin-top:8px;font-weight:700;">
+                      E-Mail bestätigen
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 24px 22px 24px;color:#222222;font-size:15px;line-height:1.5;">
+                    <div style="margin-top:6px;">Hallo ${firstName},</div>
+                    <div style="margin-top:10px;">Bitte bestätige deine E-Mail-Adresse mit diesem Code:</div>
+                    <div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#f3f4f6;text-align:center;">
+                      <div style="font-size:36px;letter-spacing:0.22em;font-weight:800;color:#111111;">
+                        ${code}
+                      </div>
+                    </div>
+                    <div style="margin-top:14px;color:#444444;">
+                      Der Code ist <strong>30 Minuten</strong> gültig.
+                    </div>
+                    ${buttonHtml}
+                    <div style="margin-top:22px;color:#555555;font-size:13px;line-height:1.5;">
+                      Falls du dich nicht bei HairConnekt registriert hast, ignoriere diese E-Mail.
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 24px 22px 24px;border-top:1px solid #eeeeee;color:#666666;font-size:12px;line-height:1.5;">
+                    <div>Liebe Grüße</div>
+                    <div style="font-weight:700;color:#444444;">Dein HairConnekt Team</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       `,
       text:
         `Hallo ${firstName},\n\n` +
-        `Dein HairConnekt Bestätigungscode: ${code}\n\n` +
-        `Gültig für 30 Minuten.`,
+        `Bitte bestätige deine E-Mail-Adresse mit diesem Code:\n\n` +
+        `${code}\n\n` +
+        `Der Code ist 30 Minuten gültig.` +
+        buttonText +
+        `\nFalls du dich nicht bei HairConnekt registriert hast, ignoriere diese E-Mail.\n\n` +
+        `Liebe Grüße\nDein HairConnekt Team`,
     });
   }
 
   private async sendOtpEmail(to: string, otp: string): Promise<void> {
     const subject = 'Dein HairConnekt Sicherheitscode';
+    const encodedEmail = encodeURIComponent(to);
+    const appDeepLink = `hairconnekt:///(auth)/password-reset?email=${encodedEmail}`;
+    const webFallbackLink = `https://hairconnekt.de/password-reset?email=${encodedEmail}`;
+
+    const buttonHtml = `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:18px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="border-radius:12px;background-color:#F26B5E;padding:14px 28px;">
+                  <a href="${appDeepLink}"
+                     style="display:inline-block;text-decoration:none;font-size:15px;font-weight:700;color:#ffffff;letter-spacing:0.01em;">
+                    App öffnen
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:10px;">
+        <tr>
+          <td align="center" style="font-size:12px;color:#888888;line-height:1.5;">
+            Funktioniert der Button nicht?<br/>
+            Gib den unten stehenden Sicherheitscode direkt in der App ein.
+          </td>
+        </tr>
+      </table>
+    `;
+
     const text = [
       'Hallo,',
       '',
@@ -481,6 +590,9 @@ export class AuthService {
       `${otp}`,
       '',
       'Gültig für 10 Minuten.',
+      '',
+      `App öffnen (Deep-Link): ${appDeepLink}`,
+      `Web-Fallback: ${webFallbackLink}`,
       '',
       'Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.',
       '',
@@ -529,7 +641,8 @@ export class AuthService {
                 <div style="margin-top:14px;color:#444444;">
                   Gültig für <strong>10 Minuten</strong>.
                 </div>
-                <div style="margin-top:14px;color:#555555;">
+                ${buttonHtml}
+                <div style="margin-top:18px;color:#555555;font-size:13px;line-height:1.5;">
                   Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.
                 </div>
               </td>

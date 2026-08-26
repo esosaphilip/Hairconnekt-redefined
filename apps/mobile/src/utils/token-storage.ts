@@ -75,9 +75,11 @@ export const tokenStorage = {
 
   async getLanguage(): Promise<'de' | 'en'> {
     const stored = (await AsyncStorage.getItem(KEYS.APP_LANGUAGE)) ?? (await AsyncStorage.getItem(KEYS.LANGUAGE));
-    const resolved: 'de' | 'en' = stored === 'en' ? 'en' : 'de';
-    await AsyncStorage.setItem(KEYS.APP_LANGUAGE, resolved);
-    return resolved;
+    if (stored === 'en' || stored === 'de') {
+      await AsyncStorage.setItem(KEYS.APP_LANGUAGE, stored);
+      return stored;
+    }
+    return 'de';
   },
 
   async setLanguage(lang: 'de' | 'en'): Promise<void> {

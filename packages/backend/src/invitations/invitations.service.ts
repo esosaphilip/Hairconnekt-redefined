@@ -4,6 +4,7 @@ import {
   GoneException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +19,8 @@ import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     @InjectRepository(Invitation)
     private readonly inviteRepo: Repository<Invitation>,
@@ -39,10 +42,23 @@ export class InvitationsService {
 
   private getAdminAppUrlOrThrow(): string {
     const raw = process.env.ADMIN_APP_URL?.trim();
+    const env = (process.env.NODE_ENV ?? 'development').trim().toLowerCase();
     if (raw) return raw;
-    const env = process.env.NODE_ENV ?? 'development';
-    if (env !== 'production') return 'http://localhost:5173';
-    throw new InternalServerErrorException('ADMIN_APP_URL ist nicht konfiguriert.');
+    if (env === 'production') {
+      this.logger.error(
+        '[INVITES] createInvitation blockiert: ADMIN_APP_URL fehlt in NODE_ENV=production. ' +
+          'Setze ADMIN_APP_URL (z.B. https://admin.hairconnekt.de) in den Backend-Umgebungsvariablen.',
+      );
+      throw new InternalServerErrorException(
+        'ADMIN_APP_URL ist nicht konfiguriert. Bitte im Backend hinterlegen (z.B. https://admin.hairconnekt.de).',
+      );
+    }
+    const fallback = 'http://localhost:5173';
+    this.logger.warn(
+      `[INVITES] ADMIN_APP_URL nicht gesetzt (NODE_ENV=${env}). Verwende Fallback ${fallback}. ` +
+        'Setze ADMIN_APP_URL in der Backend-Deploy-Konfiguration, damit Einladungs-Links korrekt sind.',
+    );
+    return fallback;
   }
 
   async createInvitation(

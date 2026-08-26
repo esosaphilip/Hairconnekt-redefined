@@ -13,7 +13,7 @@ import { apiJson } from '@/services/apiClient';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { role: urlRole } = useLocalSearchParams<{ role: 'client' | 'provider' }>();
+  const { role: urlRole, returnTo } = useLocalSearchParams<{ role: 'client' | 'provider'; returnTo?: string }>();
   const { lang, t } = useLanguage();
   const insets = useSafeAreaInsets();
   const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
@@ -58,7 +58,8 @@ export default function LoginScreen() {
       await tokenStorage.setUser(authData.user);
 
       if (role === 'client') {
-        router.replace('/(client)');
+        const shouldReturn = typeof returnTo === 'string' && returnTo.length > 0;
+        router.replace((shouldReturn ? returnTo : '/(client)') as any);
         return;
       }
 
@@ -164,7 +165,16 @@ export default function LoginScreen() {
           <PrimaryButton label={t('login')} onPress={handleLogin} loading={isLoading} />
           <TouchableOpacity
             style={styles.footerLink}
-            onPress={() => router.push(role === 'provider' ? '/(provider)/register/type' as any : '/(auth)/register' as any)}
+            onPress={() => {
+              const returnQuery = typeof returnTo === 'string' && returnTo.length > 0
+                ? `?returnTo=${encodeURIComponent(returnTo)}`
+                : '';
+              if (role === 'provider') {
+                router.push(`/(provider)/register/type${returnQuery}` as any);
+              } else {
+                router.push(`/(auth)/register${returnQuery}` as any);
+              }
+            }}
           >
             <Text style={styles.footerText}>
               {role === 'client' ? t('loginNoAccountClient') : t('loginNoAccountProvider')}

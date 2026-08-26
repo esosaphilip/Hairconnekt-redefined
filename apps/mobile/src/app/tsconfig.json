@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "../*.d.ts", "../../.expo/types/**/*.d.ts", "../../expo-env.d.ts"]
+}

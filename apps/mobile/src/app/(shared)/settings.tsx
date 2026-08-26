@@ -14,6 +14,7 @@ import { LEGAL_URLS } from '@/constants';
 import { debugLog } from '@/utils/logger';
 import { AuthService } from '@/services/authService';
 import { ApiError, apiFetch } from '@/services/apiClient';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 
 export default function SharedSettingsScreen() {
@@ -143,22 +144,7 @@ export default function SharedSettingsScreen() {
         
         <Text style={styles.sectionTitle}>{t('settingsLanguage')}</Text>
         <View style={styles.cardGroup}>
-          <View style={styles.langRow}>
-            <TouchableOpacity
-              style={[styles.langPill, lang === 'de' && styles.langPillActive]}
-              onPress={() => setLang('de')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.langPillText, lang === 'de' && styles.langPillTextActive]}>{t('settingsLanguageDe')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.langPill, lang === 'en' && styles.langPillActive]}
-              onPress={() => setLang('en')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.langPillText, lang === 'en' && styles.langPillTextActive]}>{t('settingsLanguageEn')}</Text>
-            </TouchableOpacity>
-          </View>
+          <LanguageSelector variant="row" />
         </View>
 
         <Text style={styles.sectionTitle}>{t('settingsAccount')}</Text>

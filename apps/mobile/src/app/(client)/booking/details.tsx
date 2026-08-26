@@ -8,6 +8,7 @@ import { mapHttpError } from '../../../utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
+import { tokenStorage } from '@/utils/token-storage';
 
 type ProviderProfile = {
   businessName?: string | null;
@@ -172,6 +173,19 @@ export default function BookingDetails() {
       setIsLoading(true);
       setErrorVisible(false);
 
+      const tokens = await tokenStorage.getTokens();
+      if (!tokens.accessToken) {
+        const params = new URLSearchParams();
+        if (providerIdValue) params.set('providerId', providerIdValue);
+        if (selectedServiceIdsValue) params.set('selectedServiceIds', selectedServiceIdsValue);
+        if (totalPriceValue) params.set('totalPrice', totalPriceValue);
+        if (dateValue) params.set('date', dateValue);
+        if (timeValue) params.set('time', timeValue);
+        const destination = `/(client)/booking/details${params.toString() ? '?' + params.toString() : ''}`;
+        router.replace(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+        return;
+      }
+
       const bookingData = {
         providerId: providerIdValue,
         serviceIds: ids,
@@ -201,7 +215,19 @@ export default function BookingDetails() {
       });
       
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       const status = error instanceof ApiError ? error.status : undefined;
+      if (msg.includes('No authentication token') || status === 401) {
+        const params = new URLSearchParams();
+        if (providerIdValue) params.set('providerId', providerIdValue);
+        if (selectedServiceIdsValue) params.set('selectedServiceIds', selectedServiceIdsValue);
+        if (totalPriceValue) params.set('totalPrice', totalPriceValue);
+        if (dateValue) params.set('date', dateValue);
+        if (timeValue) params.set('time', timeValue);
+        const destination = `/(client)/booking/details${params.toString() ? '?' + params.toString() : ''}`;
+        router.replace(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+        return;
+      }
       if (status === 409) {
         setErrorMessage(t('bookingSlotTaken'));
       } else if (status === 400) {

@@ -1,5 +1,5 @@
 import { IsString, IsInt, IsArray, IsEnum, IsOptional,
-         Min, Max, MaxLength, Matches, IsUUID } from 'class-validator';
+         Min, Max, MaxLength, Matches, IsUUID, IsBoolean } from 'class-validator';
 
 export enum ProviderType {
   FREELANCER = 'freelancer',
@@ -25,4 +25,7 @@ export class RegisterProviderDto {
   @IsArray() @IsString({ each: true }) languages: string[];
   @IsEnum(CancellationPolicy) cancellationPolicy: CancellationPolicy;
   @IsOptional() @IsString() @MaxLength(1000) bio?: string;
+  @IsOptional()
+  @IsBoolean()
+  portfolioMarketingConsent?: boolean;
 }

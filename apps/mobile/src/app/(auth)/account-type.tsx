@@ -1,28 +1,36 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AccountTypeScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<'client' | 'provider' | null>(null);
 
+  const returnQuery = typeof returnTo === 'string' && returnTo.length > 0
+    ? `?returnTo=${encodeURIComponent(returnTo)}`
+    : '';
+
   const handleContinue = () => {
     if (selectedRole === 'client') {
-      router.push('/(auth)/register' as any);
+      router.push(`/(auth)/register${returnQuery}` as any);
     } else if (selectedRole === 'provider') {
-      router.push('/(provider)/register/type' as any);
+      router.push(`/(provider)/register/type${returnQuery}` as any);
     }
   };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
+        <LanguageSelector variant="compact" />
         <Text style={styles.heading}>{t('accountTypeTitle')}</Text>
 
         <TouchableOpacity 
@@ -55,8 +63,17 @@ export default function AccountTypeScreen() {
             onPress={handleContinue} 
             disabled={!selectedRole} 
           />
-          <TouchableOpacity style={styles.loginLink} onPress={() => router.push(`/(auth)/login?role=${selectedRole || 'client'}` as any)}>
+          <TouchableOpacity style={styles.loginLink} onPress={() => router.push(`/(auth)/login?role=${selectedRole || 'client'}${returnQuery ? `&returnTo=${encodeURIComponent(returnTo as string)}` : ''}` as any)}>
             <Text style={styles.loginText}>{t('registerAlreadyHaveAccount')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.guestLink}
+            onPress={() => router.replace('/(client)' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t('browseWithoutAccount')}
+          >
+            <Feather name="arrow-right" size={fontSizes.md} color={colors.textSecondary} />
+            <Text style={styles.guestText}>{t('browseWithoutAccount')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -76,4 +93,17 @@ const styles = StyleSheet.create({
   footer: { marginTop: 'auto', paddingBottom: spacing.xl },
   loginLink: { marginTop: spacing.xl, alignItems: 'center' },
   loginText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.teal },
+  guestLink: {
+    marginTop: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+  },
+  guestText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+  },
 });

@@ -11,6 +11,7 @@ interface RegistrationForm {
   languages: string[]; cancellationPolicy: '24h' | '48h' | '72h'; bio: string;
   profilePhotoUri: string; idDocumentUri: string;
   portfolioUris: string[];
+  portfolioMarketingConsent: boolean;
 }
 
 const DEFAULTS: RegistrationForm = {
@@ -20,6 +21,7 @@ const DEFAULTS: RegistrationForm = {
   postalCode: '', serviceRadius: 10, serviceIds: [],
   experienceYears: 1, languages: ['de'], cancellationPolicy: '24h',
   bio: '', profilePhotoUri: '', idDocumentUri: '', portfolioUris: [],
+  portfolioMarketingConsent: false,
 };
 
 const RegistrationContext = createContext<{

@@ -316,7 +316,15 @@ export default function AppointmentDetails() {
         <View style={styles.footerContainer}>
           <TouchableOpacity 
             style={styles.primaryBtn}
-            onPress={() => router.push(`/(client)/review/${booking.id}` as any)}
+            onPress={async () => {
+              const tokens = await tokenStorage.getTokens();
+              if (!tokens.accessToken) {
+                const destination = `/(client)/review/${booking.id}`;
+                router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+                return;
+              }
+              router.push(`/(client)/review/${booking.id}` as any);
+            }}
           >
             <Text style={styles.primaryBtnText}>{t('appointmentsWriteReview')}</Text>
           </TouchableOpacity>

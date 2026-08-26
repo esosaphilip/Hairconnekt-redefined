@@ -38,7 +38,7 @@ const normalizeProviderStatus = (status?: string | null): string =>
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams<{ email?: string }>();
+  const { email, returnTo } = useLocalSearchParams<{ email?: string; returnTo?: string }>();
   const { lang, t } = useLanguage();
   const emailString = typeof email === 'string' ? email : '';
 
@@ -75,7 +75,11 @@ export default function VerifyEmailScreen() {
 
       if (!token || !emailString) {
         const roleParam = role === 'provider' ? 'provider' : 'client';
-        router.replace(`/(auth)/login?role=${roleParam}` as any);
+        const params = new URLSearchParams({ role: roleParam });
+        if (typeof returnTo === 'string' && returnTo.length > 0) {
+          params.set('returnTo', returnTo);
+        }
+        router.replace(`/(auth)/login?${params.toString()}` as any);
       }
     })();
 
@@ -160,18 +164,30 @@ export default function VerifyEmailScreen() {
           if (error instanceof ApiError && error.status === 404) {
             router.replace('/(provider)/register/type' as any);
           } else {
-            router.replace('/(auth)/login?role=provider' as any);
+            const params = new URLSearchParams({ role: 'provider' });
+            if (typeof returnTo === 'string' && returnTo.length > 0) {
+              params.set('returnTo', returnTo);
+            }
+            router.replace(`/(auth)/login?${params.toString()}` as any);
           }
         }
       } else {
-        router.replace('/(client)' as any);
+        if (typeof returnTo === 'string' && returnTo.length > 0) {
+          router.replace(returnTo as any);
+        } else {
+          router.replace('/(client)' as any);
+        }
       }
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
       if (status === 401) {
         const role = await tokenStorage.getUserRole();
         const roleParam = role === 'provider' ? 'provider' : 'client';
-        router.replace(`/(auth)/login?role=${roleParam}` as any);
+        const params = new URLSearchParams({ role: roleParam });
+        if (typeof returnTo === 'string' && returnTo.length > 0) {
+          params.set('returnTo', returnTo);
+        }
+        router.replace(`/(auth)/login?${params.toString()}` as any);
       } else if (status === 400) {
         showError(t('verifyEmailInvalidCode'), status);
       } else if (status === 410) {
@@ -204,7 +220,11 @@ export default function VerifyEmailScreen() {
       if (status === 401) {
         const role = await tokenStorage.getUserRole();
         const roleParam = role === 'provider' ? 'provider' : 'client';
-        router.replace(`/(auth)/login?role=${roleParam}` as any);
+        const params = new URLSearchParams({ role: roleParam });
+        if (typeof returnTo === 'string' && returnTo.length > 0) {
+          params.set('returnTo', returnTo);
+        }
+        router.replace(`/(auth)/login?${params.toString()}` as any);
       } else if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
       } else if (status === 410) {

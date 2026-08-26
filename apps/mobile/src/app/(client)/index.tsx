@@ -13,6 +13,8 @@ import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 import * as Location from 'expo-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '../../services/apiClient';
+import { tokenStorage } from '@/utils/token-storage';
+import { LanguageSelector } from '../../components/LanguageSelector';
 
 interface PopularStyle {
   id: string;
@@ -100,6 +102,7 @@ export default function ClientHome() {
   const [firstName, setFirstName] = useState('');
   const [userCity, setUserCity] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [hasAuthenticatedUser, setHasAuthenticatedUser] = useState(false);
   const [providers, setProviders] = useState<ProviderProps[]>([]);
   const [popularStyles, setPopularStyles] = useState<PopularStyle[]>(() => getFallbackPopularStyles(lang));
   const [failedPopularStyleImages, setFailedPopularStyleImages] = useState<Record<string, boolean>>({});
@@ -152,8 +155,10 @@ export default function ClientHome() {
       const override = await getDiscoveryOverride().catch(() => null);
       setUserCity(override?.city ?? city);
       setUserAvatar(user.avatarUrl ?? null);
+      setHasAuthenticatedUser(true);
     } catch {
-      /* keep defaults */
+      /* keep defaults — guest path: hide name greeting */
+      setHasAuthenticatedUser(false);
     }
   };
 
@@ -176,7 +181,7 @@ export default function ClientHome() {
       const locationParams = coords
         ? `&lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}&sort=entfernung`
         : '';
-      const data = await apiJson<any>(`/providers?limit=20${locationParams}`, { auth: true });
+      const data = await apiJson<any>(`/providers?limit=20${locationParams}`);
       setProviders(data.data || data);
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
@@ -221,8 +226,12 @@ export default function ClientHome() {
       const res: any = await apiJson('/notifications?page=1&limit=20', { auth: true });
       const list = Array.isArray(res?.data) ? res.data : [];
       setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
-    } catch (error) {
-      Sentry.captureException(error);
+    } catch (error: any) {
+      const msg = error?.message ?? String(error ?? '');
+      const isGuestError = msg.includes('No authentication token') || msg.includes('authentication');
+      if (!isGuestError) {
+        Sentry.captureException(error);
+      }
       setUnreadNotificationsCount(0);
     }
   };
@@ -236,6 +245,11 @@ export default function ClientHome() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {!hasAuthenticatedUser && (
+          <View style={styles.guestLanguageRow}>
+            <LanguageSelector variant="minimal" />
+          </View>
+        )}
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.avatarContainer}>
@@ -254,7 +268,9 @@ export default function ClientHome() {
             )}
           </View>
           <View style={styles.headerTitles}>
-            <Text style={styles.greeting}>{t('homeGreeting')}, {firstName || t('clientNameDefault')}!</Text>
+            {hasAuthenticatedUser && (
+              <Text style={styles.greeting}>{t('homeGreeting')}, {firstName || t('clientNameDefault')}!</Text>
+            )}
             <TouchableOpacity
               style={styles.locationPill}
               onPress={() => {
@@ -391,7 +407,14 @@ export default function ClientHome() {
                 isFavourited: isFavourite(provider.id)
               }}
               onPress={() => handleProviderPress(provider.id)}
-              onFavourite={() => toggleFavourite(provider.id)}
+              onFavourite={async () => {
+                const tokens = await tokenStorage.getTokens();
+                if (!tokens.accessToken) {
+                  router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)`)}` as any);
+                  return;
+                }
+                void toggleFavourite(provider.id);
+              }}
             />
           ))
         )}
@@ -465,6 +488,7 @@ export default function ClientHome() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  guestLanguageRow: { alignSelf: 'flex-start', marginBottom: spacing.md },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
   avatarContainer: { marginRight: spacing.md },
   avatarRing: { width: layout.iconButton + spacing.s, height: layout.iconButton + spacing.s, borderRadius: (layout.iconButton + spacing.s) / 2, borderWidth: spacing.xxxs, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },

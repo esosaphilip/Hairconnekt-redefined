@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,7 @@ import { COUNTRY_CODES, isValidInternationalPhone, sanitizePhoneNumber } from '@
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { lang, t } = useLanguage();
   const insets = useSafeAreaInsets();
   
@@ -63,7 +64,7 @@ export default function RegisterScreen() {
 
     const fullPhone = sanitizePhoneNumber(dialCode, phoneNumber);
     if (!isValidInternationalPhone(fullPhone)) {
-      showError('Bitte gib eine gültige Telefonnummer ein.');
+      showError(t('registerInvalidPhone'));
       return;
     }
 
@@ -87,7 +88,11 @@ export default function RegisterScreen() {
       await tokenStorage.setUser(user);
 
       const targetEmail = user?.email ?? email;
-      router.replace(`/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}` as any);
+      const params = new URLSearchParams({ email: targetEmail });
+      if (typeof returnTo === 'string' && returnTo.length > 0) {
+        params.set('returnTo', returnTo);
+      }
+      router.replace(`/(auth)/verify-email?${params.toString()}` as any);
     } catch (err: any) {
       const status = err.response?.status;
       showError(mapHttpError(status, undefined, lang), status);
@@ -210,10 +215,15 @@ export default function RegisterScreen() {
 
         <TouchableOpacity
           style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
-          onPress={() => router.push('/(auth)/login?role=client' as any)}
+          onPress={() => {
+            const returnQuery = typeof returnTo === 'string' && returnTo.length > 0
+              ? `&returnTo=${encodeURIComponent(returnTo)}`
+              : '';
+            router.push(`/(auth)/login?role=client${returnQuery}` as any);
+          }}
         >
-          <Text style={styles.footerText}>Bereits registriert?</Text>
-          <Text style={[styles.footerText, styles.footerLinkText]}> Anmelden</Text>
+          <Text style={styles.footerText}>{t('registerAlreadyRegistered')}</Text>
+          <Text style={[styles.footerText, styles.footerLinkText]}> {t('registerLogin')}</Text>
         </TouchableOpacity>
 
         <Modal
@@ -228,7 +238,7 @@ export default function RegisterScreen() {
             activeOpacity={1}
           >
             <View style={styles.pickerSheet}>
-              <Text style={styles.pickerTitle}>Ländervorwahl</Text>
+              <Text style={styles.pickerTitle}>{t('registerCountryCodeTitle')}</Text>
               <ScrollView>
                 {COUNTRY_CODES.map((item) => (
                   <TouchableOpacity

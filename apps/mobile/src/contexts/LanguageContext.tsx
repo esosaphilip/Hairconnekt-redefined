@@ -189,6 +189,14 @@ export const TRANSLATIONS = {
   providerRegisterPasswordRequired: { de: 'Passwort ist erforderlich', en: 'Password is required' },
   providerRegisterPasswordTooShort: { de: 'Passwort muss mindestens 8 Zeichen lang sein', en: 'Password must be at least 8 characters' },
   providerRegisterAcceptTermsRequired: { de: 'Bitte akzeptiere die AGB.', en: 'Please accept the terms.' },
+  providerRegisterPortfolioConsentLabel: {
+    de: 'Ich bin damit einverstanden, dass HairConnekt meine Portfolio-Fotos für Marketing- und Werbezwecke verwenden darf. Mein Name / Business-Name wird dabei genannt.',
+    en: 'I agree that HairConnekt may use my portfolio photos for marketing and promotional purposes, with credit given to my name / business name.',
+  },
+  providerRegisterPortfolioConsentRequired: {
+    de: 'Bitte stimme der Verwendung deiner Portfolio-Fotos für Marketingzwecke zu.',
+    en: 'Please consent to the use of your portfolio photos for marketing purposes.',
+  },
   providerRegisterStep2Title: { de: 'Business Profil', en: 'Business profile' },
   providerRegisterStep2Subtitle: { de: 'Gib die Details deines Geschäfts ein', en: 'Enter your business details' },
   providerRegisterBusinessNameRequired: { de: 'Business-Name ist erforderlich', en: 'Business name is required' },
@@ -301,7 +309,7 @@ export const TRANSLATIONS = {
   welcomeBack: { de: 'Willkommen zurück!', en: 'Welcome back!' },
   noAccount: { de: 'Noch kein Konto? Jetzt registrieren', en: "Don't have an account? Register" },
   acceptTerms: { de: 'Ich akzeptiere die AGB und Datenschutzerklärung', en: 'I accept the terms and privacy policy' },
-  splashTagline: { de: 'Verbinde dich mit deinem perfekten Style', en: 'Connect with your perfect style' },
+  splashTagline: { de: 'Verbinde dich mit deinem\nperfekten Style', en: 'Connect with your\nperfect style' },
   roleClient: { de: 'Kunde', en: 'Client' },
   roleProvider: { de: 'Anbieter', en: 'Provider' },
   loginIdentifier: { de: 'E-Mail / Telefon', en: 'Email / phone' },
@@ -312,6 +320,8 @@ export const TRANSLATIONS = {
   accountTypeClientSubtitle: { de: 'Finde Braider, Salons & Stylisten in deiner Nähe', en: 'Find braiders, salons & stylists near you' },
   accountTypeProviderTitle: { de: 'Ich biete Friseur-Services an', en: 'I offer hair services' },
   accountTypeProviderSubtitle: { de: 'Zeige deine Arbeit und gewinne neue Kunden', en: 'Show your work and gain new customers' },
+  browseWithoutAccount: { de: 'Weiter ohne Konto', en: 'Browse without an account' },
+  browseContinueAsGuest: { de: 'Als Gast weiter', en: 'Continue as guest' },
 
   tabHome: { de: 'Startseite', en: 'Home' },
   tabSearch: { de: 'Suchen', en: 'Search' },
@@ -754,6 +764,52 @@ export const TRANSLATIONS = {
   notificationsReadAll: { de: 'Alle lesen', en: 'Mark all read' },
   notificationsAgoMins: { de: 'vor {minutes} Min.', en: '{minutes} min ago' },
   notificationsAgoHours: { de: 'vor {hours} Std.', en: '{hours} hr ago' },
+
+  registerInvalidPhone: { de: 'Bitte gib eine gültige Telefonnummer ein.', en: 'Please enter a valid phone number.' },
+  registerAlreadyRegistered: { de: 'Bereits registriert?', en: 'Already registered?' },
+  registerLogin: { de: 'Anmelden', en: 'Log in' },
+  registerCountryCodeTitle: { de: 'Ländervorwahl', en: 'Country Code' },
+  registerPhoneLabel: { de: 'Telefonnummer', en: 'Phone Number' },
+
+  errorBoundaryTitle: { de: 'Etwas ist schiefgelaufen', en: 'Something went wrong' },
+  errorBoundarySubtitle: { de: 'Bitte lade die App neu. Sollte das Problem weiterhin bestehen, starte die App vollständig.', en: 'Please reload the app. If the problem persists, restart the app completely.' },
+  errorBoundaryDevHint: { de: 'nur im Entwicklermodus sichtbar', en: 'only visible in developer mode' },
+  errorBoundaryReload: { de: 'App neu laden', en: 'Reload App' },
+
+  errorNetworkNoConnection: { de: 'Keine Internetverbindung', en: 'No internet connection' },
+  errorNetworkTimeout: { de: 'Zeitüberschreitung bei der Anfrage', en: 'Request timed out' },
+  errorNetworkServerUnavailable: { de: 'Server nicht erreichbar', en: 'Server unavailable' },
+  errorAuthInvalidCredentials: { de: 'Ungültige Anmeldedaten', en: 'Invalid credentials' },
+  errorAuthTokenExpired: { de: 'Sitzung abgelaufen', en: 'Session expired' },
+  errorAuthNoToken: { de: 'Keine Authentifizierung', en: 'No authentication' },
+  errorAuthUnauthorized: { de: 'Nicht autorisiert', en: 'Not authorized' },
+  errorAuthForbidden: { de: 'Zugriff verweigert', en: 'Access denied' },
+  errorValidationRequiredField: { de: 'Dieses Feld ist erforderlich', en: 'This field is required' },
+  errorValidationInvalidEmail: { de: 'Ungültige E-Mail-Adresse', en: 'Invalid email address' },
+  errorValidationInvalidPhone: { de: 'Ungültige Telefonnummer', en: 'Invalid phone number' },
+  errorValidationPasswordTooShort: { de: 'Passwort muss mindestens 8 Zeichen haben', en: 'Password must be at least 8 characters' },
+  errorValidationPasswordsDontMatch: { de: 'Passwörter stimmen nicht überein', en: 'Passwords do not match' },
+  errorValidationInvalidDate: { de: 'Ungültiges Datum', en: 'Invalid date' },
+  errorValidationInvalidTime: { de: 'Ungültige Uhrzeit', en: 'Invalid time' },
+  errorValidationInvalidInput: { de: 'Ungültige Eingabe', en: 'Invalid input' },
+  errorBookingNotFound: { de: 'Termin nicht gefunden', en: 'Appointment not found' },
+  errorBookingAlreadyBooked: { de: 'Dieser Termin ist bereits belegt', en: 'This appointment is already booked' },
+  errorBookingInvalidStatus: { de: 'Ungültiger Terminstatus', en: 'Invalid appointment status' },
+  errorBookingCannotCancel: { de: 'Termin kann nicht storniert werden', en: 'Appointment cannot be cancelled' },
+  errorBookingCannotReschedule: { de: 'Termin kann nicht verschoben werden', en: 'Appointment cannot be rescheduled' },
+  errorBookingPastDate: { de: 'Datum liegt in der Vergangenheit', en: 'Date is in the past' },
+  errorBookingServiceUnavailable: { de: 'Dienst nicht verfügbar', en: 'Service unavailable' },
+  errorChatConversationNotFound: { de: 'Gespräch nicht gefunden', en: 'Conversation not found' },
+  errorChatMessageNotFound: { de: 'Nachricht nicht gefunden', en: 'Message not found' },
+  errorChatCannotSend: { de: 'Nachricht konnte nicht gesendet werden', en: 'Message could not be sent' },
+  errorChatPermissionDenied: { de: 'Keine Berechtigung für dieses Gespräch', en: 'No permission for this conversation' },
+  errorFileTooLarge: { de: 'Datei ist zu groß', en: 'File is too large' },
+  errorFileInvalidFormat: { de: 'Ungültiges Dateiformat', en: 'Invalid file format' },
+  errorFileUploadFailed: { de: 'Upload fehlgeschlagen', en: 'Upload failed' },
+  errorGenericUnknownError: { de: 'Ein unbekannter Fehler ist aufgetreten', en: 'An unknown error occurred' },
+  errorGenericSomethingWentWrong: { de: 'Etwas ist schiefgelaufen', en: 'Something went wrong' },
+  errorGenericTryAgain: { de: 'Bitte versuche es erneut', en: 'Please try again' },
+  errorGenericContactSupport: { de: 'Bitte kontaktiere den Support', en: 'Please contact support' },
 } as const;
 
 export type TranslationKey = keyof typeof TRANSLATIONS;
@@ -762,19 +818,24 @@ export type Lang = 'de' | 'en';
 // ─── Context ──────────────────────────────────────────────────────────────────
 interface LanguageContextType {
   lang: Lang;
+  isHydrated: boolean;
   setLang: (l: Lang) => Promise<void>;
   t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   lang: 'de',
+  isHydrated: false,
   setLang: async () => {},
   t: (key) => (TRANSLATIONS as Record<string, { de: string; en: string }>)[key]?.de ?? key,
 });
 
+export { LanguageContext };
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('de');
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -782,9 +843,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const saved = await tokenStorage.getLanguage();
-        if (!cancelled) setLangState(saved);
+        if (!cancelled) {
+          setLangState(saved);
+          setIsHydrated(true);
+        }
       } catch (error) {
         Sentry.captureException(error);
+        if (!cancelled) {
+          setIsHydrated(true);
+        }
       }
     })();
 
@@ -806,7 +873,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [lang],
   );
 
-  return React.createElement(LanguageContext.Provider, { value: { lang, setLang, t } }, children);
+  return React.createElement(
+    LanguageContext.Provider,
+    { value: { lang, isHydrated, setLang, t } },
+    children,
+  );
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

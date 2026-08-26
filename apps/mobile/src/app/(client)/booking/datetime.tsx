@@ -113,7 +113,6 @@ export default function ClientBookingDateTime() {
       const payload = await apiJson<SlotsResponse>(
         `/providers/${providerIdValue}/slots?date=${encodeURIComponent(dateStr)}`,
         {
-          auth: true,
           retryCount: 1,
         },
       );
@@ -135,7 +134,6 @@ export default function ClientBookingDateTime() {
       const payload = await apiJson<SlotsResponse>(
         `/providers/${providerIdValue}/slots?date=${encodeURIComponent(selectedDate)}`,
         {
-          auth: true,
           retryCount: 1,
         },
       );

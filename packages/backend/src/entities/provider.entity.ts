@@ -80,6 +80,12 @@ export class Provider {
   @Column({ type: 'varchar', nullable: true })
   avatarUrl: string;
 
+  @Column({ type: 'boolean', default: false })
+  portfolioMarketingConsent: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  portfolioMarketingConsentAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

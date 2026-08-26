@@ -57,7 +57,7 @@ export default function RegisterStep1Screen() {
     } else {
       const fullPhone = sanitizePhoneNumber(dialCode, phoneNumber);
       if (!isValidInternationalPhone(fullPhone)) {
-        newErrors.phone = 'Bitte gib eine gültige Telefonnummer ein.';
+        newErrors.phone = t('registerInvalidPhone');
       }
     }
 
@@ -171,7 +171,7 @@ export default function RegisterStep1Screen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Telefonnummer</Text>
+            <Text style={styles.label}>{t('registerPhoneLabel')}</Text>
             <View style={[styles.phoneRow, errors.phone && styles.inputError]}>
               <TouchableOpacity
                 style={styles.dialCodeBtn}
@@ -288,7 +288,7 @@ export default function RegisterStep1Screen() {
             activeOpacity={1}
           >
             <View style={styles.pickerSheet}>
-              <Text style={styles.pickerTitle}>Ländervorwahl</Text>
+              <Text style={styles.pickerTitle}>{t('registerCountryCodeTitle')}</Text>
               <ScrollView>
                 {COUNTRY_CODES.map((item) => (
                   <TouchableOpacity

@@ -11,6 +11,7 @@ import * as Updates from 'expo-updates';
 import { PrimaryButton } from './PrimaryButton';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@/theme';
 import { debugError } from '@/utils/logger';
+import { LanguageContext, TRANSLATIONS, type Lang } from '@/contexts/LanguageContext';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,34 @@ interface State {
   errorMessage?: string;
 }
 
+type TransKey = keyof typeof TRANSLATIONS;
+
+function tFallback(key: TransKey, lang: Lang): string {
+  const entry = (TRANSLATIONS as Record<TransKey, { de: string; en: string } | undefined>)[key];
+  return entry?.[lang] ?? entry?.de ?? String(key);
+}
+
+interface CtxShape {
+  lang?: Lang;
+  t?: (k: string) => string;
+}
+
+function resolve(key: TransKey, ctx: CtxShape | null | undefined): string {
+  try {
+    if (ctx && typeof ctx.t === 'function') {
+      return ctx.t(key as string);
+    }
+    const lang: Lang = (ctx && ctx.lang) || 'de';
+    return tFallback(key, lang);
+  } catch {
+    return tFallback(key, 'de');
+  }
+}
+
 export class ErrorBoundary extends Component<Props, State> {
+  static contextType = LanguageContext;
+  declare context: React.ContextType<typeof LanguageContext>;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -69,44 +97,66 @@ export class ErrorBoundary extends Component<Props, State> {
       return this.props.fallback;
     }
 
-    const showDetails = __DEV__;
-
-    return (
-      <View style={styles.outer}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          bounces={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.card}>
-            <Text style={styles.emoji}>🫠</Text>
-            <Text style={styles.title}>Etwas ist schiefgelaufen</Text>
-            <Text style={styles.subtitle}>
-              Bitte lade die App neu. Sollte das Problem weiterhin bestehen, starte die App vollständig.
-            </Text>
-
-            {showDetails && (
-              <View style={styles.detailsCard}>
-                <Text style={styles.detailsTitle}>
-                  {this.state.errorName ?? 'Uncaught Error'}
-                </Text>
-                <Text style={styles.detailsBody} selectable>
-                  {this.state.errorMessage ?? 'No details available.'}
-                </Text>
-                <Text style={styles.detailsHint}>
-                  {Platform.OS === 'ios' ? 'iOS' : 'Android'} · nur im Entwicklermodus sichtbar
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.actions}>
-              <PrimaryButton label="App neu laden" onPress={this.handleReload} />
-            </View>
-          </View>
-        </ScrollView>
-      </View>
-    );
+    const ctx = this.context as CtxShape | undefined;
+    return this.renderFallback(ctx);
   }
+
+  private renderFallback = (ctx: CtxShape | undefined): ReactNode => {
+    const showDetails = __DEV__;
+    const title = resolve('errorBoundaryTitle', ctx);
+    const subtitle = resolve('errorBoundarySubtitle', ctx);
+    const devHint = resolve('errorBoundaryDevHint', ctx);
+    const reloadLabel = resolve('errorBoundaryReload', ctx);
+
+    return React.createElement(
+      View,
+      { style: styles.outer },
+      React.createElement(
+        ScrollView,
+        {
+          contentContainerStyle: styles.content,
+          bounces: false,
+          keyboardShouldPersistTaps: 'handled',
+        },
+        React.createElement(
+          View,
+          { style: styles.card },
+          React.createElement(Text, { style: styles.emoji }, '🫠'),
+          React.createElement(Text, { style: styles.title }, title),
+          React.createElement(Text, { style: styles.subtitle }, subtitle),
+          showDetails
+            ? React.createElement(
+                View,
+                { style: styles.detailsCard },
+                React.createElement(
+                  Text,
+                  { style: styles.detailsTitle },
+                  this.state.errorName ?? 'Uncaught Error',
+                ),
+                React.createElement(
+                  Text,
+                  { style: styles.detailsBody, selectable: true },
+                  this.state.errorMessage ?? 'No details available.',
+                ),
+                React.createElement(
+                  Text,
+                  { style: styles.detailsHint },
+                  `${Platform.OS === 'ios' ? 'iOS' : 'Android'} · ${devHint}`,
+                ),
+              )
+            : null,
+          React.createElement(
+            View,
+            { style: styles.actions },
+            React.createElement(PrimaryButton, {
+              label: reloadLabel,
+              onPress: this.handleReload,
+            }),
+          ),
+        ),
+      ),
+    );
+  };
 }
 
 const styles = StyleSheet.create({

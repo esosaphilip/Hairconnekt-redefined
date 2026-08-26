@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
+import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -12,6 +12,7 @@ export default function RegisterStep4Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
   const { t } = useLanguage();
+  const [marketingConsent, setMarketingConsent] = useState(form.portfolioMarketingConsent || false);
 
   const handlePickProfilePhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -53,6 +54,11 @@ export default function RegisterStep4Screen() {
   const removePortfolioImage = (uriToRemove: string) => {
     const updatedUris = form.portfolioUris.filter(uri => uri !== uriToRemove);
     update({ portfolioUris: updatedUris });
+  };
+
+  const handleNext = () => {
+    update({ portfolioMarketingConsent: marketingConsent });
+    router.push('/(provider)/register/step5');
   };
 
   const isFormValid = form.profilePhotoUri !== '' && form.idDocumentUri !== '' && form.portfolioUris.length > 0;
@@ -156,12 +162,24 @@ export default function RegisterStep4Screen() {
           </View>
         </View>
 
+        {/* SECTION 4: Marketing Consent */}
+        <View style={styles.consentContainer}>
+          <Switch
+            value={marketingConsent}
+            onValueChange={(val) => setMarketingConsent(val)}
+            trackColor={{ true: colors.coral, false: colors.border }}
+          />
+          <Text style={styles.consentText}>
+            {t('providerRegisterPortfolioConsentLabel')}
+          </Text>
+        </View>
+
       </ScrollView>
 
       <View style={styles.footer}>
         <PrimaryButton 
           label={t('next')} 
-          onPress={() => router.push('/(provider)/register/step5')} 
+          onPress={handleNext}
           disabled={!isFormValid}
           variant="filled"
         />
@@ -238,6 +256,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   addPortfolioText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.coral },
-  
+
+  consentContainer: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.xs, paddingRight: spacing.xl },
+  consentText: { flex: 1, marginLeft: spacing.md, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: lineHeights.sm },
+
   footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: spacing.unit, borderTopColor: colors.border },
 });

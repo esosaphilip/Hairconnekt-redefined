@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
+import { tokenStorage } from '@/utils/token-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -112,10 +113,10 @@ export default function ProviderProfile() {
         : '';
 
       const [provRes, servRes, portRes, revRes] = await Promise.all([
-        apiJson<ProviderDetailResponse>(`/providers/${id}${locationQuery}`, { auth: true }),
-        apiJson<ProviderServicesResponse>(`/providers/${id}/services`, { auth: true }),
-        apiJson<ProviderPortfolioResponse>(`/providers/${id}/portfolio`, { auth: true }),
-        apiJson<ProviderReviewsResponse>(`/providers/${id}/reviews?limit=20`, { auth: true }),
+        apiJson<ProviderDetailResponse>(`/providers/${id}${locationQuery}`),
+        apiJson<ProviderServicesResponse>(`/providers/${id}/services`),
+        apiJson<ProviderPortfolioResponse>(`/providers/${id}/portfolio`),
+        apiJson<ProviderReviewsResponse>(`/providers/${id}/reviews?limit=20`),
       ]);
 
       setProvider(extractObject(provRes));
@@ -186,6 +187,11 @@ export default function ProviderProfile() {
   const openChat = async (recipientUserId: string) => {
     if (!recipientUserId) return;
     try {
+      const tokens = await tokenStorage.getTokens();
+      if (!tokens.accessToken) {
+        router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
+        return;
+      }
       const response = await apiJson<ConversationCreateResponse>('/chat/conversations', {
         auth: true,
         method: 'POST',
@@ -204,6 +210,11 @@ export default function ProviderProfile() {
       router.push(`/(shared)/chat/${conversationId}` as any);
     } catch (err) {
       debugLog('openChat error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = (err as any)?.status ?? (err as any)?.response?.status;
+      if (msg.includes('No authentication token') || status === 401) {
+        router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
+      }
     }
   };
 
@@ -241,8 +252,13 @@ export default function ProviderProfile() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconButton, { marginLeft: spacing.sm }]}
-                onPress={() => {
+                onPress={async () => {
                   if (!providerId) return;
+                  const tokens = await tokenStorage.getTokens();
+                  if (!tokens.accessToken) {
+                    router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
+                    return;
+                  }
                   void toggleFavourite(providerId);
                 }}
                 accessibilityRole="button"
@@ -345,7 +361,18 @@ export default function ProviderProfile() {
                     <Text style={styles.serviceDetail}>{item.durationMin ?? item.duration} {t('appointmentsMinutes')}</Text>
                     <Text style={styles.servicePrice}>€ {formatAmount(item.price, lang)}</Text>
                   </View>
-                  <TouchableOpacity style={styles.selectButton} onPress={() => router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any)}>
+                  <TouchableOpacity
+                    style={styles.selectButton}
+                    onPress={async () => {
+                      const tokens = await tokenStorage.getTokens();
+                      if (!tokens.accessToken) {
+                        const destination = `/(client)/booking/services?providerId=${encodeURIComponent(id)}`;
+                        router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+                        return;
+                      }
+                      router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any);
+                    }}
+                  >
                     <Text style={styles.selectButtonText}>{t('profileSelectService')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -426,7 +453,18 @@ export default function ProviderProfile() {
           >
             <Text style={styles.messageBtnText}>{t('profileMessage')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bookBtn} onPress={() => router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any)}>
+          <TouchableOpacity
+            style={styles.bookBtn}
+            onPress={async () => {
+              const tokens = await tokenStorage.getTokens();
+              if (!tokens.accessToken) {
+                const destination = `/(client)/booking/services?providerId=${encodeURIComponent(id)}`;
+                router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
+                return;
+              }
+              router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any);
+            }}
+          >
             <Text style={styles.bookBtnText}>{t('profileBookNow')}</Text>
           </TouchableOpacity>
         </View>

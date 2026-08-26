@@ -134,6 +134,7 @@ export default function RegisterStep5Screen() {
           languages: form.languages,
           cancellationPolicy: form.cancellationPolicy,
           bio: form.bio || '',
+          portfolioMarketingConsent: form.portfolioMarketingConsent,
         }),
       });
 

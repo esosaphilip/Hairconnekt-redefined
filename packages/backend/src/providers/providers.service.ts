@@ -360,6 +360,8 @@ export class ProvidersService {
       bio: dto.bio ?? '',
       status: 'pending' as any,
       isOnline: false,
+      portfolioMarketingConsent: dto.portfolioMarketingConsent ?? false,
+      portfolioMarketingConsentAt: dto.portfolioMarketingConsent ? new Date() : null,
     });
     await this.syncProviderCoordinates(provider, true);
     return this.providerRepo.save(provider);
@@ -656,6 +658,7 @@ export class ProvidersService {
 
         const clientFirstName = r.client?.firstName ?? 'Kunde';
         const clientLastInitial = r.client?.lastName ? `${r.client.lastName.charAt(0)}.` : '';
+        const reviewerDisplayName = `${clientFirstName}${clientLastInitial ? ` ${clientLastInitial}` : ''}`;
 
         return {
           id: r.id,
@@ -663,10 +666,9 @@ export class ProvidersService {
           comment: r.comment,
           createdAt: r.createdAt,
           serviceName,
+          clientName: reviewerDisplayName,
           client: {
-            firstName: r.client?.firstName ?? null,
-            lastName: r.client?.lastName ?? null,
-            name: `${clientFirstName}${clientLastInitial ? ` ${clientLastInitial}` : ''}`,
+            name: reviewerDisplayName,
             avatarUrl: r.client?.avatarUrl ?? null,
           },
           providerResponse: r.providerResponse ?? null,

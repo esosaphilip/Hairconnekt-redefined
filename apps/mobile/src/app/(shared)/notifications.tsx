@@ -557,7 +557,7 @@ export default function NotificationsScreen() {
               style={styles.modalClose}
               onPress={() => setExpandedNotif(null)}
             >
-              <Text style={styles.modalCloseText}>Schließen</Text>
+              <Text style={styles.modalCloseText}>{t('close')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
