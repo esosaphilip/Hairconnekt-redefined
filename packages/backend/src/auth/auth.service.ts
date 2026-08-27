@@ -60,7 +60,13 @@ export class AuthService {
   ) {}
 
   // ─── REGISTER ──────────────────────────────────────────────────────────────
-  async register(dto: RegisterDto): Promise<AuthResponseDto> {
+  async register(dto: RegisterDto): Promise<{
+    message: string;
+    needsEmailVerification: true;
+    emailDeliveryFailed: boolean;
+    onboardingToken: string;
+    user: { id: string; email: string; firstName: string; role: string };
+  }> {
     const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
     if (isProd && dto.role === 'admin') {
       throw new BadRequestException('Ungültige Rolle.');
@@ -82,10 +88,7 @@ export class AuthService {
       throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
     }
 
-    // Check if email already exists
-    const existing = await this.userRepo.findOne({
-      where: { email },
-    });
+    const existing = await this.userRepo.findOne({ where: { email } });
     if (existing) {
       throw new ConflictException('Diese E-Mail-Adresse ist bereits registriert.');
     }
@@ -111,14 +114,40 @@ export class AuthService {
 
     await this.userRepo.save(user);
 
-    await this.sendVerificationEmail(user.email, user.firstName, verificationCode).catch((err) => {
+    let emailDeliveryFailed = false;
+    try {
+      await this.sendVerificationEmail(user.email, user.firstName, verificationCode);
+    } catch (err) {
       this.logger.error(
         'Verification email send failed',
         err instanceof Error ? err.message : undefined,
       );
+      emailDeliveryFailed = true;
+    }
+
+    const onboardingPayload: any = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      scope: 'onboarding',
+    };
+    const onboardingToken = this.jwtService.sign(onboardingPayload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: '15m',
     });
 
-    return this.generateAuthResponse(user);
+    return {
+      message: 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
+      needsEmailVerification: true,
+      emailDeliveryFailed,
+      onboardingToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        role: user.role,
+      },
+    };
   }
 
   // ─── LOGIN ─────────────────────────────────────────────────────────────────
@@ -134,6 +163,12 @@ export class AuthService {
       .getOne();
 
     if (!user) throw new UnauthorizedException('E-Mail oder Passwort falsch.');
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Bitte bestätige zuerst deine E-Mail-Adresse.',
+      );
+    }
 
     // Guard against Google-only accounts
     if (!user.passwordHash) {
@@ -160,6 +195,10 @@ export class AuthService {
       .getOne();
 
     if (!user || user.role !== 'admin') {
+      throw new UnauthorizedException('Kein Admin-Zugang.');
+    }
+
+    if (!user.isEmailVerified) {
       throw new UnauthorizedException('Kein Admin-Zugang.');
     }
 
@@ -216,6 +255,12 @@ export class AuthService {
 
     const user = await this.userRepo.findOne({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException();
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Bitte bestätige zuerst deine E-Mail-Adresse.',
+      );
+    }
 
     return this.generateAuthResponse(user);
   }
@@ -362,7 +407,7 @@ export class AuthService {
   async verifyEmail(
     emailRaw: string,
     code: string,
-  ): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+  ): Promise<AuthResponseDto & { success: true; alreadyVerified?: boolean }> {
     const email = String(emailRaw ?? '').toLowerCase();
 
     const user = await this.userRepo
@@ -378,7 +423,8 @@ export class AuthService {
     }
 
     if (!user.emailVerificationCode || !user.emailVerificationExpires) {
-      return { success: true, alreadyVerified: true };
+      const auth = await this.generateAuthResponse(user);
+      return { ...auth, success: true, alreadyVerified: true };
     }
 
     if (user.emailVerificationExpires < new Date()) {
@@ -399,7 +445,9 @@ export class AuthService {
       },
     );
 
-    return { success: true };
+    const updated = await this.userRepo.findOne({ where: { id: user.id } });
+    const auth = await this.generateAuthResponse(updated!);
+    return { ...auth, success: true };
   }
 
   async resendEmailVerification(

@@ -4,6 +4,7 @@ import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ReviewResponseDto } from './dto/review-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,14 +18,14 @@ export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.CLIENT)
   async createReview(@Request() req: AuthRequest, @Body() dto: CreateReviewDto) {
     return this.reviewsService.createReview(req.user, dto);
   }
 
   @Post(':id/response')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   async createResponse(
     @CurrentUser() user: User,
@@ -35,7 +36,7 @@ export class ReviewsController {
   }
 
   @Patch(':id/response')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   async updateResponse(
     @CurrentUser() user: User,

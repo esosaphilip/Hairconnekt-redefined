@@ -6,6 +6,8 @@ import {
 import { type Request as ExpressRequest } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
+import { AllowOnboarding } from '../auth/decorators/allow-onboarding.decorator';
 import { UsersService } from './users.service';
 import { memoryStorage } from 'multer';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,14 +36,14 @@ export class UsersController {
   ) {}
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getMe(@Request() req: AuthRequest) {
     const userId = (req.user.sub ?? req.user.id)!;
     return this.usersService.getMe(userId);
   }
 
   @Patch('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async updateMe(
     @CurrentUser() user: User,
     @Body() body: UpdateUserProfileDto,
@@ -50,7 +52,7 @@ export class UsersController {
   }
 
   @Delete('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.OK)
   async deleteAccount(
     @CurrentUser() user: User,
@@ -71,19 +73,19 @@ export class UsersController {
   }
 
   @Get('me/addresses')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getAddresses(@CurrentUser() user: User) {
     return { data: await this.usersService.getAddresses(user.id) };
   }
 
   @Post('me/addresses')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async createAddress(@CurrentUser() user: User, @Body() body: CreateAddressDto) {
     return this.usersService.createAddress(user.id, body);
   }
 
   @Patch('me/addresses/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async updateAddress(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
@@ -93,7 +95,7 @@ export class UsersController {
   }
 
   @Delete('me/addresses/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async deleteAddress(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
@@ -101,8 +103,9 @@ export class UsersController {
     return this.usersService.deleteAddress(user.id, id);
   }
 
+  @AllowOnboarding()
   @Post('me/avatar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: memoryStorage(),

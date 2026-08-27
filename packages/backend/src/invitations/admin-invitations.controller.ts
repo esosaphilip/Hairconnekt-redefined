@@ -16,6 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Request } from 'express';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
@@ -25,7 +26,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { AuditService } from '../audit/audit.service';
 
 @Controller('admin/invitations')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
 export class AdminInvitationsController {
   constructor(
     private readonly invitationsService: InvitationsService,

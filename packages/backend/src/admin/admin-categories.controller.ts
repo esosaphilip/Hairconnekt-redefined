@@ -5,6 +5,7 @@ import {
   Body, Param, UseGuards, ParseUUIDPipe, HttpCode, Req, NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,7 +17,7 @@ import { User } from '../entities/user.entity';
 import type { Request } from 'express';
 
 @Controller('admin/categories')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
 export class AdminCategoriesController {
   constructor(
     @InjectRepository(ServiceCategory)

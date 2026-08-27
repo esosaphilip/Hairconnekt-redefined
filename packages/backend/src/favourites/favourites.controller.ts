@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Param, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { type Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { FavouritesService } from './favourites.service';
@@ -8,7 +9,7 @@ import { FavouritesService } from './favourites.service';
 type AuthRequest = ExpressRequest & { user: { sub?: string; id?: string; role?: string } };
 
 @Controller('favourites')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class FavouritesController {
   constructor(private readonly favouritesService: FavouritesService) {}
 

@@ -17,8 +17,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AllowOnboarding } from '../auth/decorators/allow-onboarding.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from '../entities/user.entity';
 import { PortfolioService } from './portfolio.service';
@@ -34,7 +36,7 @@ export class PortfolioController {
    * GET /providers/me/portfolio
    */
   @Get('me/portfolio')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   async getOwnPortfolio(@CurrentUser() user: User) {
     return this.portfolioService.getOwnPortfolio(user.id);
@@ -53,8 +55,9 @@ export class PortfolioController {
    * PRIVATE: Upload portfolio image
    * POST /providers/me/portfolio
    */
+  @AllowOnboarding()
   @Post('me/portfolio')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   @UseInterceptors(
     FileInterceptor('portfolio', {
@@ -92,7 +95,7 @@ export class PortfolioController {
    */
   @Delete('me/portfolio/:imageId')
   @HttpCode(204)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   async deletePortfolioImage(
     @CurrentUser() user: User,

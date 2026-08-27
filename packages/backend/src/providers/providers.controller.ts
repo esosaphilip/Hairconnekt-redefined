@@ -7,8 +7,10 @@ import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { parsePagination } from '../common/pagination';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AllowOnboarding } from '../auth/decorators/allow-onboarding.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole as Role } from '../entities/user.entity';
 import { ProvidersService } from './providers.service';
@@ -37,8 +39,9 @@ export class ProvidersController {
     @InjectRepository(PortfolioImage) private readonly portfolioRepo: Repository<PortfolioImage>,
   ) {}
 
+  @AllowOnboarding()
   @Post('register')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async register(
     @CurrentUser() user: User,
@@ -48,7 +51,7 @@ export class ProvidersController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async getMyProfile(@CurrentUser() user: User) {
     const provider = await this.providersService.findByUserId(user.id);
@@ -57,7 +60,7 @@ export class ProvidersController {
   }
 
   @Patch('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async updateMyProfile(
     @CurrentUser() user: User,
@@ -70,7 +73,7 @@ export class ProvidersController {
 
   /** PUT /providers/me/availability — set weekly schedule */
   @Put('me/availability')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async updateAvailabilitySchedule(
     @CurrentUser() user: User,
@@ -81,7 +84,7 @@ export class ProvidersController {
 
   /** GET /providers/me/availability — fetch weekly schedule */
   @Get('me/availability')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async getAvailabilitySchedule(@CurrentUser() user: User) {
     return this.providersService.getAvailabilitySchedule(user.id);
@@ -89,7 +92,7 @@ export class ProvidersController {
 
   /** PATCH /providers/me/availability — toggle isOnline */
   @Patch('me/availability')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async setAvailability(
     @CurrentUser() user: User,
@@ -99,7 +102,7 @@ export class ProvidersController {
   }
 
   @Post('me/avatar')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -133,8 +136,9 @@ export class ProvidersController {
     return { avatarUrl: url };
   }
 
+  @AllowOnboarding()
   @Post('me/id-document')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileInterceptor('idDocument', {
@@ -169,14 +173,14 @@ export class ProvidersController {
 
   // --- Services ---
   @Get('me/services')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async getMyServices(@CurrentUser() user: User) {
     return this.providersService.getServices(user.id);
   }
 
   @Post('me/services')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async createService(
     @CurrentUser() user: User,
@@ -186,7 +190,7 @@ export class ProvidersController {
   }
 
   @Patch('me/services/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async updateService(
     @CurrentUser() user: User,
@@ -197,7 +201,7 @@ export class ProvidersController {
   }
 
   @Delete('me/services/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async deleteService(
     @CurrentUser() user: User,
@@ -208,7 +212,7 @@ export class ProvidersController {
 
   // --- Stats ---
   @Get('me/stats')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async getStats(@CurrentUser() user: User) {
     return this.providersService.getMyStats(user.id);
@@ -216,7 +220,7 @@ export class ProvidersController {
 
   // --- Time Blocks ---
   @Get('me/blocks')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async getTimeBlocks(
     @CurrentUser() user: User,
@@ -227,7 +231,7 @@ export class ProvidersController {
   }
 
   @Post('me/blocks')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   async createTimeBlock(
     @CurrentUser() user: User,
@@ -237,7 +241,7 @@ export class ProvidersController {
   }
 
   @Delete('me/blocks/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTimeBlock(

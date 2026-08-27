@@ -37,7 +37,7 @@ const normalizeProviderStatus = (status?: string | null): string =>
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams<{ email?: string }>();
+  const { email, deliveryFailed } = useLocalSearchParams<{ email?: string; deliveryFailed?: string }>();
   const { lang, t } = useLanguage();
   const emailString = typeof email === 'string' ? email : '';
 
@@ -69,7 +69,8 @@ export default function VerifyEmailScreen() {
     (async () => {
       const token = await tokenStorage.getAccessToken();
       if (cancelled) return;
-      if (!token || !emailString) {
+      // Allow fresh registration to stay without bearer token if email param present
+      if (!token && !emailString) {
         router.replace('/(auth)/login?role=provider' as any);
       }
     })();
@@ -121,18 +122,25 @@ export default function VerifyEmailScreen() {
       setErrorVisible(false);
       setErrorStatus(undefined);
 
-      await apiJson<unknown>('/auth/verify-email', {
-        auth: true,
+      const verifyResponse = await apiJson<{
+        accessToken: string;
+        refreshToken: string;
+        user: { id: string; email: string; firstName: string; lastName?: string; role: string };
+      } & { success: true; alreadyVerified?: boolean }>('/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailString, code }),
       });
 
-      try {
-        const me = await apiJson<CurrentUserResponse>('/users/me', { auth: true });
-        await tokenStorage.setUser(me);
-      } catch (error) {
-        Sentry.captureException(error);
+      if (verifyResponse.accessToken && verifyResponse.refreshToken) {
+        await tokenStorage.save(
+          verifyResponse.accessToken,
+          verifyResponse.refreshToken,
+          'provider',
+        );
+      }
+      if (verifyResponse.user) {
+        await tokenStorage.setUser(verifyResponse.user);
       }
 
       try {
@@ -156,10 +164,6 @@ export default function VerifyEmailScreen() {
       const status = error instanceof ApiError ? error.status : undefined;
       setErrorStatus(status);
 
-      if (status === 401) {
-        router.replace('/(auth)/login?role=provider' as any);
-        return;
-      }
       if (status === 400) {
         setErrorMessage(t('verifyEmailInvalidCode'));
       } else if (status === 410) {
@@ -187,7 +191,6 @@ export default function VerifyEmailScreen() {
       otpRefs.current[0]?.focus();
 
       await apiJson<unknown>('/auth/resend-verification', {
-        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailString }),
@@ -197,10 +200,6 @@ export default function VerifyEmailScreen() {
       const status = error instanceof ApiError ? error.status : undefined;
       setErrorStatus(status);
 
-      if (status === 401) {
-        router.replace('/(auth)/login?role=provider' as any);
-        return;
-      }
       if (status === 429) {
         setErrorMessage(t('verifyEmailTooManyRequests'));
       } else if (status === 410) {
@@ -241,6 +240,16 @@ export default function VerifyEmailScreen() {
             statusCode={errorStatus}
             onDismiss={() => setErrorVisible(false)}
           />
+
+          {deliveryFailed === '1' && (
+            <View style={styles.deliveryWarning}>
+              <Text style={styles.deliveryWarningText}>
+                {lang === 'de'
+                  ? 'Wir konnten die Bestätigungs-E-Mail nicht senden. Tippe auf "Code erneut senden", um es noch einmal zu versuchen.'
+                  : 'We couldn\'t send your verification email. Tap "Resend code" to try again.'}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
@@ -305,6 +314,22 @@ const styles = StyleSheet.create({
   },
   keyboardContainer: { flex: 1 },
   scrollContent: { flexGrow: 1 },
+  deliveryWarning: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(255, 193, 7, 0.12)',
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 152, 0, 0.35)',
+  },
+  deliveryWarningText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: '#7a5500',
+    textAlign: 'center',
+  },
   header: {
     alignItems: 'center',
     paddingTop: spacing.xxl,

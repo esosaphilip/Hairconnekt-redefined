@@ -17,6 +17,7 @@ import { MAX_PAGE_SIZE } from '../common/pagination';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { RefreshToken } from '../auth/entities/refresh-token.entity';
 import { Provider, ProviderStatus } from '../entities/provider.entity';
@@ -29,7 +30,7 @@ import type { Request } from 'express';
 type AuthRequest = Request & { user: { sub?: string; id?: string; role?: string } };
 
 @Controller('admin/users')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
 export class AdminUsersController {
   constructor(
     @InjectRepository(User)

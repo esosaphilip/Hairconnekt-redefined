@@ -8,6 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -25,17 +26,31 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 type AuthRequest = Request & { user: { sub?: string; id?: string; role?: string } };
 
 @Controller('admin/providers')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
 export class AdminProvidersController {
   private readonly logger = new Logger(AdminProvidersController.name);
 
   constructor(
     @InjectRepository(Provider)
     private readonly providerRepo: Repository<Provider>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly notificationsService: NotificationsService,
     private readonly r2Service: R2Service,
     private readonly auditService: AuditService,
   ) {}
+
+  private async assertUserEmailVerified(userId: string) {
+    const u = await this.userRepo.findOne({
+      where: { id: userId },
+      select: ['id', 'isEmailVerified'],
+    });
+    if (!u || u.isEmailVerified !== true) {
+      throw new BadRequestException(
+        'Anbieter kann nicht freigegeben werden: E-Mail-Adresse des Nutzers wurde noch nicht bestätigt.',
+      );
+    }
+  }
 
   private isProtectedAddress(provider: Provider) {
     const street = provider.street?.trim().toLowerCase();
@@ -205,6 +220,8 @@ export class AdminProvidersController {
       select: ['id', 'userId', 'status'],
     });
     if (!provider) throw new NotFoundException('Provider not found');
+
+    await this.assertUserEmailVerified(provider.userId);
 
     const beforeState = { status: provider.status };
 
@@ -381,12 +398,16 @@ export class AdminProvidersController {
 
     const provider = await this.providerRepo.findOne({
       where: { id },
-      select: ['id', 'status'],
+      select: ['id', 'userId', 'status'],
     });
     if (!provider) throw new NotFoundException('Provider not found');
 
-    const beforeState = { status: provider.status };
     const newStatus = body.status;
+    if (newStatus === ProviderStatus.APPROVED) {
+      await this.assertUserEmailVerified(provider.userId);
+    }
+
+    const beforeState = { status: provider.status };
 
     try {
       const res = await this.providerRepo.update(id, { status: newStatus });

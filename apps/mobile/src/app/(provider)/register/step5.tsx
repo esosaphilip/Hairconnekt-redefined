@@ -9,8 +9,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
 
 type RegisterAuthResponse = {
-  accessToken: string;
-  refreshToken: string;
+  message: string;
+  needsEmailVerification: true;
+  emailDeliveryFailed: boolean;
+  onboardingToken: string;
+  user: { id: string; email: string; firstName: string; role: string };
 };
 
 type ReactNativeFile = Blob & {
@@ -100,7 +103,7 @@ export default function RegisterStep5Screen() {
           acceptedTerms: true,
         }),
       });
-      const token = authData.accessToken;
+      const onboardingToken = authData.onboardingToken;
 
       // STEP 2: Upload user avatar (BUG 9: before providers/register so the user exists)
       setProgressText(t('providerRegisterUploadingProfilePhoto'));
@@ -108,7 +111,7 @@ export default function RegisterStep5Screen() {
         const fd = createImageFormData('avatar', form.profilePhotoUri, 'avatar.jpg');
         const avatarRes = await apiFetch('/users/me/avatar', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${onboardingToken}` },
           body: fd,
         });
         if (!avatarRes.ok) {
@@ -120,7 +123,7 @@ export default function RegisterStep5Screen() {
       setProgressText(t('providerRegisterCreatingProfile'));
       const provRes = await apiFetch('/providers/register', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${onboardingToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           providerType: form.providerType,
           businessName: form.businessName,
@@ -139,7 +142,6 @@ export default function RegisterStep5Screen() {
       });
 
       if (!provRes.ok) {
-        await tokenStorage.save(token, authData.refreshToken, 'provider');
         throw new Error(t('providerRegisterProfileCreateFailed'));
       }
 
@@ -149,7 +151,7 @@ export default function RegisterStep5Screen() {
         const fd = createImageFormData('idDocument', form.idDocumentUri, 'id-doc.jpg');
         const idRes = await apiFetch('/providers/me/id-document', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${onboardingToken}` },
           body: fd,
         });
         if (!idRes.ok) {
@@ -163,7 +165,7 @@ export default function RegisterStep5Screen() {
         const fd = createImageFormData('portfolio', uri, 'portfolio.jpg');
         const portfolioRes = await apiFetch('/providers/me/portfolio', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${onboardingToken}` },
           body: fd,
         });
         if (!portfolioRes.ok) {
@@ -172,9 +174,10 @@ export default function RegisterStep5Screen() {
       }
 
       setProgressText(t('done'));
-      await tokenStorage.save(token, authData.refreshToken, 'provider');
       reset();
-      router.replace(`/(provider)/verify-email?email=${encodeURIComponent(form.email)}` as any);
+      const emailParam = encodeURIComponent(form.email);
+      const deliveryParam = authData.emailDeliveryFailed ? '&deliveryFailed=1' : '';
+      router.replace(`/(provider)/verify-email?email=${emailParam}${deliveryParam}` as any);
 
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {

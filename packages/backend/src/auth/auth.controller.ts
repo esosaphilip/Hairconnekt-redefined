@@ -15,6 +15,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from './guards/email-verified.guard';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
 import { AdminLoginThrottlerGuard } from './guards/admin-login-throttler.guard';
@@ -39,14 +40,24 @@ export class AuthController {
 
   /**
    * POST /auth/register
-   * Returns: AuthResponseDto (accessToken + refreshToken + user)
+   * Creates user, sends verification email.
+   * Returns onboardingToken (short-lived, scope=onboarding) for provider onboarding only.
+   * No refresh token is issued. Full auth requires email verification → /auth/login.
    */
   @Post('register')
   @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
-  register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
+  register(
+    @Body() dto: RegisterDto,
+  ): Promise<{
+    message: string;
+    needsEmailVerification: true;
+    emailDeliveryFailed: boolean;
+    onboardingToken: string;
+    user: { id: string; email: string; firstName: string; role: string };
+  }> {
     return this.authService.register(dto);
   }
 
@@ -119,7 +130,7 @@ export class AuthController {
   }
 
   @Get('admin-session')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
   @HttpCode(HttpStatus.OK)
   getAdminSession(@CurrentUser() user: User): { user: AuthResponseDto['user'] } {
     return {
@@ -248,9 +259,11 @@ export class AuthController {
   @Post('verify-email')
   @SkipThrottle()
   @UseGuards(IpThrottlerGuard)
-  @Throttle({ default: { limit: 20, ttl: 60 * 60 } })
+  @Throttle({ default: { limit: 10, ttl: 60 * 10 } })
   @HttpCode(HttpStatus.OK)
-  verifyEmail(@Body() dto: VerifyEmailDto): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+  verifyEmail(
+    @Body() dto: VerifyEmailDto,
+  ): Promise<AuthResponseDto & { success: true; alreadyVerified?: boolean }> {
     return this.authService.verifyEmail(dto.email, dto.code);
   }
 

@@ -144,7 +144,6 @@ export class BookingsService {
     providerId: string,
     scheduledDate: string,
     scheduledTime: string,
-    excludeBookingId?: string,
   ): Promise<void> {
     const provider = await this.providerRepo.findOne({
       where: { id: providerId },
@@ -226,15 +225,24 @@ export class BookingsService {
         }
       }
     }
+  }
 
-    const conflictQuery = this.bookingRepo
+  private async assertNoBookingConflict(
+    repo: Repository<Booking>,
+    providerId: string,
+    scheduledDate: string,
+    scheduledTime: string,
+    excludeBookingId?: string,
+  ): Promise<void> {
+    const conflictQuery = repo
       .createQueryBuilder('booking')
       .where('booking.providerId = :providerId', { providerId })
       .andWhere('booking.scheduledDate = :scheduledDate', { scheduledDate })
       .andWhere('booking.scheduledTime = :scheduledTime', { scheduledTime })
       .andWhere('booking.status NOT IN (:...inactiveStatuses)', {
         inactiveStatuses: [BookingStatus.CANCELLED],
-      });
+      })
+      .setLock('pessimistic_write');
 
     if (excludeBookingId) {
       conflictQuery.andWhere('booking.id != :excludeBookingId', {
@@ -354,6 +362,13 @@ export class BookingsService {
       try {
         const manager = queryRunner.manager;
 
+        await this.assertNoBookingConflict(
+          manager.getRepository(Booking),
+          providerId,
+          scheduledDate,
+          scheduledTime,
+        );
+
         const bookingNumber = await this.generateBookingNumber(scheduledDate, manager);
 
         const booking = manager.getRepository(Booking).create({
@@ -383,6 +398,13 @@ export class BookingsService {
         await queryRunner.release();
       }
     } else {
+      await this.assertNoBookingConflict(
+        this.bookingRepo,
+        providerId,
+        scheduledDate,
+        scheduledTime,
+      );
+
       const bookingNumber = await this.generateBookingNumber(
         scheduledDate,
         null as unknown as EntityManager,
@@ -539,7 +561,6 @@ export class BookingsService {
       initialBooking.providerId,
       dto.scheduledDate,
       dto.scheduledTime,
-      id,
     );
 
     const useTransaction = !!this.dataSource;
@@ -552,6 +573,14 @@ export class BookingsService {
       try {
         const manager = queryRunner.manager;
         const repo = manager.getRepository(Booking);
+
+        await this.assertNoBookingConflict(
+          repo,
+          initialBooking.providerId,
+          dto.scheduledDate,
+          dto.scheduledTime,
+          id,
+        );
 
         const booking = await repo.findOne({ where: { id } });
         if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
@@ -575,6 +604,14 @@ export class BookingsService {
         await queryRunner.release();
       }
     } else {
+      await this.assertNoBookingConflict(
+        this.bookingRepo,
+        initialBooking.providerId,
+        dto.scheduledDate,
+        dto.scheduledTime,
+        id,
+      );
+
       const booking = await this.bookingRepo.findOne({ where: { id } });
       if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
 

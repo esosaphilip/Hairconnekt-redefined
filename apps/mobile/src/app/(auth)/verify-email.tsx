@@ -38,7 +38,7 @@ const normalizeProviderStatus = (status?: string | null): string =>
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { email, returnTo } = useLocalSearchParams<{ email?: string; returnTo?: string }>();
+  const { email, returnTo, deliveryFailed } = useLocalSearchParams<{ email?: string; returnTo?: string; deliveryFailed?: string }>();
   const { lang, t } = useLanguage();
   const emailString = typeof email === 'string' ? email : '';
 
@@ -73,7 +73,10 @@ export default function VerifyEmailScreen() {
       const role = await tokenStorage.getUserRole();
       if (cancelled) return;
 
-      if (!token || !emailString) {
+      // If we have an email in params, the user just arrived here from a fresh registration.
+      // Client register legitimately has no token yet — don't force a redirect away.
+      // Only redirect if no token AND no email param (means: deep-link or stale nav with no context).
+      if (!token && !emailString) {
         const roleParam = role === 'provider' ? 'provider' : 'client';
         const params = new URLSearchParams({ role: roleParam });
         if (typeof returnTo === 'string' && returnTo.length > 0) {
@@ -86,7 +89,7 @@ export default function VerifyEmailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [emailString, router]);
+  }, [emailString, router, returnTo]);
 
   const handleOtpChange = (text: string, index: number) => {
     const cleaned = text.replace(/\D/g, '');
@@ -135,21 +138,31 @@ export default function VerifyEmailScreen() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      await apiJson<unknown>('/auth/verify-email', {
-        auth: true,
+      const verifyResponse = await apiJson<{
+        accessToken: string;
+        refreshToken: string;
+        user: { id: string; email: string; firstName: string; lastName?: string; role: string };
+      } & { success: true; alreadyVerified?: boolean }>('/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailString, code }),
       });
 
-      try {
-        const me = await apiJson<CurrentUserResponse>('/users/me', { auth: true });
-        await tokenStorage.setUser(me);
-      } catch (error) {
-        Sentry.captureException(error);
+      if (verifyResponse.accessToken && verifyResponse.refreshToken) {
+        await tokenStorage.save(
+          verifyResponse.accessToken,
+          verifyResponse.refreshToken,
+          (verifyResponse.user.role as 'client' | 'provider') ?? 'client',
+        );
+      }
+      if (verifyResponse.user) {
+        await tokenStorage.setUser(verifyResponse.user);
       }
 
-      const role = await tokenStorage.getUserRole();
+      let role = verifyResponse.user?.role as 'client' | 'provider';
+      if (!role) {
+        role = await tokenStorage.getUserRole();
+      }
       if (role === 'provider') {
         try {
           const provider = await apiJson<ProviderProfileResponse>('/providers/me', {
@@ -210,22 +223,13 @@ export default function VerifyEmailScreen() {
       setErrorVisible(false);
 
       await apiJson<unknown>('/auth/resend-verification', {
-        auth: true,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailString }),
       });
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      if (status === 401) {
-        const role = await tokenStorage.getUserRole();
-        const roleParam = role === 'provider' ? 'provider' : 'client';
-        const params = new URLSearchParams({ role: roleParam });
-        if (typeof returnTo === 'string' && returnTo.length > 0) {
-          params.set('returnTo', returnTo);
-        }
-        router.replace(`/(auth)/login?${params.toString()}` as any);
-      } else if (status === 429) {
+      if (status === 429) {
         showError(t('verifyEmailTooManyRequests'), status);
       } else if (status === 410) {
         showError(t('verifyEmailExpiredCode'), status);
@@ -246,6 +250,15 @@ export default function VerifyEmailScreen() {
         <GermanErrorBanner visible={errorVisible} message={errorMessage} statusCode={errorStatus} />
 
         <View style={styles.stepContainer}>
+          {deliveryFailed === '1' && (
+            <View style={styles.deliveryWarning}>
+              <Text style={styles.deliveryWarningText}>
+                {lang === 'de'
+                  ? 'Wir konnten die Bestätigungs-E-Mail nicht senden. Tippe auf "Code erneut senden", um es noch einmal zu versuchen.'
+                  : 'We couldn\'t send your verification email. Tap "Resend code" to try again.'}
+              </Text>
+            </View>
+          )}
           <Text style={styles.heading}>{t('verifyEmailTitle')}</Text>
           <Text style={styles.bodyText}>{t('verifyEmailBody').replace('{email}', subtitleEmail)}</Text>
 
@@ -279,6 +292,21 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'center' },
   stepContainer: { flex: 1, justifyContent: 'center', marginBottom: spacing.xxl },
+  deliveryWarning: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(255, 193, 7, 0.12)',
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 152, 0, 0.35)',
+  },
+  deliveryWarningText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: '#7a5500',
+    textAlign: 'center',
+  },
   heading: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.sm, textAlign: 'center' },
   bodyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center' },
   otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },

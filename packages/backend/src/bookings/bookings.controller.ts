@@ -9,6 +9,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
@@ -22,7 +23,7 @@ export class BookingsController {
 
   @Post()
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 20, ttl: 60 } })
   async createBooking(@Request() req: AuthRequest, @Body() createBookingDto: CreateBookingDto) {
@@ -31,7 +32,7 @@ export class BookingsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookings(
     @Request() req: AuthRequest, 
@@ -46,7 +47,7 @@ export class BookingsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookingById(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.bookingsService.findOne(id, req.user);
@@ -54,7 +55,7 @@ export class BookingsController {
 
   @Patch(':id/reschedule')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async rescheduleBooking(
@@ -67,7 +68,7 @@ export class BookingsController {
 
   @Patch(':id/cancel')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   @Throttle({ default: { limit: 10, ttl: 60 } })
   async cancelBooking(
@@ -80,7 +81,7 @@ export class BookingsController {
 
   @Patch(':id/accept')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   async acceptBooking(@Request() req: AuthRequest, @Param('id') id: string) {
@@ -89,7 +90,7 @@ export class BookingsController {
 
   @Patch(':id/decline')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   async declineBooking(@Request() req: AuthRequest, @Param('id') id: string) {
@@ -98,7 +99,7 @@ export class BookingsController {
 
   @Patch(':id/start')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   async startBooking(@Request() req: AuthRequest, @Param('id') id: string) {
@@ -107,7 +108,7 @@ export class BookingsController {
 
   @Patch(':id/complete')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, RolesGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard, UserThrottlerGuard)
   @Roles(UserRole.PROVIDER)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   async completeBooking(@Request() req: AuthRequest, @Param('id') id: string) {

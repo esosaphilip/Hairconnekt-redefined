@@ -3,6 +3,7 @@ import { parsePagination } from '../common/pagination';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { Notification } from '../entities/notification.entity';
@@ -18,7 +19,7 @@ export class NotificationsController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getNotifications(
     @CurrentUser() user: User,
     @Query('page') pageStr?: string,
@@ -46,21 +47,21 @@ export class NotificationsController {
   }
 
   @Post('push-token')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async registerPushToken(@CurrentUser() user: User, @Body() body: PushTokenDto) {
     await this.notificationsService.savePushToken(user.id, body.token);
     return { success: true };
   }
 
   @Patch(':id/read')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async markRead(@CurrentUser() user: User, @Param('id') id: string) {
     await this.notificationsService.markRead(user.id, id);
     return { success: true };
   }
 
   @Patch('read-all')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async markAllRead(@CurrentUser() user: User) {
     await this.notificationsService.markAllRead(user.id);
     return { success: true };

@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { UserThrottlerGuard } from '../auth/guards/user-throttler.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
@@ -33,20 +34,20 @@ export class ChatController {
   ) {}
 
   @Get('conversations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getConversations(@CurrentUser() user: User) {
     return this.chatService.listConversationsForUser(user.id);
   }
 
   @Get('conversations/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.OK)
   async getConversation(@CurrentUser() user: User, @Param('id') id: string) {
     return this.chatService.getConversationDetail(user.id, id);
   }
 
   @Post('conversations/:id/read')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.OK)
   async markConversationRead(@CurrentUser() user: User, @Param('id') id: string) {
     return this.chatService.markConversationRead(user.id, id);
@@ -54,7 +55,7 @@ export class ChatController {
 
   @Post('conversations')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.CREATED)
   async createConversation(@CurrentUser() user: User, @Body() dto: CreateConversationDto) {
@@ -63,7 +64,7 @@ export class ChatController {
 
   @Post('conversations/:id/messages')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 60, ttl: 60 } })
   @HttpCode(HttpStatus.CREATED)
   async sendMessage(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: SendMessageDto) {
@@ -72,7 +73,7 @@ export class ChatController {
 
   @Post('conversations/:id/messages/media')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, UserThrottlerGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, UserThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60 } })
   @UseInterceptors(
     FileInterceptor('chatMedia', {

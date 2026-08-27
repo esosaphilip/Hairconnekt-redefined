@@ -18,6 +18,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { PopularStylesService } from './popular-styles.service';
 import {
@@ -40,7 +41,7 @@ export class PopularStylesController {
 }
 
 @Controller('admin/popular-styles')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminGuard)
 export class AdminPopularStylesController {
   constructor(private readonly popularStylesService: PopularStylesService) {}
 

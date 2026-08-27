@@ -82,15 +82,17 @@ export default function RegisterScreen() {
         acceptedTerms,
       });
 
-      const { accessToken, refreshToken, user } = response.data;
+      const { user, emailDeliveryFailed } = response.data;
 
-      await tokenStorage.save(accessToken, refreshToken, user.role as 'client' | 'provider');
       await tokenStorage.setUser(user);
 
       const targetEmail = user?.email ?? email;
       const params = new URLSearchParams({ email: targetEmail });
       if (typeof returnTo === 'string' && returnTo.length > 0) {
         params.set('returnTo', returnTo);
+      }
+      if (emailDeliveryFailed) {
+        params.set('deliveryFailed', '1');
       }
       router.replace(`/(auth)/verify-email?${params.toString()}` as any);
     } catch (err: any) {
