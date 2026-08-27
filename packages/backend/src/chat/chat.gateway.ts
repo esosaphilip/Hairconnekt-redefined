@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -28,7 +28,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly chatService: ChatService,
+    @Inject(forwardRef(() => ChatService)) private readonly chatService: ChatService,
     private readonly presence: ChatPresenceService,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly notificationsService: NotificationsService,

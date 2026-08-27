@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
@@ -76,7 +76,7 @@ export class ChatService {
     private readonly presence: ChatPresenceService,
     private readonly r2Service: R2Service,
     private readonly access: AccessService,
-    private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => ChatGateway)) private readonly chatGateway: ChatGateway,
   ) {}
 
   private getOtherUserId(conversation: Conversation, userId: string): string {
