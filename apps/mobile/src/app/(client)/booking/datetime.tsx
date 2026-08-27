@@ -72,14 +72,23 @@ export default function ClientBookingDateTime() {
     return day === 0 ? 6 : day - 1;
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysCount = daysInMonth(year, month);
   const firstDay = firstDayOfMonth(year, month);
-  
+
+  const isOnEarliestMonth = year === todayYear && month === todayMonth;
   const dayNames = lang === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-  const handlePrevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
+  const handlePrevMonth = () => {
+    if (isOnEarliestMonth) return;
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
   const handleNextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
   const formatOutputDate = (dateStr: string) => {
@@ -119,7 +128,7 @@ export default function ClientBookingDateTime() {
       setSlots(extractSlots(payload));
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       setErrorVisible(true);
       setSlots([]);
     } finally {
@@ -154,7 +163,7 @@ export default function ClientBookingDateTime() {
       }
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       setErrorVisible(true);
       return;
     }
@@ -178,8 +187,6 @@ export default function ClientBookingDateTime() {
     }
 
     const days: CalendarCell[] = [];
-    const today = new Date();
-    today.setHours(0,0,0,0);
 
     for (let d = 1; d <= daysCount; d++) {
       const cellDate = new Date(year, month, d);
@@ -252,11 +259,16 @@ export default function ClientBookingDateTime() {
           <View style={styles.monthHeader}>
             <TouchableOpacity
               onPress={handlePrevMonth}
-              style={styles.monthButton}
+              style={[styles.monthButton, isOnEarliestMonth && styles.monthButtonDisabled]}
               accessibilityRole="button"
               accessibilityLabel={t('calendarPreviousMonth')}
+              disabled={isOnEarliestMonth}
             >
-              <Feather name="chevron-left" size={fontSizes.xl} color={colors.textPrimary} />
+              <Feather
+                name="chevron-left"
+                size={fontSizes.xl}
+                color={isOnEarliestMonth ? colors.textTertiary : colors.textPrimary}
+              />
             </TouchableOpacity>
             <Text style={styles.monthTitle}>
               {currentMonth.toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' })}
@@ -354,6 +366,7 @@ const styles = StyleSheet.create({
   monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   monthTitle: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.textPrimary },
   monthButton: { padding: spacing.xs },
+  monthButtonDisabled: { opacity: 0.35 },
   weekDaysRow: { flexDirection: 'row', borderBottomWidth: spacing.unit, borderBottomColor: colors.border, paddingBottom: spacing.sm, marginBottom: spacing.sm },
   weekDayText: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary },
   calendarRow: { flexDirection: 'row', marginBottom: spacing.xs },

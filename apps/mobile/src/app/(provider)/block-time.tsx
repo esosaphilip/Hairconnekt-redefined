@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
@@ -10,6 +10,7 @@ import { tokenStorage } from '../../utils/token-storage';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson, getApiMessage } from '@/services/apiClient';
 
 const REASONS = [
   { id: 'urlaub', labelKey: 'blockTimeReasonVacation', icon: '🏖️' },
@@ -19,12 +20,22 @@ const REASONS = [
   { id: 'sonstiges', labelKey: 'blockTimeReasonOther', icon: '📝' },
 ];
 
+interface BlockItem {
+  id: string;
+  startDate: string;
+  endDate: string;
+  startTime: string | null;
+  endTime: string | null;
+  isAllDay: boolean;
+  reason: string;
+}
+
 export default function BlockTimeScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
-  
-  // State
+
+  // Form State
   const [reason, setReason] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -32,10 +43,72 @@ export default function BlockTimeScreen() {
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [isAllDay, setIsAllDay] = useState(true);
   const [isRepeating, setIsRepeating] = useState(false); // Ignored on submit for Phase 1
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+
+  // Existing blocks list
+  const [blocks, setBlocks] = useState<BlockItem[]>([]);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+
+  useEffect(() => {
+    loadExistingBlocks();
+  }, []);
+
+  const loadExistingBlocks = async () => {
+    try {
+      setLoadingBlocks(true);
+      const res = await apiJson<any>(`${API}/providers/me/blocks`, { auth: true });
+      const data = Array.isArray(res) ? res : (res?.data ?? []);
+      setBlocks(
+        data.sort((a: BlockItem, b: BlockItem) => (a.startDate < b.startDate ? -1 : 1)),
+      );
+    } catch {
+      setBlocks([]);
+    } finally {
+      setLoadingBlocks(false);
+    }
+  };
+
+  const handleDeleteBlock = (blockId: string, blockReason: string) => {
+    const displayReason = blockReason || t('calendarDeleteBlockFallbackReason');
+    Alert.alert(
+      t('calendarDeleteBlockTitle'),
+      t('calendarDeleteBlockBody').replace('{reason}', displayReason),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiJson<void>(`${API}/providers/me/blocks/${blockId}`, {
+                method: 'DELETE',
+                auth: true,
+              });
+              setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+            } catch (err: any) {
+              const specific = getApiMessage(err?.body ?? err?.response?.data) ?? undefined;
+              const message = mapHttpError(err?.status ?? err?.response?.status ?? 0, specific, lang);
+              Alert.alert(t('error'), message ?? t('calendarDeleteBlockError'));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const formatBlockRange = (block: BlockItem) => {
+    const sd = new Date(block.startDate);
+    const ed = new Date(block.endDate);
+    const same = block.startDate === block.endDate;
+    const dateStr = same
+      ? sd.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : `${sd.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })} – ${ed.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+    if (block.isAllDay) return `${dateStr} · ${t('calendarAllDay')}`;
+    return `${dateStr} · ${block.startTime || ''} – ${block.endTime || ''}`;
+  };
 
   // Picker State
   const [pickerState, setPickerState] = useState<{
@@ -129,9 +202,16 @@ export default function BlockTimeScreen() {
         throw { response: { status: response.status } };
       }
 
-      router.back();
+      setReason(null);
+      setStartDate(null);
+      setEndDate(null);
+      setStartTime(null);
+      setEndTime(null);
+      setIsAllDay(true);
+      setIsRepeating(false);
+      loadExistingBlocks();
     } catch (error: any) {
-      setErrorMessage(mapHttpError(error?.response?.status, undefined, lang));
+      setErrorMessage(mapHttpError(error?.response?.status, error?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -272,6 +352,40 @@ export default function BlockTimeScreen() {
           />
         </View>
 
+        {/* Existing Blocks Section */}
+        <View style={styles.existingBlocksSection}>
+          <Text style={styles.sectionLabel}>{t('blockTimeExistingHeader') || 'Vorhandene Blockaden'}</Text>
+          {loadingBlocks ? (
+            <View style={styles.blocksLoader}><ActivityIndicator color={colors.coral} /></View>
+          ) : blocks.length === 0 ? (
+            <Text style={styles.blocksEmptyText}>
+              {t('blockTimeExistingEmpty') || 'Keine geplanten Blockaden vorhanden.'}
+            </Text>
+          ) : (
+            <View style={styles.blockList}>
+              {blocks.map((block) => (
+                <View key={block.id} style={styles.blockRowCard}>
+                  <View style={styles.blockRowInfo}>
+                    <Text style={styles.blockRowReason}>
+                      🚫 {block.reason || (t('blockTimeNoReason') ?? 'Ohne Grund')}
+                    </Text>
+                    <Text style={styles.blockRowRange}>{formatBlockRange(block)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteBlock(block.id, block.reason)}
+                    style={styles.blockRowDeleteBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('calendarDeleteBlockedTime')}
+                    hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
+                  >
+                    <Feather name="trash-2" size={fontSizes.lg} color={colors.warningIcon} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
       </ScrollView>
 
       <DateTimePickerModal
@@ -385,5 +499,45 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopWidth: spacing.unit,
     borderTopColor: colors.border,
-  }
+  },
+
+  existingBlocksSection: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.md,
+    borderTopWidth: spacing.xxxs,
+    borderTopColor: colors.border,
+  },
+  blocksLoader: { paddingVertical: spacing.xl },
+  blocksEmptyText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textTertiary,
+    paddingVertical: spacing.md,
+  },
+  blockList: { gap: spacing.sm, marginTop: spacing.xxs },
+  blockRowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    ...shadows.card,
+  },
+  blockRowInfo: { flex: 1, paddingRight: spacing.sm },
+  blockRowReason: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxxs,
+  },
+  blockRowRange: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+  },
+  blockRowDeleteBtn: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.warningBg,
+  },
 });

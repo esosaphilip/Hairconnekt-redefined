@@ -9,6 +9,8 @@ import { bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { debugError } from '@/utils/logger';
+import { apiJson, getApiMessage } from '@/services/apiClient';
+import { mapHttpError } from '@/utils/error-messages';
 
 interface BookingItem {
   id: string;
@@ -95,18 +97,15 @@ export default function ProviderCalendarScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const token = await tokenStorage.getAccessToken();
-              const res = await fetch(`${API}/providers/me/blocks/${blockId}`, {
+              await apiJson<void>(`${API}/providers/me/blocks/${blockId}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
+                auth: true,
               });
-              if (res.ok || res.status === 204) {
-                setBlocks((prev) => prev.filter((b) => b.id !== blockId));
-              } else {
-                Alert.alert(t('error'), t('calendarDeleteBlockError'));
-              }
-            } catch {
-              Alert.alert(t('error'), t('networkErrorTryAgain'));
+              setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+            } catch (err: any) {
+              const specific = getApiMessage(err?.body ?? err?.response?.data) ?? undefined;
+              const message = mapHttpError(err?.status ?? err?.response?.status ?? 0, specific, lang);
+              Alert.alert(t('error'), message ?? t('calendarDeleteBlockError'));
             }
           },
         },

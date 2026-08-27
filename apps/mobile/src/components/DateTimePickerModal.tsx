@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { colors, fonts, fontSizes, spacing } from '../theme';
@@ -15,6 +15,11 @@ interface Props {
   onCancel: () => void;
 }
 
+const normalizeLocale = (locale?: string): string | undefined => {
+  if (!locale) return undefined;
+  return locale.replace('-', '_');
+};
+
 export function DateTimePickerModal({
   visible,
   mode,
@@ -27,6 +32,9 @@ export function DateTimePickerModal({
   onCancel,
 }: Props): React.ReactElement | null {
   const [tempDate, setTempDate] = useState<Date>(value);
+  const normalizedLocale = useMemo(() => normalizeLocale(locale), [locale]);
+  const iosDisplay: 'inline' | 'spinner' | 'default' | 'compact' =
+    mode === 'date' ? 'inline' : 'spinner';
 
   useEffect(() => {
     setTempDate(value);
@@ -57,6 +65,9 @@ export function DateTimePickerModal({
     );
   }
 
+  const pickerWrapperStyle =
+    mode === 'date' ? styles.datePickerWrapper : styles.timePickerWrapper;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={styles.overlay}>
@@ -69,15 +80,17 @@ export function DateTimePickerModal({
               <Text style={styles.confirmText}>{confirmLabel ?? 'Fertig'}</Text>
             </TouchableOpacity>
           </View>
-          <DateTimePicker
-            value={tempDate}
-            mode={mode}
-            display="spinner"
-            minimumDate={minimumDate}
-            onChange={handleChange}
-            locale={locale}
-            textColor={colors.textPrimary as any}
-          />
+          <View style={pickerWrapperStyle}>
+            <DateTimePicker
+              value={tempDate}
+              mode={mode}
+              display={iosDisplay}
+              minimumDate={minimumDate}
+              onChange={handleChange}
+              locale={normalizedLocale}
+              textColor={colors.textPrimary as any}
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -115,5 +128,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.md,
     color: colors.primary,
+  },
+  datePickerWrapper: {
+    alignSelf: 'center',
+    width: '100%',
+    minHeight: 320,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  timePickerWrapper: {
+    alignSelf: 'center',
+    minHeight: 216,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
 });
