@@ -68,7 +68,7 @@ export default function ProviderTypeScreen() {
           label={t('next')} 
           onPress={() => {
             update({ providerType: selected });
-            router.push('/(provider)/register/step1');
+            router.push('/(auth)/provider-register/step1' as any);
           }}
           disabled={!selected}
           variant="filled"

@@ -37,7 +37,7 @@ export default function ProviderPendingScreen() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status === 404) {
-        router.replace('/(provider)/register/type');
+        router.replace('/(auth)/provider-register/type' as any);
         return;
       }
       if (!res.ok) {
@@ -118,6 +118,16 @@ export default function ProviderPendingScreen() {
           {t('providerPendingBody').replace('{time}', t('providerPendingProcessingValue'))}
         </Text>
 
+        {/* Grace Period Welcome Notice */}
+        <View style={styles.graceWelcomeCard}>
+          <View style={styles.graceWelcomeIcon}>
+            <Feather name="gift" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.graceWelcomeContent}>
+            <Text style={styles.graceWelcomeHeadline}>{t('gracePeriodHeadline')}</Text>
+            <Text style={styles.graceWelcomeBody}>{t('gracePeriodBody')}</Text>
+          </View>
+        </View>
 
         {/* Timeline Card */}
         <View style={styles.timelineCard}>
@@ -370,6 +380,39 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   infoText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    lineHeight: lineHeights.sm,
+  },
+
+  graceWelcomeCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  graceWelcomeIcon: {
+    width: layout.iconButton,
+    height: layout.iconButton,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.xxxs,
+  },
+  graceWelcomeContent: { flex: 1 },
+  graceWelcomeHeadline: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.md,
+    color: colors.primary,
+    marginBottom: spacing.xxs,
+  },
+  graceWelcomeBody: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colors.textSecondary,

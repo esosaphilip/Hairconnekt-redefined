@@ -88,7 +88,7 @@ export default function RegisterStep1Screen() {
         password,
         acceptedTerms: true,
       });
-      router.push('/(provider)/register/step2');
+      router.push('/(auth)/provider-register/step2' as any);
     }
   };
 
@@ -286,6 +286,17 @@ export default function RegisterStep1Screen() {
           </View>
           {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}
 
+          {/* Grace Period Notice */}
+          <View style={styles.gracePill}>
+            <View style={styles.gracePillIcon}>
+              <Feather name="info" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.gracePillContent}>
+              <Text style={styles.gracePillHeadline}>{t('gracePeriodHeadline')}</Text>
+              <Text style={styles.gracePillBody}>{t('gracePeriodBody')}</Text>
+            </View>
+          </View>
+
         </ScrollView>
 
         <View style={styles.footer}>
@@ -424,4 +435,36 @@ const styles = StyleSheet.create({
   pickerFlag: { fontSize: fontSizes.xxl },
   pickerCountry: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textPrimary },
   pickerCode: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
+
+  gracePill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  gracePillIcon: {
+    width: spacing.xl,
+    height: spacing.xl,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.xxxs,
+  },
+  gracePillContent: { flex: 1 },
+  gracePillHeadline: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+    marginBottom: spacing.xxxs,
+  },
+  gracePillBody: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    lineHeight: lineHeights.sm,
+  },
 });

@@ -23,7 +23,7 @@ export default function AccountTypeScreen() {
     if (selectedRole === 'client') {
       router.push(`/(auth)/register${returnQuery}` as any);
     } else if (selectedRole === 'provider') {
-      router.push(`/(provider)/register/type${returnQuery}` as any);
+      router.push(`/(auth)/provider-register/type${returnQuery}` as any);
     }
   };
 

@@ -46,7 +46,7 @@ export default function ProviderDashboardScreen() {
         return true;
       } catch (err: any) {
         if (err?.status === 404) {
-          router.replace('/(provider)/register/type');
+          router.replace('/(auth)/provider-register/type' as any);
           return false;
         }
         router.replace('/(auth)/login?role=provider');
@@ -207,6 +207,12 @@ export default function ProviderDashboardScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+
+        {/* Grace Period Banner */}
+        <View style={styles.graceBanner}>
+          <Feather name="gift" size={16} color={colors.primary} />
+          <Text style={styles.graceBannerText}>{t('gracePeriodHeadline')}</Text>
+        </View>
         
         {/* Availability Toggle */}
         <View style={[styles.availabilityCard, isOnline ? styles.availabilityOnline : styles.availabilityOffline]}>
@@ -486,4 +492,21 @@ const styles = StyleSheet.create({
   },
   quickLinkEmoji: { fontSize: fontSizes.xxl },
   quickLinkLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
+
+  graceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.xs,
+  },
+  graceBannerText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+  },
 });

@@ -58,7 +58,7 @@ export default function RegisterStep4Screen() {
 
   const handleNext = () => {
     update({ portfolioMarketingConsent: marketingConsent });
-    router.push('/(provider)/register/step5');
+    router.push('/(auth)/provider-register/step5' as any);
   };
 
   const isFormValid = form.profilePhotoUri !== '' && form.idDocumentUri !== '' && form.portfolioUris.length > 0;

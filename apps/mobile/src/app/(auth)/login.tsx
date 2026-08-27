@@ -73,7 +73,7 @@ export default function LoginScreen() {
           }
         } catch (err: any) {
           if (err?.status === 404) {
-            router.replace('/(provider)/register/type' as any);
+            router.replace('/(auth)/provider-register/type' as any);
             return;
           }
           router.replace('/(provider)/pending');
@@ -170,7 +170,7 @@ export default function LoginScreen() {
                 ? `?returnTo=${encodeURIComponent(returnTo)}`
                 : '';
               if (role === 'provider') {
-                router.push(`/(provider)/register/type${returnQuery}` as any);
+                router.push(`/(auth)/provider-register/type${returnQuery}` as any);
               } else {
                 router.push(`/(auth)/register${returnQuery}` as any);
               }

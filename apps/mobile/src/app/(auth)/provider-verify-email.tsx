@@ -152,7 +152,7 @@ export default function VerifyEmailScreen() {
         }
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
-          router.replace('/(provider)/register/type' as any);
+          router.replace('/(auth)/provider-register/type' as any);
         } else if (error instanceof ApiError && error.status === 401) {
           router.replace('/(auth)/login?role=provider' as any);
         } else {

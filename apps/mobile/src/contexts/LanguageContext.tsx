@@ -814,6 +814,12 @@ export const TRANSLATIONS = {
   errorGenericSomethingWentWrong: { de: 'Etwas ist schiefgelaufen', en: 'Something went wrong' },
   errorGenericTryAgain: { de: 'Bitte versuche es erneut', en: 'Please try again' },
   errorGenericContactSupport: { de: 'Bitte kontaktiere den Support', en: 'Please contact support' },
+
+  gracePeriodHeadline: { de: '4 Monate komplett kostenlos', en: '4 months, completely free' },
+  gracePeriodBody: {
+    de: 'Die ersten 4 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten — wir verdienen erst mit, wenn du über HairConnekt Produkte verkaufst.',
+    en: 'Your first 4 months are free. No subscription, no hidden costs — we only earn when you sell products through HairConnekt.',
+  },
 } as const;
 
 export type TranslationKey = keyof typeof TRANSLATIONS;

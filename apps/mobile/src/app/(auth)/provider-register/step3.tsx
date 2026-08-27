@@ -108,7 +108,7 @@ export default function RegisterStep3Screen() {
       cancellationPolicy,
       bio: bio.trim(),
     });
-    router.push('/(provider)/register/step4');
+    router.push('/(auth)/provider-register/step4' as any);
   };
 
   return (

@@ -44,7 +44,7 @@ export const APP_ROUTES = {
     CHAT_DETAIL: '/(provider)/chat/[id]',
     BOOKING_REQUEST: '/(provider)/booking-request/[id]',
     PENDING: '/(provider)/pending',
-    REGISTER: '/(provider)/register',
+    REGISTER: '/(auth)/provider-register',
   },
   
   // Shared routes

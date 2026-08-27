@@ -50,7 +50,7 @@ export default function RegisterStep2Screen() {
         city: city.trim(),
         serviceRadius,
       });
-      router.push('/(provider)/register/step3');
+      router.push('/(auth)/provider-register/step3' as any);
     }
   };
 

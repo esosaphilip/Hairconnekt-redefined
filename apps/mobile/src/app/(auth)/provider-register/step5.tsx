@@ -177,7 +177,7 @@ export default function RegisterStep5Screen() {
       reset();
       const emailParam = encodeURIComponent(form.email);
       const deliveryParam = authData.emailDeliveryFailed ? '&deliveryFailed=1' : '';
-      router.replace(`/(provider)/verify-email?email=${emailParam}${deliveryParam}` as any);
+      router.replace(`/(auth)/provider-verify-email?email=${emailParam}${deliveryParam}` as any);
 
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -237,7 +237,7 @@ export default function RegisterStep5Screen() {
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{t('providerRegisterSummaryBusinessTitle')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(provider)/register/step2')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/provider-register/step2' as any)}>
               <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>
@@ -250,7 +250,7 @@ export default function RegisterStep5Screen() {
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{t('providerRegisterSummaryServicesTitle')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(provider)/register/step3')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/provider-register/step3' as any)}>
               <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>
@@ -263,7 +263,7 @@ export default function RegisterStep5Screen() {
         <View style={styles.summaryCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{t('providerRegisterSummaryPortfolioTitle')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(provider)/register/step4')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/provider-register/step4' as any)}>
               <Text style={styles.editLink}>{t('edit')}</Text>
             </TouchableOpacity>
           </View>

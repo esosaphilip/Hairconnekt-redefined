@@ -59,7 +59,7 @@ const resolveDefaultRoute = async (): Promise<string> => {
         await tokenStorage.setUser(me);
         if (me?.isEmailVerified === false) {
           if (role === 'provider') {
-            return `/(provider)/verify-email?email=${encodeURIComponent(me?.email ?? '')}`;
+            return `/(auth)/provider-verify-email?email=${encodeURIComponent(me?.email ?? '')}`;
           }
           return `/(auth)/verify-email?email=${encodeURIComponent(me?.email ?? '')}`;
         }
@@ -76,7 +76,7 @@ const resolveDefaultRoute = async (): Promise<string> => {
           return '/(provider)/pending';
         } catch (err: any) {
           if (err?.status === 404) {
-            return '/(provider)/register/type';
+            return '/(auth)/provider-register/type';
           }
           return '/(auth)/login?role=provider';
         }

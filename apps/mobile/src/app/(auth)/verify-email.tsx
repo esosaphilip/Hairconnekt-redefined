@@ -180,7 +180,7 @@ export default function VerifyEmailScreen() {
           }
         } catch (error) {
           if (error instanceof ApiError && error.status === 404) {
-            router.replace('/(provider)/register/type' as any);
+            router.replace('/(auth)/provider-register/type' as any);
           } else {
             const params = new URLSearchParams({ role: 'provider' });
             if (typeof returnTo === 'string' && returnTo.length > 0) {
