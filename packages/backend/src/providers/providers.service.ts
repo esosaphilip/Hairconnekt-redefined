@@ -58,6 +58,29 @@ export class ProvidersService {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  private generateSearchVariants(term: string): string[] {
+    const normalized = term.trim().toLowerCase();
+    if (!normalized) return [];
+    const variants = new Set<string>([normalized]);
+
+    if (normalized.endsWith('s')) {
+      variants.add(normalized.slice(0, -1));
+    } else {
+      variants.add(normalized + 's');
+    }
+
+    if (normalized.endsWith('en')) {
+      variants.add(normalized.slice(0, -2));
+    } else if (normalized.endsWith('n')) {
+      variants.add(normalized.slice(0, -1));
+    } else {
+      variants.add(normalized + 'n');
+      variants.add(normalized + 'en');
+    }
+
+    return Array.from(variants);
+  }
+
   private calculateDistanceKm(
     fromLat: number,
     fromLng: number,
@@ -170,22 +193,36 @@ export class ProvidersService {
     }
 
     if (search) {
-      const searchTerm = `%${search}%`;
+      const variants = this.generateSearchVariants(search);
+      const params: Record<string, string> = {};
+      variants.forEach((v, i) => {
+        params[`search_${i}`] = `%${v}%`;
+      });
+
+      const likeExpr = (column: string, kind: 'direct' | 'sname' | 'sdesc') => {
+        const parts: string[] = [];
+        variants.forEach((_, i) => {
+          const p = `:search_${i}`;
+          if (kind === 'direct') {
+            parts.push(`LOWER(${column}) LIKE LOWER(${p})`);
+          } else if (kind === 'sname') {
+            parts.push(`EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.name) LIKE LOWER(${p}))`);
+          } else {
+            parts.push(`EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.description) LIKE LOWER(${p}))`);
+          }
+        });
+        return parts.join(' OR ');
+      };
+
       qb.andWhere(
         new Brackets((subQb) => {
           subQb
-            .where('LOWER(p.businessName) LIKE LOWER(:searchTerm)', { searchTerm })
-            .orWhere('LOWER(p.city) LIKE LOWER(:searchTerm)', { searchTerm })
-            .orWhere(
-              'EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.name) LIKE LOWER(:searchTerm))',
-              { searchTerm },
-            )
-            .orWhere(
-              'EXISTS (SELECT 1 FROM services s WHERE s."providerId" = p.id AND s."isActive" = true AND LOWER(s.description) LIKE LOWER(:searchTerm))',
-              { searchTerm },
-            );
+            .where(likeExpr('p.businessName', 'direct'))
+            .orWhere(likeExpr('p.city', 'direct'))
+            .orWhere(likeExpr('', 'sname'))
+            .orWhere(likeExpr('', 'sdesc'));
         }),
-      );
+      ).setParameters(params);
     }
 
     if (sort === 'bewertung') {

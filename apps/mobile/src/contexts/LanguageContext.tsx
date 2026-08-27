@@ -268,6 +268,7 @@ export const TRANSLATIONS = {
 
   error: { de: 'Fehler', en: 'Error' },
   errorOpenLink: { de: 'Konnte den Link nicht öffnen.', en: 'Could not open the link.' },
+  callUnavailable: { de: 'Anruf konnte nicht gestartet werden. Bitte versuche es später erneut.', en: 'Could not initiate call. Please try again later.' },
   enterPassword: { de: 'Bitte Passwort eingeben', en: 'Please enter your password.' },
   notAvailable: { de: 'N/A', en: 'N/A' },
   clientNameDefault: { de: 'Kunde', en: 'Client' },

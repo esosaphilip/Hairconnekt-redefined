@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
+import { openPhoneCall } from '@/utils/phone-call';
 
 type BookingClient = {
   id: string;
@@ -272,8 +273,13 @@ export default function ProviderAppointmentDetailScreen() {
               <Text style={styles.greyButtonText}>{t('message')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.greyButton} 
-              onPress={() => (booking.client?.phone ? Linking.openURL('tel:' + booking.client.phone) : null)}
+              style={[styles.greyButton, !booking.client?.phone && { opacity: 0.4 }]} 
+              disabled={!booking.client?.phone}
+              onPress={() => {
+                if (booking.client?.phone) {
+                  void openPhoneCall(booking.client.phone, lang);
+                }
+              }}
             >
               <Text style={styles.greyButtonText}>{t('call')}</Text>
             </TouchableOpacity>

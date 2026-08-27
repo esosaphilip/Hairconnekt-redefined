@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
@@ -9,6 +9,7 @@ import { formatAmount } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
+import { openPhoneCall } from '@/utils/phone-call';
 
 type BookingParticipant = {
   id: string;
@@ -166,7 +167,7 @@ export default function BookingRequestScreen() {
 
   const handleCall = () => {
     if (booking?.client?.phone) {
-      Linking.openURL(`tel:${booking.client.phone}`);
+      void openPhoneCall(booking.client.phone, lang);
     } else {
       Alert.alert(t('phoneMissingTitle'), t('phoneMissingBody'));
     }

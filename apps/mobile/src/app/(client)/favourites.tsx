@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
@@ -26,16 +26,11 @@ type ProviderSummaryDto = {
 export default function FavouritesScreen() {
   const router = useRouter();
   const { t, lang } = useLanguage();
-  const { toggleFavourite, refreshFavourites } = useFavourites();
+  const { toggleFavourite, refreshFavourites, favouriteIds } = useFavourites();
   const [favourites, setFavourites] = useState<ProviderSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchFavourites();
-    void refreshFavourites();
-  }, []);
-
-  const fetchFavourites = async () => {
+  const fetchFavourites = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await apiJson<any>('/favourites', { auth: true });
@@ -50,7 +45,16 @@ export default function FavouritesScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchFavourites();
+    void refreshFavourites();
+  }, [fetchFavourites, refreshFavourites]);
+
+  useEffect(() => {
+    fetchFavourites();
+  }, [favouriteIds.length, fetchFavourites]);
 
   const renderItem = ({ item }: { item: ProviderSummaryDto }) => {
     const avatar = item.avatarUrl;
@@ -84,9 +88,7 @@ export default function FavouritesScreen() {
                     text: t('remove'),
                     style: 'destructive',
                     onPress: async () => {
-                      setFavourites((prev) => prev.filter((p) => p.id !== item.id));
                       await toggleFavourite(item.id);
-                      fetchFavourites();
                     },
                   },
                 ],
