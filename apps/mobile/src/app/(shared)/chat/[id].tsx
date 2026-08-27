@@ -11,7 +11,7 @@ import { MessageTicks } from '../../../components/MessageTicks';
 import { mapHttpError } from '@/utils/error-messages';
 import type { BookingRef, Message, OtherUser } from '@/types/chat';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
+import { ApiError, apiFetch, apiJson, getApiMessage } from '@/services/apiClient';
 import { MediaPickerActionSheet } from '@/components/MediaPickerActionSheet';
 import { pickChatDocument, pickChatImage } from '@/utils/chat-media-picker';
 import { debugError } from '@/utils/logger';
@@ -242,6 +242,16 @@ export default function SharedChatScreen() {
     socket.on('message_read', ({ messageId }: { messageId: string; readerId?: string }) => {
       if (!messageId) return;
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, isRead: true } : m)));
+    });
+
+    socket.on('conversation_read', ({ conversationId, readerId }: { conversationId?: string; readerId?: string }) => {
+      if (conversationId !== id) return;
+      if (!readerId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.senderId === readerId ? { ...m, isRead: true } : m,
+        ),
+      );
     });
 
     socket.on('typing_indicator', ({ userId, isTyping: typing }: { userId: string; isTyping: boolean }) => {
@@ -504,10 +514,6 @@ export default function SharedChatScreen() {
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error('Upload fehlgeschlagen');
-      }
-
       const responseText = await res.text();
       let parsedBody: unknown = null;
       if (responseText) {
@@ -516,6 +522,11 @@ export default function SharedChatScreen() {
         } catch (error) {
           debugError('Chat media upload returned invalid JSON', error);
         }
+      }
+
+      if (!res.ok) {
+        const backendMsg = getApiMessage(parsedBody);
+        throw new ApiError(backendMsg ?? 'Upload fehlgeschlagen', res.status, parsedBody);
       }
 
       const msg = extractMessagePayload(parsedBody as ChatMessageApiResponse);
@@ -530,7 +541,16 @@ export default function SharedChatScreen() {
       }
     } catch (error) {
       debugError('Chat media upload failed', error);
-      showError(500, error instanceof Error ? error.message : undefined);
+      let status: number | undefined;
+      let message: string | undefined;
+      if (error instanceof ApiError) {
+        status = error.status;
+        const extracted = getApiMessage(error.body);
+        message = extracted ?? error.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      showError(status, message);
     } finally {
       setIsUploadingMedia(false);
     }

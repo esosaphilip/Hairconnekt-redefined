@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
@@ -10,6 +10,7 @@ import { ChatPresenceService } from './chat-presence.service';
 import { R2Service } from '../common/storage/r2.service';
 import { v4 as uuidv4 } from 'uuid';
 import { AccessService } from '../authorization/access.service';
+import { ChatGateway } from './chat.gateway';
 
 type ConversationListItem = {
   id: string;
@@ -75,6 +76,7 @@ export class ChatService {
     private readonly presence: ChatPresenceService,
     private readonly r2Service: R2Service,
     private readonly access: AccessService,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   private getOtherUserId(conversation: Conversation, userId: string): string {
@@ -347,7 +349,7 @@ export class ChatService {
     convo.lastMessagePreview = mediaType === 'image' ? '📷 Bild' : '📎 Dokument';
     await this.conversationRepo.save(convo);
 
-    return {
+    const messagePayload: ConversationDetail['messages'][number] = {
       id: saved.id,
       content: saved.content,
       senderId: saved.senderId,
@@ -357,6 +359,14 @@ export class ChatService {
       mediaType: (saved.mediaType as any) ?? null,
       mediaFilename: saved.mediaFilename ?? null,
     };
+
+    if (this.chatGateway.server) {
+      this.chatGateway.server
+        .to(conversationId)
+        .emit('new_message', messagePayload);
+    }
+
+    return messagePayload;
   }
 
   async markConversationRead(
@@ -365,16 +375,39 @@ export class ChatService {
   ): Promise<{ conversationId: string; updatedCount: number }> {
     await this.getConversationForUserOrThrow(userId, conversationId);
 
-    const result = await this.messageRepo
-      .createQueryBuilder()
-      .update(Message)
-      .set({ isRead: true, readAt: () => 'NOW()' })
-      .where('conversationId = :conversationId', { conversationId })
-      .andWhere('senderId != :userId', { userId })
-      .andWhere('isRead = false')
-      .execute();
+    const pending = await this.messageRepo.find({
+      where: {
+        conversationId,
+        senderId: Not(userId) as any,
+        isRead: false,
+      },
+      select: ['id'],
+    });
+    const pendingIds = pending.map((m) => m.id);
 
-    return { conversationId, updatedCount: result.affected ?? 0 };
+    let updatedCount = 0;
+    if (pendingIds.length > 0) {
+      const result = await this.messageRepo
+        .createQueryBuilder()
+        .update(Message)
+        .set({ isRead: true, readAt: () => 'NOW()' })
+        .whereInIds(pendingIds)
+        .execute();
+      updatedCount = result.affected ?? 0;
+    }
+
+    if (updatedCount > 0 && this.chatGateway.server) {
+      for (const messageId of pendingIds) {
+        this.chatGateway.server
+          .to(conversationId)
+          .emit('message_read', { messageId, readerId: userId });
+      }
+      this.chatGateway.server
+        .to(conversationId)
+        .emit('conversation_read', { conversationId, readerId: userId });
+    }
+
+    return { conversationId, updatedCount };
   }
 
   async markMessageRead(
