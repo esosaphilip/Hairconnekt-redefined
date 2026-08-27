@@ -161,7 +161,12 @@ export default function VerifyEmailScreen() {
 
       let role = verifyResponse.user?.role as 'client' | 'provider';
       if (!role) {
-        role = await tokenStorage.getUserRole();
+        const storedRole = await tokenStorage.getUserRole();
+        if (storedRole && storedRole !== 'admin') {
+          role = storedRole;
+        } else {
+          role = 'client';
+        }
       }
       if (role === 'provider') {
         try {
@@ -209,7 +214,7 @@ export default function VerifyEmailScreen() {
         showError(t('verifyEmailTooManyRequests'), status);
       } else {
         if (error instanceof Error) Sentry.captureException(error);
-        showError(mapHttpError(status, undefined, lang), status);
+        showError(mapHttpError(status, error instanceof Error ? error.message : undefined, lang), status);
       }
     } finally {
       setIsLoading(false);
@@ -235,7 +240,7 @@ export default function VerifyEmailScreen() {
         showError(t('verifyEmailExpiredCode'), status);
       } else {
         if (error instanceof Error) Sentry.captureException(error);
-        showError(mapHttpError(status, undefined, lang), status);
+        showError(mapHttpError(status, error instanceof Error ? error.message : undefined, lang), status);
       }
     } finally {
       setIsLoading(false);

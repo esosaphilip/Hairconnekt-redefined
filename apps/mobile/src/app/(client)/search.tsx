@@ -69,7 +69,7 @@ export default function ClientSearch() {
         setCategoryMap(Array.isArray(cats) ? cats : []);
       } catch (e) {
         const status = (e as any)?.status ?? (e as any)?.response?.status;
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, (e as any)?.message, lang));
         setErrorVisible(true);
       }
     };
@@ -133,7 +133,7 @@ export default function ClientSearch() {
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, err?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -342,8 +342,8 @@ export default function ClientSearch() {
                   }}
                   onPress={() => router.push(`/(client)/provider/${item.id}` as any)}
                   onFavourite={async () => {
-                    const tokens = await tokenStorage.getTokens();
-                    if (!tokens.accessToken) {
+                    const accessToken = await tokenStorage.getAccessToken();
+                    if (!accessToken) {
                       router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/search`)}` as any);
                       return;
                     }

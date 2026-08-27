@@ -185,7 +185,7 @@ export default function ClientHome() {
       setProviders(data.data || data);
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, err?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -214,7 +214,7 @@ export default function ClientHome() {
         }
       } catch (error) {
         Sentry.captureException(error);
-        setErrorMessage(mapHttpError(undefined, undefined, lang));
+        setErrorMessage(mapHttpError(undefined, error instanceof Error ? error.message : undefined, lang));
         setErrorVisible(true);
       }
     }
@@ -408,8 +408,8 @@ export default function ClientHome() {
               }}
               onPress={() => handleProviderPress(provider.id)}
               onFavourite={async () => {
-                const tokens = await tokenStorage.getTokens();
-                if (!tokens.accessToken) {
+                const accessToken = await tokenStorage.getAccessToken();
+                if (!accessToken) {
                   router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)`)}` as any);
                   return;
                 }

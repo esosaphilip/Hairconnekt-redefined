@@ -2,16 +2,16 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking, Platform } from 'react-native';
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { bookingStatus } from '../../../utils/booking-status';
 import { formatAmount } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError, debugLog } from '@/utils/logger';
+import { apiJson, getApiMessage } from '@/services/apiClient';
+import { tokenStorage } from '../../../utils/token-storage';
+import { API } from '../../../utils/api';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -29,13 +29,12 @@ export default function AppointmentDetails() {
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
-      const response = await axios.get(`${API}/bookings/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBooking(response.data);
+      const data = await apiJson<any>(`/bookings/${id}`, { auth: true });
+      setBooking(data);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+      const status = err?.status ?? err?.response?.status;
+      const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+      setErrorMessage(mapHttpError(status, specific, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -317,8 +316,8 @@ export default function AppointmentDetails() {
           <TouchableOpacity 
             style={styles.primaryBtn}
             onPress={async () => {
-              const tokens = await tokenStorage.getTokens();
-              if (!tokens.accessToken) {
+              const accessToken = await tokenStorage.getAccessToken();
+              if (!accessToken) {
                 const destination = `/(client)/review/${booking.id}`;
                 router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
                 return;

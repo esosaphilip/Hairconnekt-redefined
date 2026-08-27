@@ -128,7 +128,7 @@ export default function ProviderProfile() {
       setReviews(extractList(revRes));
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -187,8 +187,8 @@ export default function ProviderProfile() {
   const openChat = async (recipientUserId: string) => {
     if (!recipientUserId) return;
     try {
-      const tokens = await tokenStorage.getTokens();
-      if (!tokens.accessToken) {
+      const accessToken = await tokenStorage.getAccessToken();
+      if (!accessToken) {
         router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
         return;
       }
@@ -254,8 +254,8 @@ export default function ProviderProfile() {
                 style={[styles.iconButton, { marginLeft: spacing.sm }]}
                 onPress={async () => {
                   if (!providerId) return;
-                  const tokens = await tokenStorage.getTokens();
-                  if (!tokens.accessToken) {
+                  const accessToken = await tokenStorage.getAccessToken();
+                  if (!accessToken) {
                     router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
                     return;
                   }
@@ -364,8 +364,8 @@ export default function ProviderProfile() {
                   <TouchableOpacity
                     style={styles.selectButton}
                     onPress={async () => {
-                      const tokens = await tokenStorage.getTokens();
-                      if (!tokens.accessToken) {
+                      const accessToken = await tokenStorage.getAccessToken();
+                      if (!accessToken) {
                         const destination = `/(client)/booking/services?providerId=${encodeURIComponent(id)}`;
                         router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
                         return;
@@ -456,8 +456,8 @@ export default function ProviderProfile() {
           <TouchableOpacity
             style={styles.bookBtn}
             onPress={async () => {
-              const tokens = await tokenStorage.getTokens();
-              if (!tokens.accessToken) {
+              const accessToken = await tokenStorage.getAccessToken();
+              if (!accessToken) {
                 const destination = `/(client)/booking/services?providerId=${encodeURIComponent(id)}`;
                 router.push(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
                 return;

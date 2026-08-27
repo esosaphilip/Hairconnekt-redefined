@@ -173,8 +173,8 @@ export default function BookingDetails() {
       setIsLoading(true);
       setErrorVisible(false);
 
-      const tokens = await tokenStorage.getTokens();
-      if (!tokens.accessToken) {
+      const accessToken = await tokenStorage.getAccessToken();
+      if (!accessToken) {
         const params = new URLSearchParams();
         if (providerIdValue) params.set('providerId', providerIdValue);
         if (selectedServiceIdsValue) params.set('selectedServiceIds', selectedServiceIdsValue);
@@ -245,7 +245,7 @@ export default function BookingDetails() {
                 t('bookingInvalidSlot')
         );
       } else {
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       }
       setErrorVisible(true);
     } finally {
