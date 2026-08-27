@@ -38,7 +38,7 @@ export default function AppointmentsList() {
       const payload = response?.data || response || [];
       setBookings(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
-      setErrorMessage(mapHttpError(err?.status ?? err?.response?.status, undefined, lang));
+      setErrorMessage(mapHttpError(err?.status ?? err?.response?.status, err?.message, lang));
       setErrorVisible(true);
       setBookings([]);
     } finally {

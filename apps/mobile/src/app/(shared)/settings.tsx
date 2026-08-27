@@ -99,7 +99,7 @@ export default function SharedSettingsScreen() {
 
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;
-      setDeleteError(mapHttpError(status, undefined, lang));
+      setDeleteError(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
     } finally {
       setIsDeleting(false);
     }

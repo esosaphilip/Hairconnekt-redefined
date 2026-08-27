@@ -132,7 +132,7 @@ export default function RescheduleAppointment() {
         setBooking(extractBooking(response));
       } catch (error) {
         const status = error instanceof ApiError ? error.status : undefined;
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
         setErrorVisible(true);
       } finally {
         setIsBookingLoading(false);
@@ -171,7 +171,7 @@ export default function RescheduleAppointment() {
         );
       } catch (error) {
         const status = error instanceof ApiError ? error.status : undefined;
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
         setErrorVisible(true);
         setSlots([]);
       } finally {
@@ -225,7 +225,7 @@ export default function RescheduleAppointment() {
         setErrorMessage(error.message);
       } else {
         const status = error instanceof ApiError ? error.status : 500;
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       }
       setErrorVisible(true);
     } finally {

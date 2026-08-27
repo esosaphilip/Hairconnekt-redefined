@@ -13,7 +13,8 @@ const ERROR_MAP: Record<number, { de: string; en: string }> = {
 };
 
 export function mapHttpError(statusCode?: number, fallback?: string, lang: Lang = 'de'): string {
+  if (fallback) return fallback;
   const entry = ERROR_MAP[statusCode ?? 0];
   if (entry) return entry[lang];
-  return fallback ?? (lang === 'en' ? 'An unknown error occurred.' : 'Ein unbekannter Fehler ist aufgetreten.');
+  return lang === 'en' ? 'An unknown error occurred.' : 'Ein unbekannter Fehler ist aufgetreten.';
 }

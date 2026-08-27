@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput, Modal } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokenStorage } from '../../utils/token-storage';
 import { colors, fonts, fontSizes, layout, spacing, borderRadius } from '../../theme';
@@ -10,9 +9,9 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { FormInput } from '../../components/FormInput';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
-import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { COUNTRY_CODES, isValidInternationalPhone, sanitizePhoneNumber } from '@/utils/country-codes';
+import { apiJson, getApiMessage } from '@/services/apiClient';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -72,17 +71,21 @@ export default function RegisterScreen() {
       setIsLoading(true);
       setErrorVisible(false);
       
-      const response = await axios.post(`${API}/auth/register`, {
-        firstName,
-        lastName,
-        email,
-        phone: fullPhone,
-        password,
-        role: 'client',
-        acceptedTerms,
+      const data = await apiJson<any>('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          phone: fullPhone,
+          password,
+          role: 'client',
+          acceptedTerms,
+        }),
       });
 
-      const { user, emailDeliveryFailed } = response.data;
+      const { user, emailDeliveryFailed } = data;
 
       await tokenStorage.setUser(user);
 
@@ -96,8 +99,9 @@ export default function RegisterScreen() {
       }
       router.replace(`/(auth)/verify-email?${params.toString()}` as any);
     } catch (err: any) {
-      const status = err.response?.status;
-      showError(mapHttpError(status, undefined, lang), status);
+      const status = err?.status ?? err?.response?.status;
+      const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+      showError(mapHttpError(status, specific, lang), status);
     } finally {
       setIsLoading(false);
     }

@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
-import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson, getApiMessage } from '@/services/apiClient';
 
 
 const RATING_LABELS = {
@@ -36,13 +34,12 @@ export default function WriteReviewScreen() {
       try {
         if (!bookingId) return;
         setIsLoading(true);
-        const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API}/bookings/${bookingId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setBooking(res.data);
+        const data = await apiJson<any>(`/bookings/${bookingId}`, { auth: true });
+        setBooking(data);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+        const status = err?.status ?? err?.response?.status;
+        const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+        setErrorMessage(mapHttpError(status, specific, lang));
         setErrorVisible(true);
       } finally {
         setIsLoading(false);
@@ -57,21 +54,25 @@ export default function WriteReviewScreen() {
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
       
-      await axios.post(`${API}/reviews`, {
-        bookingId,
-        rating,
-        comment: comment.trim()
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await apiJson<unknown>('/reviews', {
+        auth: true,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          rating,
+          comment: comment.trim(),
+        }),
       });
       router.replace(`/(client)/appointments/${bookingId}` as any);
     } catch (err: any) {
-      if (err.response?.status === 409) {
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) {
         setErrorMessage(t('reviewAlreadySubmitted'));
       } else {
-        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+        const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+        setErrorMessage(mapHttpError(status, specific, lang));
       }
       setErrorVisible(true);
       setIsSubmitting(false);

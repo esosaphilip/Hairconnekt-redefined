@@ -172,7 +172,7 @@ export default function VerifyEmailScreen() {
         setErrorMessage(t('verifyEmailTooManyRequests'));
       } else {
         if (error instanceof Error) Sentry.captureException(error);
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       }
       setErrorVisible(true);
     } finally {
@@ -206,7 +206,7 @@ export default function VerifyEmailScreen() {
         setErrorMessage(t('verifyEmailExpiredCode'));
       } else {
         if (error instanceof Error) Sentry.captureException(error);
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       }
       setErrorVisible(true);
     } finally {

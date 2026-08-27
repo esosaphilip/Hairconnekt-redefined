@@ -232,7 +232,7 @@ export default function NotificationsScreen() {
         const status = error?.status ?? error?.response?.status ?? 500;
         debugLog('Error loading notifications', error);
         setErrorStatus(status);
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        setErrorMessage(mapHttpError(status, error?.message, lang));
         setErrorVisible(true);
       } finally {
         setIsLoading(false);
@@ -263,7 +263,7 @@ export default function NotificationsScreen() {
       debugLog('Error marking as read', error);
       setNotifications(previous);
       setErrorStatus(status);
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error?.message, lang));
       setErrorVisible(true);
     }
   };
@@ -279,7 +279,7 @@ export default function NotificationsScreen() {
       debugLog('Error marking all as read', error);
       setNotifications(previous);
       setErrorStatus(status);
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error?.message, lang));
       setErrorVisible(true);
     }
   };

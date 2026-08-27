@@ -40,7 +40,7 @@ export default function ChatListScreen() {
         return;
       }
       setErrorStatus(status);
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, err?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

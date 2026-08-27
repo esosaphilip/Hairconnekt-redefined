@@ -54,7 +54,7 @@ const sleep = async (ms: number) => new Promise<void>((resolve) => setTimeout(re
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-const getApiMessage = (body: unknown): string | null => {
+export const getApiMessage = (body: unknown): string | null => {
   if (!isRecord(body) || !('message' in body)) return null;
   const message = body.message;
   if (typeof message === 'string') return message;
@@ -119,7 +119,8 @@ const refreshAccessToken = async (): Promise<string> => {
 
     const body = await parseJsonOrText(res);
     if (!res.ok || !isRecord(body)) {
-      throw new ApiError('Token refresh failed', res.status, body);
+      const message = getApiMessage(body) ?? 'Token refresh failed';
+      throw new ApiError(message, res.status, body);
     }
 
     const data = body as RefreshResponse;

@@ -107,9 +107,9 @@ export default function SharedChatScreen() {
   const lastTypingSentAtRef = useRef<number>(0);
   const myUserIdRef = useRef<string>('');
 
-  const showError = (status?: number) => {
+  const showError = (status?: number, message?: string) => {
     setErrorStatus(status);
-    setErrorMessage(mapHttpError(status, undefined, lang));
+    setErrorMessage(mapHttpError(status, message, lang));
     setErrorVisible(true);
   };
 
@@ -151,7 +151,7 @@ export default function SharedChatScreen() {
       await Linking.openURL(url);
     } catch (error) {
       debugError(`Failed to open external URL during ${context}`, error);
-      showError(500);
+      showError(500, error instanceof Error ? error.message : undefined);
     }
   };
 
@@ -171,7 +171,7 @@ export default function SharedChatScreen() {
           auth: true,
         });
       } catch (error) {
-        showError(error instanceof ApiError ? error.status : 500);
+        showError(error instanceof ApiError ? error.status : 500, error instanceof Error ? error.message : undefined);
         return;
       }
 
@@ -190,7 +190,7 @@ export default function SharedChatScreen() {
       await markConversationRead(id);
     } catch (error) {
       debugError('Failed to load chat conversation', error);
-      showError(500);
+      showError(500, error instanceof Error ? error.message : undefined);
     } finally {
       setIsLoading(false);
     }
@@ -350,7 +350,7 @@ export default function SharedChatScreen() {
       debugError('Chat send failed', error);
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
       setInput(content);
-      showError(500);
+      showError(500, error instanceof Error ? error.message : undefined);
     } finally {
       setIsSending(false);
     }
@@ -530,7 +530,7 @@ export default function SharedChatScreen() {
       }
     } catch (error) {
       debugError('Chat media upload failed', error);
-      showError(500);
+      showError(500, error instanceof Error ? error.message : undefined);
     } finally {
       setIsUploadingMedia(false);
     }

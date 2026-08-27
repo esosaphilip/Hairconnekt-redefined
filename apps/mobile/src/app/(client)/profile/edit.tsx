@@ -71,7 +71,7 @@ export default function ClientProfileEditScreen() {
       }
     } catch (error: any) {
       debugError('Client profile load failed', error);
-      setErrorMessage(mapHttpError(error?.status || 500, undefined, lang));
+      setErrorMessage(mapHttpError(error?.status || 500, error?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ export default function ClientProfileEditScreen() {
       }
     } catch (error: any) {
       debugError('Client profile save failed', error);
-      setErrorMessage(mapHttpError(500, undefined, lang));
+      setErrorMessage(mapHttpError(500, error?.message, lang));
       setErrorVisible(true);
     } finally {
       setIsSaving(false);

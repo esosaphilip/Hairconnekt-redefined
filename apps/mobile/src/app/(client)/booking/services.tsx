@@ -89,7 +89,7 @@ export default function ClientBookingServices() {
         router.replace(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
         return;
       }
-      setErrorMessage(mapHttpError(status, undefined, lang));
+      setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       setErrorVisible(true);
     } finally {
       setIsLoading(false);

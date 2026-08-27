@@ -82,7 +82,7 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       const status = err?.status ?? err.response?.status;
-      showError(mapHttpError(status, undefined, lang), status);
+      showError(mapHttpError(status, err?.message, lang), status);
     } finally {
       setIsLoading(false);
     }

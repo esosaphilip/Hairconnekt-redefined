@@ -9,6 +9,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { mapHttpError } from '../../utils/error-messages';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getApiMessage } from '@/services/apiClient';
 
 export default function PasswordResetScreen() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function PasswordResetScreen() {
       setTimeout(() => otpRefs.current[0]?.focus(), 50);
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status, undefined, lang), status);
+      showError(mapHttpError(status, getApiMessage(err?.response?.data) ?? undefined, lang), status);
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +94,7 @@ export default function PasswordResetScreen() {
       } else if (status === 410) {
         showError(t('verifyEmailExpiredCode'));
       } else {
-        showError(mapHttpError(status, undefined, lang), status);
+        showError(mapHttpError(status, getApiMessage(err?.response?.data) ?? undefined, lang), status);
       }
     } finally {
       setIsLoading(false);
@@ -118,7 +119,7 @@ export default function PasswordResetScreen() {
       router.replace('/(auth)/login' as any);
     } catch (err: any) {
       const status = err.response?.status;
-      showError(mapHttpError(status, undefined, lang), status);
+      showError(mapHttpError(status, getApiMessage(err?.response?.data) ?? undefined, lang), status);
     } finally {
       setIsLoading(false);
     }

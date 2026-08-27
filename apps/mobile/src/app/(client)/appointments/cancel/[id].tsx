@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import axios from 'axios';
-import { tokenStorage } from '../../../../utils/token-storage';
 import { colors, fonts, fontSizes, spacing, borderRadius, layout, lineHeights } from '../../../../theme';
 import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
-import { API } from '../../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { apiJson, getApiMessage } from '@/services/apiClient';
 
 type BackendReason = 'Andere Pläne' | 'Krank' | 'Notfall' | 'Anbieter abgesagt' | 'Sonstiges';
 
@@ -38,13 +36,12 @@ export default function CancelAppointment() {
       try {
         if (!id) return;
         setIsLoading(true);
-        const token = await tokenStorage.getAccessToken();
-        const res = await axios.get(`${API}/bookings/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setBooking(res.data);
+        const data = await apiJson<any>(`/bookings/${id}`, { auth: true });
+        setBooking(data);
       } catch (err: any) {
-        setErrorMessage(mapHttpError(err.response?.status, undefined, lang));
+        const status = err?.status ?? err?.response?.status;
+        const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+        setErrorMessage(mapHttpError(status, specific, lang));
         setErrorVisible(true);
       } finally {
         setIsLoading(false);
@@ -71,21 +68,24 @@ export default function CancelAppointment() {
     try {
       setIsSubmitting(true);
       setErrorVisible(false);
-      const token = await tokenStorage.getAccessToken();
 
-      await axios.patch(`${API}/bookings/${id}/cancel`, {
-        reason: selectedReason,
-        notes: notes.trim() || undefined
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await apiJson<unknown>(`/bookings/${id}/cancel`, {
+        auth: true,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: selectedReason,
+          notes: notes.trim() || undefined,
+        }),
       });
       router.replace(`/(client)/appointments` as any);
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.status ?? err?.response?.status;
       if (status === 409) {
         setErrorMessage(t('cancelNotAllowed'));
       } else {
-        setErrorMessage(mapHttpError(status, undefined, lang));
+        const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+        setErrorMessage(mapHttpError(status, specific, lang));
       }
       setErrorVisible(true);
       setIsSubmitting(false);
