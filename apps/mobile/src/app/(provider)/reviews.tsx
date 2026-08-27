@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing, shadows } from '../../theme';
@@ -304,64 +304,76 @@ export default function ReviewsScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <FlatList
-        data={reviews}
-        keyExtractor={item => item.id}
-        renderItem={renderReviewItem}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.flex1}>
+          <FlatList
+            data={reviews}
+            keyExtractor={item => item.id}
+            renderItem={renderReviewItem}
+            ListHeaderComponent={renderHeader}
+            ListEmptyComponent={renderEmpty}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        </View>
+      </TouchableWithoutFeedback>
 
       {/* REPLY MODAL */}
       <Modal visible={!!respondingToId} transparent animationType="slide" onRequestClose={closeReplyModal}>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            style={styles.bottomSheet}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          >
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <Text style={styles.sheetTitle}>{t('providerReviewsReplyTitle')}</Text>
-              
-              {targetReview && (
-                <View style={styles.sheetReviewQuote}>
-                  <Text style={styles.sheetReviewText} numberOfLines={3}>"{targetReview.comment}"</Text>
-                </View>
-              )}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              style={styles.bottomSheet}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? layout.headerHeight + spacing.md : 0}
+            >
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.sheetScrollContent}
+              >
+                <Text style={styles.sheetTitle}>{t('providerReviewsReplyTitle')}</Text>
 
-              <TextInput
-                style={styles.replyInput}
-                value={responseText}
-                onChangeText={setResponseText}
-                placeholder={t('providerReviewsReplyPlaceholder')}
-                placeholderTextColor={colors.textTertiary}
-                multiline
-                maxLength={1000}
-                textAlignVertical="top"
-                autoFocus
-                returnKeyType="default"
-              />
-              <Text style={styles.charCount}>{responseText.length}/1000</Text>
+                {targetReview && (
+                  <View style={styles.sheetReviewQuote}>
+                    <Text style={styles.sheetReviewText} numberOfLines={3}>"{targetReview.comment}"</Text>
+                  </View>
+                )}
 
-              <View style={styles.sheetActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={closeReplyModal}>
-                  <Text style={styles.cancelBtnText}>{t('providerReviewsCancel')}</Text>
-                </TouchableOpacity>
-                <View style={styles.submitBtnWrapper}>
-                  <PrimaryButton 
-                    label={t('providerReviewsSubmit')} 
-                    onPress={submitResponse}
-                    loading={isSubmittingResponse}
-                    disabled={!responseText.trim()}
-                  />
+                <TextInput
+                  style={styles.replyInput}
+                  value={responseText}
+                  onChangeText={setResponseText}
+                  placeholder={t('providerReviewsReplyPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  multiline
+                  maxLength={1000}
+                  textAlignVertical="top"
+                  autoFocus
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                />
+                <Text style={styles.charCount}>{responseText.length}/1000</Text>
+
+                <View style={styles.sheetActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closeReplyModal}>
+                    <Text style={styles.cancelBtnText}>{t('providerReviewsCancel')}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.submitBtnWrapper}>
+                    <PrimaryButton
+                      label={t('providerReviewsSubmit')}
+                      onPress={submitResponse}
+                      loading={isSubmittingResponse}
+                      disabled={!responseText.trim()}
+                    />
+                  </View>
                 </View>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
     </SafeAreaView>
@@ -370,6 +382,7 @@ export default function ReviewsScreen() {
 
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
+  flex1: { flex: 1 },
   
   header: {
     flexDirection: 'row',
@@ -462,6 +475,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontFamily: fonts.heading, fontSize: fontSizes.xl, color: colors.primary, marginBottom: spacing.md },
   sheetReviewQuote: { backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.sm, marginBottom: spacing.md },
   sheetReviewText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, fontStyle: 'italic' },
+  sheetScrollContent: { paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md },
   replyInput: {
     backgroundColor: colors.surface,
     borderRadius: spacing.sm,

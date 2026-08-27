@@ -7,11 +7,16 @@ import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, layout } 
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { COUNTRY_CODES, isValidInternationalPhone, sanitizePhoneNumber } from '@/utils/country-codes';
+import { LEGAL_URLS } from '@/constants';
 
 export default function RegisterStep1Screen() {
   const router = useRouter();
   const { form, update } = useRegistration();
   const { t } = useLanguage();
+
+  const openLegal = (url: string, title: string) => {
+    router.push({ pathname: '/(shared)/legal', params: { url, title } } as any);
+  };
   const initialDialCode =
     COUNTRY_CODES
       .slice()
@@ -264,8 +269,19 @@ export default function RegisterStep1Screen() {
             />
             <Text style={styles.termsText}>
               {t('providerRegisterTermsPrefix')}{' '}
-              <Text style={styles.linkText}>{t('providerRegisterTermsProviders')}</Text> {t('providerRegisterTermsAnd')}{' '}
-              <Text style={styles.linkText}>{t('providerRegisterTermsPrivacy')}</Text>
+              <Text
+                style={styles.linkText}
+                onPress={() => openLegal(LEGAL_URLS.terms, t('settingsTerms'))}
+              >
+                {t('providerRegisterTermsProviders')}
+              </Text>{' '}
+              {t('providerRegisterTermsAnd')}{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => openLegal(LEGAL_URLS.privacy, t('settingsPrivacy'))}
+              >
+                {t('providerRegisterTermsPrivacy')}
+              </Text>
             </Text>
           </View>
           {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}

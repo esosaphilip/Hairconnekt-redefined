@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -128,13 +128,15 @@ export default function WriteReviewScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? layout.headerHeight - spacing.sm : 0}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.flex1}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
           <GermanErrorBanner visible={errorVisible} message={errorMessage} />
 
           <View style={styles.providerCard}>
@@ -194,25 +196,25 @@ export default function WriteReviewScreen() {
               blurOnSubmit={true}
               onSubmitEditing={() => Keyboard.dismiss()}
             />
-            <Text style={styles.charCounter}>{comment.length}/500</Text>
-          </View>
-
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.submitButton, isButtonDisabled && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isButtonDisabled}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color={colors.surface} />
-            ) : (
-              <Text style={styles.submitButtonText}>{t('reviewSubmit')}</Text>
-            )}
-          </TouchableOpacity>
+              <Text style={styles.charCounter}>{comment.length}/500</Text>
+            </View>
+            <View style={styles.scrollFooter}>
+              <TouchableOpacity
+                style={[styles.submitButton, isButtonDisabled && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={isButtonDisabled}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <Text style={styles.submitButtonText}>{t('reviewSubmit')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -220,11 +222,12 @@ export default function WriteReviewScreen() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: colors.background },
   keyboardContainer: { flex: 1 },
+  flex1: { flex: 1 },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, height: layout.headerHeight, borderBottomWidth: spacing.unit, borderBottomColor: colors.border },
   backButton: { width: layout.iconButton, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontFamily: 'PlayfairDisplay-Medium', fontSize: fontSizes.xl, color: colors.primary },
-  
+
   scrollContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: spacing.xl },
   
   providerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: borderRadius.md, borderWidth: spacing.unit, borderColor: colors.border, marginBottom: spacing.xl },
@@ -245,8 +248,8 @@ const styles = StyleSheet.create({
   commentSection: { marginBottom: spacing.lg },
   commentInput: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, height: layout.textAreaHeight + layout.iconButton, fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, borderWidth: spacing.unit, borderColor: colors.border },
   charCounter: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.textTertiary, textAlign: 'right', marginTop: spacing.xs },
+  scrollFooter: { paddingTop: spacing.md, paddingBottom: spacing.xl },
 
-  footer: { backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, borderTopWidth: spacing.unit, borderTopColor: colors.border, ...shadows.card },
   submitButton: { backgroundColor: colors.coral, height: layout.buttonHeight, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   submitButtonDisabled: { backgroundColor: colors.border },
   submitButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },

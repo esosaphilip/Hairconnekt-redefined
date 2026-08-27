@@ -12,6 +12,7 @@ import { mapHttpError } from '../../utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { COUNTRY_CODES, isValidInternationalPhone, sanitizePhoneNumber } from '@/utils/country-codes';
 import { apiJson, getApiMessage } from '@/services/apiClient';
+import { LEGAL_URLS } from '@/constants';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -39,6 +40,10 @@ export default function RegisterScreen() {
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [errorVisible, setErrorVisible] = useState(false);
+
+  const openLegal = (url: string, title: string) => {
+    router.push({ pathname: '/(shared)/legal', params: { url, title } } as any);
+  };
 
   const showError = (message: string, status?: number) => {
     setErrorMessage(message);
@@ -211,10 +216,34 @@ export default function RegisterScreen() {
             textContentType="newPassword"
           />
 
-          <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAcceptedTerms(!acceptedTerms)}>
-            <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]} />
-            <Text style={styles.checkboxText}>{t('acceptTerms')}</Text>
-          </TouchableOpacity>
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              style={styles.checkboxArea}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              hitSlop={{ top: spacing.xs, right: spacing.sm, bottom: spacing.xs, left: spacing.xs }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptedTerms }}
+              accessibilityLabel={t('acceptTermsRequired')}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]} />
+            </TouchableOpacity>
+            <Text style={styles.checkboxText}>
+              {t('registerTermsPrefix')}{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => openLegal(LEGAL_URLS.terms, t('settingsTerms'))}
+              >
+                {t('registerTermsTerms')}
+              </Text>{' '}
+              {t('registerTermsConj')}{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => openLegal(LEGAL_URLS.privacy, t('settingsPrivacy'))}
+              >
+                {t('registerTermsPrivacy')}
+              </Text>
+            </Text>
+          </View>
 
           <PrimaryButton label={t('registerCreateAccount')} onPress={handleRegister} loading={isLoading} />
         </ScrollView>
@@ -305,10 +334,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
-  checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.sm },
-  checkbox: { width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.sm - spacing.xxs, borderWidth: spacing.unit, borderColor: colors.border, marginRight: spacing.md, backgroundColor: colors.surface },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.xl, marginTop: spacing.sm },
+  checkboxArea: {
+    paddingTop: spacing.xxs,
+    paddingRight: spacing.sm,
+    paddingBottom: spacing.xxs,
+  },
+  checkbox: { width: spacing.lg, height: spacing.lg, borderRadius: borderRadius.sm - spacing.xxs, borderWidth: spacing.unit, borderColor: colors.border, backgroundColor: colors.surface },
   checkboxChecked: { backgroundColor: colors.coral, borderColor: colors.coral },
-  checkboxText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
+  checkboxText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: spacing.md, paddingTop: spacing.xxs },
+  termsLink: { color: colors.teal, textDecorationLine: 'underline' },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
