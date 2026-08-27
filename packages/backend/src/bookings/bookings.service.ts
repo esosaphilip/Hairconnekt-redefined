@@ -140,14 +140,40 @@ export class BookingsService {
     return hours * 60 + minutes;
   }
 
+  private intervalsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  private sumServiceDurationMin(services: Array<{ durationMin?: number | string | null }>): number {
+    const total = services.reduce<number>((sum, s) => {
+      const n = Number(s?.durationMin ?? 0);
+      return sum + (Number.isFinite(n) ? n : 0);
+    }, 0);
+    return Math.max(total, 30);
+  }
+
+  private async acquireProviderDayXactLock(
+    manager: EntityManager,
+    providerId: string,
+    scheduledDate: string,
+  ): Promise<void> {
+    const lockKey = `${providerId}|${scheduledDate}`;
+    await manager.query(
+      'SELECT pg_advisory_xact_lock(hashtext($1::text))',
+      [lockKey],
+    );
+  }
+
   private async validateBookingSlot(
     providerId: string,
     scheduledDate: string,
     scheduledTime: string,
+    serviceDurationMin: number,
+    bufferMin: number,
   ): Promise<void> {
     const provider = await this.providerRepo.findOne({
       where: { id: providerId },
-      select: ['id', 'isOnline', 'status'],
+      select: ['id', 'isOnline', 'status', 'bufferMinutes'],
     });
 
     if (!provider) {
@@ -165,6 +191,8 @@ export class BookingsService {
         'Dieser Anbieter ist nicht freigeschaltet.',
       );
     }
+
+    const effectiveBuffer = bufferMin >= 0 ? bufferMin : (provider.bufferMinutes ?? 0);
 
     const dateObj = new Date(`${scheduledDate}T${scheduledTime}:00`);
     const dayOfWeek = dateObj.getDay();
@@ -188,13 +216,22 @@ export class BookingsService {
       );
     }
 
-    const requestedMinutes = this.timeToMinutes(scheduledTime);
+    const startMinutes = this.timeToMinutes(scheduledTime);
+    const endMinutes = startMinutes + serviceDurationMin + effectiveBuffer;
     const openMinutes = this.timeToMinutes(schedule.openTime);
     const closeMinutes = this.timeToMinutes(schedule.closeTime);
 
-    if (requestedMinutes < openMinutes || requestedMinutes >= closeMinutes) {
+    if (startMinutes < openMinutes || startMinutes >= closeMinutes) {
       throw new BadRequestException(
         `Der Anbieter ist nur zwischen ${schedule.openTime.slice(0, 5)} und ${schedule.closeTime.slice(0, 5)} Uhr verfügbar.`,
+      );
+    }
+    if (endMinutes > closeMinutes) {
+      const hours = Math.floor((closeMinutes - startMinutes - effectiveBuffer) / 60);
+      const mins = (closeMinutes - startMinutes - effectiveBuffer) % 60;
+      const maxStr = `${hours * 60 + mins} Min`;
+      throw new BadRequestException(
+        `Die gewählte Dienstleistung überschreitet die Öffnungszeiten. Maximal verfügbare Dauer ab ${scheduledTime}: ${maxStr}.`,
       );
     }
 
@@ -214,10 +251,7 @@ export class BookingsService {
           const blockStartMin = this.timeToMinutes(block.startTime);
           const blockEndMin = this.timeToMinutes(block.endTime);
 
-          if (
-            requestedMinutes >= blockStartMin &&
-            requestedMinutes < blockEndMin
-          ) {
+          if (this.intervalsOverlap(startMinutes, endMinutes, blockStartMin, blockEndMin)) {
             throw new ConflictException(
               'Der Anbieter ist zu dieser Uhrzeit nicht verfügbar (blockiert).',
             );
@@ -231,30 +265,39 @@ export class BookingsService {
     repo: Repository<Booking>,
     providerId: string,
     scheduledDate: string,
-    scheduledTime: string,
+    newStartMinutes: number,
+    newEndMinutes: number,
+    bufferMinutes: number,
     excludeBookingId?: string,
   ): Promise<void> {
-    const conflictQuery = repo
+    const sameDayBookings = repo
       .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.services', 'service')
+      .select(['booking.id', 'booking.scheduledTime', 'service.durationMin'])
       .where('booking.providerId = :providerId', { providerId })
       .andWhere('booking.scheduledDate = :scheduledDate', { scheduledDate })
-      .andWhere('booking.scheduledTime = :scheduledTime', { scheduledTime })
       .andWhere('booking.status NOT IN (:...inactiveStatuses)', {
         inactiveStatuses: [BookingStatus.CANCELLED],
       })
       .setLock('pessimistic_write');
 
     if (excludeBookingId) {
-      conflictQuery.andWhere('booking.id != :excludeBookingId', {
+      sameDayBookings.andWhere('booking.id != :excludeBookingId', {
         excludeBookingId,
       });
     }
 
-    const conflict = await conflictQuery.getOne();
-    if (conflict) {
-      throw new ConflictException(
-        'Dieser Zeitslot ist bereits vergeben. Bitte wähle eine andere Zeit.',
-      );
+    const bookings = await sameDayBookings.getMany();
+    for (const booking of bookings) {
+      if (!booking.scheduledTime) continue;
+      const existingStart = this.timeToMinutes(booking.scheduledTime);
+      const existingDuration = this.sumServiceDurationMin(booking.services ?? []);
+      const existingEnd = existingStart + existingDuration + bufferMinutes;
+      if (this.intervalsOverlap(newStartMinutes, newEndMinutes, existingStart, existingEnd)) {
+        throw new ConflictException(
+          'Dieser Zeitslot überschneidet sich mit einer bestehenden Buchung. Bitte wähle eine andere Zeit.',
+        );
+      }
     }
   }
 
@@ -313,6 +356,23 @@ export class BookingsService {
       throw new BadRequestException('scheduledTime must be in HH:MM format');
     }
 
+    const services = await this.serviceRepo.findBy({ id: In(serviceIds) });
+    if (services.length !== serviceIds.length) {
+      throw new BadRequestException('One or more services could not be resolved');
+    }
+
+    const providerData = await this.providerRepo.findOne({
+      where: { id: providerId },
+      select: ['id', 'bufferMinutes'],
+    });
+    if (!providerData) {
+      throw new NotFoundException('Anbieter nicht gefunden.');
+    }
+    const bufferMin = providerData.bufferMinutes ?? 0;
+    const serviceDurationMin = this.sumServiceDurationMin(services);
+    const newStartMinutes = this.timeToMinutes(scheduledTime);
+    const newEndMinutes = newStartMinutes + serviceDurationMin + bufferMin;
+
     const allDayBlockExists = await this.timeBlockRepo
       .createQueryBuilder('block')
       .where('block.providerId = :providerId', { providerId })
@@ -327,12 +387,7 @@ export class BookingsService {
       );
     }
 
-    await this.validateBookingSlot(providerId, scheduledDate, scheduledTime);
-
-    const services = await this.serviceRepo.findBy({ id: In(serviceIds) });
-    if (services.length !== serviceIds.length) {
-      throw new BadRequestException('One or more services could not be resolved');
-    }
+    await this.validateBookingSlot(providerId, scheduledDate, scheduledTime, serviceDurationMin, bufferMin);
 
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
 
@@ -362,11 +417,15 @@ export class BookingsService {
       try {
         const manager = queryRunner.manager;
 
+        await this.acquireProviderDayXactLock(manager, providerId, scheduledDate);
+
         await this.assertNoBookingConflict(
           manager.getRepository(Booking),
           providerId,
           scheduledDate,
-          scheduledTime,
+          newStartMinutes,
+          newEndMinutes,
+          bufferMin,
         );
 
         const bookingNumber = await this.generateBookingNumber(scheduledDate, manager);
@@ -398,36 +457,50 @@ export class BookingsService {
         await queryRunner.release();
       }
     } else {
-      await this.assertNoBookingConflict(
-        this.bookingRepo,
-        providerId,
-        scheduledDate,
-        scheduledTime,
-      );
+      const nonTxDs = this.bookingRepo.manager.connection;
+      const nonTxQr = nonTxDs.createQueryRunner();
+      await nonTxQr.connect();
+      await nonTxQr.startTransaction();
+      try {
+        const nonTxManager = nonTxQr.manager;
+        await this.acquireProviderDayXactLock(nonTxManager, providerId, scheduledDate);
 
-      const bookingNumber = await this.generateBookingNumber(
-        scheduledDate,
-        null as unknown as EntityManager,
-      );
+        await this.assertNoBookingConflict(
+          nonTxManager.getRepository(Booking),
+          providerId,
+          scheduledDate,
+          newStartMinutes,
+          newEndMinutes,
+          bufferMin,
+        );
 
-      const booking = this.bookingRepo.create({
-        bookingNumber,
-        clientId,
-        providerId,
-        status: BookingStatus.PENDING,
-        scheduledDate,
-        scheduledTime,
-        isMobile,
-        clientNotes: clientNotes || '',
-        services,
-        totalPrice,
-        paymentMethod: 'CASH',
-        notificationsPending: false,
-        notificationsError: null,
-      });
+        const bookingNumber = await this.generateBookingNumber(scheduledDate, nonTxManager);
 
-      const saved = await this.bookingRepo.save(booking);
-      savedBookingId = saved.id;
+        const booking = nonTxManager.getRepository(Booking).create({
+          bookingNumber,
+          clientId,
+          providerId,
+          status: BookingStatus.PENDING,
+          scheduledDate,
+          scheduledTime,
+          isMobile,
+          clientNotes: clientNotes || '',
+          services,
+          totalPrice,
+          paymentMethod: 'CASH',
+          notificationsPending: false,
+          notificationsError: null,
+        });
+
+        const saved = await nonTxManager.getRepository(Booking).save(booking);
+        savedBookingId = saved.id;
+        await nonTxQr.commitTransaction();
+      } catch (err) {
+        await nonTxQr.rollbackTransaction();
+        throw err;
+      } finally {
+        await nonTxQr.release();
+      }
     }
 
     const fullBooking = await this.loadFullBooking(savedBookingId);
@@ -543,9 +616,9 @@ export class BookingsService {
 
     const initialBooking = await this.bookingRepo.findOne({
       where: { id },
-      relations: ['provider', 'provider.user', 'client'],
+      relations: ['provider', 'provider.user', 'client', 'services'],
     });
-    
+
     if (!initialBooking) {
       throw new NotFoundException('Buchung nicht gefunden.');
     }
@@ -557,10 +630,17 @@ export class BookingsService {
       );
     }
 
+    const bufferMin = initialBooking.provider?.bufferMinutes ?? 0;
+    const serviceDurationMin = this.sumServiceDurationMin(initialBooking.services ?? []);
+    const newStartMinutes = this.timeToMinutes(dto.scheduledTime);
+    const newEndMinutes = newStartMinutes + serviceDurationMin + bufferMin;
+
     await this.validateBookingSlot(
       initialBooking.providerId,
       dto.scheduledDate,
       dto.scheduledTime,
+      serviceDurationMin,
+      bufferMin,
     );
 
     const useTransaction = !!this.dataSource;
@@ -574,11 +654,19 @@ export class BookingsService {
         const manager = queryRunner.manager;
         const repo = manager.getRepository(Booking);
 
+        await this.acquireProviderDayXactLock(
+          manager,
+          initialBooking.providerId,
+          dto.scheduledDate,
+        );
+
         await this.assertNoBookingConflict(
           repo,
           initialBooking.providerId,
           dto.scheduledDate,
-          dto.scheduledTime,
+          newStartMinutes,
+          newEndMinutes,
+          bufferMin,
           id,
         );
 
@@ -604,28 +692,51 @@ export class BookingsService {
         await queryRunner.release();
       }
     } else {
-      await this.assertNoBookingConflict(
-        this.bookingRepo,
-        initialBooking.providerId,
-        dto.scheduledDate,
-        dto.scheduledTime,
-        id,
-      );
+      const nonTxLockDs = this.bookingRepo.manager.connection;
+      const nonTxQr = nonTxLockDs.createQueryRunner();
+      await nonTxQr.connect();
+      await nonTxQr.startTransaction();
+      try {
+        const nonTxManager = nonTxQr.manager;
+        const nonTxRepo = nonTxManager.getRepository(Booking);
 
-      const booking = await this.bookingRepo.findOne({ where: { id } });
-      if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
+        await this.acquireProviderDayXactLock(
+          nonTxManager,
+          initialBooking.providerId,
+          dto.scheduledDate,
+        );
 
-      booking.scheduledDate = dto.scheduledDate;
-      booking.scheduledTime = dto.scheduledTime;
-      booking.status = BookingStatus.PENDING;
+        await this.assertNoBookingConflict(
+          nonTxRepo,
+          initialBooking.providerId,
+          dto.scheduledDate,
+          newStartMinutes,
+          newEndMinutes,
+          bufferMin,
+          id,
+        );
 
-      if (dto.reason) {
-        booking.clientNotes = booking.clientNotes
-          ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
-          : `[Reschedule Reason]: ${dto.reason}`;
+        const booking = await nonTxRepo.findOne({ where: { id } });
+        if (!booking) throw new NotFoundException('Buchung nicht gefunden.');
+
+        booking.scheduledDate = dto.scheduledDate;
+        booking.scheduledTime = dto.scheduledTime;
+        booking.status = BookingStatus.PENDING;
+
+        if (dto.reason) {
+          booking.clientNotes = booking.clientNotes
+            ? `${booking.clientNotes}\n\n[Reschedule Reason]: ${dto.reason}`
+            : `[Reschedule Reason]: ${dto.reason}`;
+        }
+
+        await nonTxRepo.save(booking);
+        await nonTxQr.commitTransaction();
+      } catch (err) {
+        await nonTxQr.rollbackTransaction();
+        throw err;
+      } finally {
+        await nonTxQr.release();
       }
-
-      await this.bookingRepo.save(booking);
     }
 
     const bookingAfter = await this.loadFullBooking(id);

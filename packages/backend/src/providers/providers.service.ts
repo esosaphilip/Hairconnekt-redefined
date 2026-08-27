@@ -689,6 +689,15 @@ export class ProvidersService {
     };
   }
 
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  private intervalsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+    return aStart < bEnd && bStart < aEnd;
+  }
+
   async getAvailableSlots(providerId: string, dateStr: string) {
     if (!dateStr) {
       throw new BadRequestException('date parameter is required (YYYY-MM-DD)');
@@ -713,32 +722,25 @@ export class ProvidersService {
     });
     if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
 
-    // When a provider is offline, clients should not be able to pick bookable slots.
     if (!provider.isOnline) {
       return { date: dateStr, providerId, slots: [] };
     }
 
-    // Get day of week (0=Sunday, 1=Monday ... 6=Saturday)
     const date = new Date(dateStr);
     const dayOfWeek = date.getDay();
 
-    // Get availability for this day
     const schedule = await this.availabilityRepo.findOne({
       where: { providerId, dayOfWeek },
     });
 
-    // If no schedule OR day is closed → return empty slots
     if (!schedule || !schedule.isOpen) {
       return { date: dateStr, providerId, slots: [] };
     }
 
-    const [openH, openM] = schedule.openTime.split(':').map(Number);
-    const [closeH, closeM] = schedule.closeTime.split(':').map(Number);
+    const openMinutes = this.timeToMinutes(schedule.openTime);
+    const closeMinutes = this.timeToMinutes(schedule.closeTime);
     const bufferMin = provider.bufferMinutes ?? 0;
-    const slotInterval = 30; // 30 minute slots
-
-    const openMinutes = openH * 60 + openM;
-    const closeMinutes = closeH * 60 + closeM;
+    const slotInterval = 30;
 
     const allSlotMinutes: number[] = [];
     for (
@@ -749,22 +751,7 @@ export class ProvidersService {
       allSlotMinutes.push(m);
     }
 
-    const occupiedRanges: Array<{ start: number; end: number }> = [];
-
-    const existingBookings = await this.bookingRepo
-      .createQueryBuilder('booking')
-      .select(['booking.scheduledTime'])
-      .where('booking.providerId = :providerId', { providerId })
-      .andWhere('booking.scheduledDate = :date', { date: dateParam })
-      .andWhere('booking.status != :cancelled', { cancelled: BookingStatus.CANCELLED })
-      .getMany();
-
-    for (const booking of existingBookings) {
-      if (!booking.scheduledTime) continue;
-      const [h, min] = booking.scheduledTime.split(':').map(Number);
-      const start = h * 60 + min;
-      occupiedRanges.push({ start, end: start + slotInterval + bufferMin });
-    }
+    const occupiedRanges: Array<{ start: number; end: number; reason: 'booking' | 'block' }> = [];
 
     const timeBlocks = await this.timeBlockRepo
       .createQueryBuilder('block')
@@ -775,36 +762,46 @@ export class ProvidersService {
 
     const hasAllDayBlock = timeBlocks.some((b) => b.isAllDay);
     if (hasAllDayBlock) {
-      const slots = allSlotMinutes.map((slotMinute) => {
-        const hours = Math.floor(slotMinute / 60)
-          .toString()
-          .padStart(2, '0');
-        const mins = (slotMinute % 60).toString().padStart(2, '0');
-        const timeStr = `${hours}:${mins}`;
-        return {
-          time: timeStr,
-          startTime: timeStr,
-          available: false,
-          isAvailable: false,
-        };
-      });
-      return { date: dateParam, providerId, slots };
+      return { date: dateParam, providerId, slots: [] };
     }
 
     for (const block of timeBlocks) {
       if (!block.isAllDay && block.startTime && block.endTime) {
-        const [bStartHour, bStartMin] = block.startTime.split(':').map(Number);
-        const [bEndHour, bEndMin] = block.endTime.split(':').map(Number);
-
         occupiedRanges.push({
-          start: bStartHour * 60 + bStartMin,
-          end: bEndHour * 60 + bEndMin,
+          start: this.timeToMinutes(block.startTime),
+          end: this.timeToMinutes(block.endTime),
+          reason: 'block',
         });
       }
     }
 
-    const isSlotOccupied = (slotMinute: number) =>
-      occupiedRanges.some((range) => slotMinute >= range.start && slotMinute < range.end);
+    const existingBookings = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.services', 'service')
+      .select(['booking.scheduledTime', 'service.durationMin'])
+      .where('booking.providerId = :providerId', { providerId })
+      .andWhere('booking.scheduledDate = :date', { date: dateParam })
+      .andWhere('booking.status != :cancelled', { cancelled: BookingStatus.CANCELLED })
+      .getMany();
+
+    for (const booking of existingBookings) {
+      if (!booking.scheduledTime) continue;
+      const start = this.timeToMinutes(booking.scheduledTime);
+      const serviceDurationMin = booking.services?.length
+        ? booking.services.reduce<number>((sum, s) => sum + (Number(s.durationMin) || 0), 0)
+        : slotInterval;
+      const actualDuration = Math.max(serviceDurationMin, slotInterval);
+      occupiedRanges.push({
+        start,
+        end: start + actualDuration + bufferMin,
+        reason: 'booking',
+      });
+    }
+
+    const doesSlotOverlap = (slotStart: number, slotDuration: number): boolean =>
+      occupiedRanges.some((range) =>
+        this.intervalsOverlap(slotStart, slotStart + slotDuration, range.start, range.end),
+      );
 
     const now = new Date();
     const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
@@ -814,7 +811,9 @@ export class ProvidersService {
       const mins = (slotMinute % 60).toString().padStart(2, '0');
       const timeStr = `${hours}:${mins}`;
       const isPastTime = isToday && slotMinute < nowMinutes;
-      const available = !isPastTime && !isSlotOccupied(slotMinute);
+      const slotClosesBeforeEnd = slotMinute + slotInterval + bufferMin <= closeMinutes;
+      const overlaps = doesSlotOverlap(slotMinute, slotInterval + bufferMin);
+      const available = !isPastTime && slotClosesBeforeEnd && !overlaps;
       return {
         time: timeStr,
         startTime: timeStr,
