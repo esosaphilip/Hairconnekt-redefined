@@ -74,6 +74,10 @@ export class AvailabilityDayDto {
   @IsUUID()
   id?: string;
 
+  @IsOptional()
+  @IsUUID()
+  providerId?: string;
+
   @Type(() => Number)
   @IsInt()
   @Min(0)
