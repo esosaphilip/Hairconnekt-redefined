@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -89,11 +89,21 @@ export class AvailabilityDayDto {
   isOpen: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    const m = value.match(/^(\d{2}:\d{2})(:\d{2})?$/);
+    return m ? m[1] : value;
+  })
   @IsString()
   @MaxLength(5)
   openTime?: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    const m = value.match(/^(\d{2}:\d{2})(:\d{2})?$/);
+    return m ? m[1] : value;
+  })
   @IsString()
   @MaxLength(5)
   closeTime?: string;
