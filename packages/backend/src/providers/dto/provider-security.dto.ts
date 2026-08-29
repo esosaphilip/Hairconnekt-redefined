@@ -6,6 +6,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -69,6 +70,10 @@ export class UpdateProviderProfileDto {
 }
 
 export class AvailabilityDayDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   @Type(() => Number)
   @IsInt()
   @Min(0)
