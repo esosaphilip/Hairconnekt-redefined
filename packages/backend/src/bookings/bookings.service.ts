@@ -278,8 +278,7 @@ export class BookingsService {
       .andWhere('booking.scheduledDate = :scheduledDate', { scheduledDate })
       .andWhere('booking.status NOT IN (:...inactiveStatuses)', {
         inactiveStatuses: [BookingStatus.CANCELLED],
-      })
-      .setLock('pessimistic_write');
+      });
 
     if (excludeBookingId) {
       sameDayBookings.andWhere('booking.id != :excludeBookingId', {

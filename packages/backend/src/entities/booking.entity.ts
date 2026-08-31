@@ -44,7 +44,11 @@ export class Booking {
   provider: Provider;
 
   @ManyToMany(() => Service)
-  @JoinTable({ name: 'booking_services' })
+  @JoinTable({
+    name: 'booking_services',
+    joinColumn: { name: 'bookingsId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'servicesId', referencedColumnName: 'id' },
+  })
   services: Service[];
 
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING, enumName: 'booking_status_enum' })
