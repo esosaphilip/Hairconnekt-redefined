@@ -419,9 +419,9 @@ const styles = StyleSheet.create({
 
   filterScrollContainer: { marginBottom: spacing.lg },
   filterScroll: { paddingHorizontal: spacing.lg, gap: spacing.sm },
-  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: colors.surface },
-  filterChipActive: { backgroundColor: colors.primary },
-  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary },
+  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: colors.surface, borderWidth: spacing.unit, borderColor: colors.borderStrong },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   filterTextActive: { color: colors.background },
 
   reviewCard: {

@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   pillUnselected: { backgroundColor: colors.surface },
   pillText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md },
   pillTextSelected: { color: colors.background },
-  pillTextUnselected: { color: colors.textSecondary },
+  pillTextUnselected: { color: colors.textPrimary },
 
   languagesErrorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.error, marginTop: spacing.xs },
   
