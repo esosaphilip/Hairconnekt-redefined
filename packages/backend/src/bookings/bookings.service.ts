@@ -1042,6 +1042,25 @@ export class BookingsService {
       return this.findOne(id, user);
     }
 
+    if (preCheck.scheduledDate && preCheck.scheduledTime) {
+      const [yearStr, monthStr, dayStr] = preCheck.scheduledDate.split('-');
+      const [hourStr, minuteStr] = preCheck.scheduledTime.split(':');
+      const scheduledDateObj = new Date(
+        Number(yearStr),
+        Number(monthStr) - 1,
+        Number(dayStr),
+        Number(hourStr),
+        Number(minuteStr),
+      );
+      const now = new Date();
+      const earliestStartMs = scheduledDateObj.getTime() - 30 * 60 * 1000;
+      if (now.getTime() < earliestStartMs) {
+        throw new BadRequestException(
+          'Der Termin kann erst 30 Minuten vor der geplanten Zeit gestartet werden.',
+        );
+      }
+    }
+
     try {
       await this.transitionStatusWithTx(
         id,
@@ -1052,7 +1071,11 @@ export class BookingsService {
         },
       );
     } catch (e) {
-      if (e instanceof BadRequestException) {
+      if (
+        e instanceof BadRequestException &&
+        typeof (e as any).message === 'string' &&
+        (e as any).message.startsWith('Invalid status transition')
+      ) {
         throw new BadRequestException('Nur bestätigte Buchungen können gestartet werden.');
       }
       throw e;

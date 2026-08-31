@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -26,6 +26,7 @@ export default function ProviderDashboardScreen() {
   });
   const [todayBookings, setTodayBookings] = useState<any[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
     let active = true;
@@ -152,6 +153,32 @@ export default function ProviderDashboardScreen() {
       debugError('Provider booking start failed', error);
     }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setNow(new Date());
+    }, []),
+  );
+
+  const canStartBooking = useCallback((booking: any): boolean => {
+    if (!booking?.scheduledDate || !booking?.scheduledTime) return false;
+    const [yearStr, monthStr, dayStr] = String(booking.scheduledDate).split('-');
+    const [hourStr, minuteStr] = String(booking.scheduledTime).split(':');
+    const scheduledDateObj = new Date(
+      Number(yearStr),
+      Number(monthStr) - 1,
+      Number(dayStr),
+      Number(hourStr),
+      Number(minuteStr),
+    );
+    const earliestStartMs = scheduledDateObj.getTime() - 30 * 60 * 1000;
+    return now.getTime() >= earliestStartMs;
+  }, [now]);
 
   const getTodayDateString = () => {
     const today = new Date();
@@ -324,6 +351,7 @@ export default function ProviderDashboardScreen() {
                       label={t('dashboardStart')} 
                       onPress={() => startBooking(booking.id)}
                       variant="filled"
+                      disabled={!canStartBooking(booking)}
                     />
                   </View>
                 )}

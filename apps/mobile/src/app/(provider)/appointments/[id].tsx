@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -58,12 +58,34 @@ export default function ProviderAppointmentDetailScreen() {
   const [booking, setBooking] = useState<ProviderAppointment | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
+  const [now, setNow] = useState<Date>(new Date());
 
   useFocusEffect(
     React.useCallback(() => {
       if (bookingId) fetchBookingDetails();
+      setNow(new Date());
     }, [bookingId]),
   );
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const canStartAppointment = useCallback((b: ProviderAppointment | null): boolean => {
+    if (!b?.scheduledDate || !b?.scheduledTime) return false;
+    const [yearStr, monthStr, dayStr] = b.scheduledDate.split('-');
+    const [hourStr, minuteStr] = b.scheduledTime.split(':');
+    const scheduledDateObj = new Date(
+      Number(yearStr),
+      Number(monthStr) - 1,
+      Number(dayStr),
+      Number(hourStr),
+      Number(minuteStr),
+    );
+    const earliestStartMs = scheduledDateObj.getTime() - 30 * 60 * 1000;
+    return now.getTime() >= earliestStartMs;
+  }, [now]);
 
   const extractBooking = (
     payload: ProviderAppointmentResponse,
@@ -387,6 +409,7 @@ export default function ProviderAppointmentDetailScreen() {
             label={t('providerStartAppointment')} 
             onPress={() => updateBookingStatus('start')}
             variant="filled"
+            disabled={!canStartAppointment(booking)}
           />
         </View>
       )}
