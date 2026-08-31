@@ -62,7 +62,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           userId,
           message: exception.message,
           stack: exception instanceof Error ? exception.stack : String(exception),
-          extra: diagnostics,
         });
       }
     } else {
@@ -80,7 +79,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         userId,
         message: exception instanceof Error ? exception.message : 'Unhandled exception',
         stack: exception instanceof Error ? exception.stack : String(exception),
-        extra: diagnostics,
       });
     }
 
