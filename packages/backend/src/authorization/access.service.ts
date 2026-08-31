@@ -164,8 +164,7 @@ export class AccessService {
           action === 'booking:accept' ||
           action === 'booking:decline' ||
           action === 'booking:start' ||
-          action === 'booking:complete' ||
-          action === 'booking:update'
+          action === 'booking:complete'
         ) {
           const provider = await this.providerRepo.findOne({
             where: { userId: actor.id },
@@ -174,6 +173,19 @@ export class AccessService {
             AccessService.forbidden();
           }
           return booking;
+        }
+
+        if (action === 'booking:update') {
+          if (actor.id === booking.clientId) {
+            return booking;
+          }
+          const provider = await this.providerRepo.findOne({
+            where: { userId: actor.id },
+          });
+          if (provider && provider.id === booking.providerId) {
+            return booking;
+          }
+          AccessService.forbidden();
         }
 
         return booking;

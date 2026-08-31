@@ -548,6 +548,34 @@ test('21. booking:update for reschedule allows own provider', async () => {
   assert.deepEqual(result, booking);
 });
 
+test('21b. booking:update for reschedule allows owning client', async () => {
+  const booking = { id: 'booking-1', clientId: 'client-1', providerId: 'provider-1' };
+  const { service } = createAccessServiceMocks({
+    bookingFindOne: async () => booking,
+  });
+
+  const actor = { id: 'client-1', role: UserRole.CLIENT };
+  const result = await service.authorizeBooking(actor, 'booking:update', 'booking-1');
+  assert.deepEqual(result, booking);
+});
+
+test('21c. booking:update rejects unrelated client', async () => {
+  const booking = { id: 'booking-1', clientId: 'client-1', providerId: 'provider-1' };
+  const { service } = createAccessServiceMocks({
+    bookingFindOne: async () => booking,
+  });
+
+  const actor = { id: 'client-999', role: UserRole.CLIENT };
+  await assert.rejects(
+    service.authorizeBooking(actor, 'booking:update', 'booking-1'),
+    (error) => {
+      assert.ok(error instanceof ForbiddenException);
+      assert.strictEqual(error.message, 'Nicht autorisiert.');
+      return true;
+    },
+  );
+});
+
 test('22. booking:not-found throws NotFound for missing booking id', async () => {
   const { service } = createAccessServiceMocks({
     bookingFindOne: async () => null,
