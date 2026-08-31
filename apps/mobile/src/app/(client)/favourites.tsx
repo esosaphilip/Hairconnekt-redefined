@@ -37,7 +37,12 @@ export default function FavouritesScreen() {
       const payload = res?.data ?? res ?? [];
       setFavourites(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
-      if (err?.status === 401) {
+      const msg = err?.message ?? String(err ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication') ||
+        err?.status === 401;
+      if (isGuestError) {
         router.replace('/(auth)/login');
         return;
       }

@@ -229,11 +229,20 @@ export default function NotificationsScreen() {
         setHasMore(response.meta?.hasNextPage ?? false);
         setPage(pageNum);
       } catch (error: any) {
+        const msg = error?.message ?? String(error ?? '');
+        const isGuestError =
+          msg.includes('No authentication token') ||
+          msg.includes('authentication');
         const status = error?.status ?? error?.response?.status ?? 500;
-        debugLog('Error loading notifications', error);
-        setErrorStatus(status);
-        setErrorMessage(mapHttpError(status, error?.message, lang));
-        setErrorVisible(true);
+        if (isGuestError) {
+          setNotifications([]);
+          setHasMore(false);
+        } else {
+          debugLog('Error loading notifications', error);
+          setErrorStatus(status);
+          setErrorMessage(mapHttpError(status, error?.message, lang));
+          setErrorVisible(true);
+        }
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
@@ -259,12 +268,20 @@ export default function NotificationsScreen() {
       );
       await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
     } catch (error: any) {
-      const status = error?.status ?? error?.response?.status ?? 500;
-      debugLog('Error marking as read', error);
-      setNotifications(previous);
-      setErrorStatus(status);
-      setErrorMessage(mapHttpError(status, error?.message, lang));
-      setErrorVisible(true);
+      const msg = error?.message ?? String(error ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication');
+      if (isGuestError) {
+        setNotifications(previous);
+      } else {
+        const status = error?.status ?? error?.response?.status ?? 500;
+        debugLog('Error marking as read', error);
+        setNotifications(previous);
+        setErrorStatus(status);
+        setErrorMessage(mapHttpError(status, error?.message, lang));
+        setErrorVisible(true);
+      }
     }
   };
 
@@ -275,12 +292,20 @@ export default function NotificationsScreen() {
       setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
       await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
     } catch (error: any) {
-      const status = error?.status ?? error?.response?.status ?? 500;
-      debugLog('Error marking all as read', error);
-      setNotifications(previous);
-      setErrorStatus(status);
-      setErrorMessage(mapHttpError(status, error?.message, lang));
-      setErrorVisible(true);
+      const msg = error?.message ?? String(error ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication');
+      if (isGuestError) {
+        setNotifications(previous);
+      } else {
+        const status = error?.status ?? error?.response?.status ?? 500;
+        debugLog('Error marking all as read', error);
+        setNotifications(previous);
+        setErrorStatus(status);
+        setErrorMessage(mapHttpError(status, error?.message, lang));
+        setErrorVisible(true);
+      }
     }
   };
 

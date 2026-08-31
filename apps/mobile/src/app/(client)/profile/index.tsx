@@ -25,7 +25,12 @@ export default function ClientProfileScreen() {
       const res = await apiJson<any>('/users/me', { auth: true });
       setUser(res?.data || res);
     } catch (err: any) {
-      if (err?.status === 401) {
+      const msg = err?.message ?? String(err ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication') ||
+        err?.status === 401;
+      if (isGuestError) {
         router.replace('/(auth)/login');
         return;
       }

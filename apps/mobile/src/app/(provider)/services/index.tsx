@@ -42,10 +42,19 @@ export default function ProviderServicesListScreen() {
 
       const svcData = svcRes?.data ?? svcRes ?? [];
       setServices(Array.isArray(svcData) ? svcData : []);
-    } catch (e) {
-      setErrorStatus(e?.status ?? e?.response?.status);
-      setErrorMessage(e?.message);
-      setErrorVisible(true);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication');
+      if (isGuestError) {
+        setServices([]);
+        setCategories({});
+      } else {
+        setErrorStatus(e?.status ?? e?.response?.status);
+        setErrorMessage(e?.message);
+        setErrorVisible(true);
+      }
     } finally {
       setLoading(false);
     }

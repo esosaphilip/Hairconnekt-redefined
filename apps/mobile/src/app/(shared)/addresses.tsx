@@ -58,10 +58,18 @@ export default function AddressesScreen() {
       const data: any = await apiJson('/users/me/addresses', { auth: true });
       const list = data.data ?? data ?? [];
       setAddresses(Array.isArray(list) ? list : []);
-    } catch (error) {
-      debugError('Address list load failed', error);
-      setListErrorVisible(true);
-      setAddresses([]);
+    } catch (error: any) {
+      const msg = error?.message ?? String(error ?? '');
+      const isGuestError =
+        msg.includes('No authentication token') ||
+        msg.includes('authentication');
+      if (isGuestError) {
+        setAddresses([]);
+      } else {
+        debugError('Address list load failed', error);
+        setListErrorVisible(true);
+        setAddresses([]);
+      }
     } finally {
       setIsLoading(false);
     }
