@@ -40,6 +40,11 @@ import { getDatabaseSslConfig } from './common/database/database-ssl';
           : ['error', 'warn'],
       retryAttempts: 5,
       retryDelay: 3000,
+      extra: {
+        max: 8,
+        connectionTimeoutMillis: 3000,
+        idleTimeoutMillis: 10000,
+      },
     }),
     AuthModule,
     InvitationsModule,

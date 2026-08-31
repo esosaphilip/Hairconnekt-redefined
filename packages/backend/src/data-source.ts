@@ -14,4 +14,9 @@ export const AppDataSource = new DataSource({
     (process.env.NODE_ENV ?? 'development') === 'development'
       ? 'all'
       : ['error', 'warn'],
+  extra: {
+    max: 8,
+    connectionTimeoutMillis: 3000,
+    idleTimeoutMillis: 10000,
+  },
 });

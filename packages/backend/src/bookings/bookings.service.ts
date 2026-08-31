@@ -417,6 +417,8 @@ export class BookingsService {
       try {
         const manager = queryRunner.manager;
 
+        await manager.query('SET LOCAL statement_timeout = \'10s\'');
+
         await this.acquireProviderDayXactLock(manager, providerId, scheduledDate);
 
         await this.assertNoBookingConflict(
@@ -463,6 +465,9 @@ export class BookingsService {
       await nonTxQr.startTransaction();
       try {
         const nonTxManager = nonTxQr.manager;
+
+        await nonTxManager.query('SET LOCAL statement_timeout = \'10s\'');
+
         await this.acquireProviderDayXactLock(nonTxManager, providerId, scheduledDate);
 
         await this.assertNoBookingConflict(
