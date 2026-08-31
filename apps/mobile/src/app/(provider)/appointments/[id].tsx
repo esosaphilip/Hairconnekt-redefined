@@ -150,7 +150,21 @@ export default function ProviderAppointmentDetailScreen() {
       fetchBookingDetails();
     } catch (error) {
       debugError(`Provider booking status update failed action=${action}`, error);
-      Alert.alert(t('error'), getErrorMessage(error, t('errorUnknown')));
+      const bodyMessage =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === 'object' &&
+        'message' in error.body &&
+        typeof (error.body as { message?: unknown }).message === 'string'
+          ? (error.body as { message: string }).message
+          : null;
+      const isTooEarly =
+        action === 'start' &&
+        error instanceof ApiError &&
+        error.status === 400 &&
+        bodyMessage === 'Der Termin kann erst 30 Minuten vor der geplanten Zeit gestartet werden.';
+      const title = isTooEarly ? t('appointmentTooEarlyTitle') : t('error');
+      Alert.alert(title, getErrorMessage(error, t('errorUnknown')));
     }
   };
 

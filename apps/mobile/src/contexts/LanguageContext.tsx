@@ -267,6 +267,7 @@ export const TRANSLATIONS = {
   providerRegisterUploadingPortfolio: { de: 'Portfolio wird hochgeladen...', en: 'Uploading portfolio...' },
 
   error: { de: 'Fehler', en: 'Error' },
+  appointmentTooEarlyTitle: { de: 'Noch zu früh', en: 'Too early' },
   errorOpenLink: { de: 'Konnte den Link nicht öffnen.', en: 'Could not open the link.' },
   callUnavailable: { de: 'Anruf konnte nicht gestartet werden. Bitte versuche es später erneut.', en: 'Could not initiate call. Please try again later.' },
   enterPassword: { de: 'Bitte Passwort eingeben', en: 'Please enter your password.' },
