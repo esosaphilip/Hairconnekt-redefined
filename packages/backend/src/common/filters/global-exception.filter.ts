@@ -4,6 +4,26 @@ import {
 import { Request, Response } from 'express';
 import { ErrorReporter } from '../error-reporting/error-reporter';
 
+type AnyError = Error & Record<string, unknown>;
+
+function extractDiagnostics(exception: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (exception && typeof exception === 'object') {
+    const ex = exception as AnyError;
+    out.constructorName = exception.constructor?.name;
+    out.message = ex.message ?? undefined;
+    out.name = ex.name ?? undefined;
+    for (const pgField of ['code', 'severity', 'detail', 'schema', 'table', 'column', 'constraint', 'routine', 'query']) {
+      if (pgField in ex && (ex as any)[pgField] !== undefined && (ex as any)[pgField] !== null) {
+        out[pgField] = (ex as any)[pgField];
+      }
+    }
+  } else {
+    out.rawValue = String(exception);
+  }
+  return out;
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
@@ -16,6 +36,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const requestId = request.header('x-request-id') ?? ((request as any).requestId as string | undefined);
     const userId = (request as any)?.user?.sub as string | undefined;
+    const diagnostics = extractDiagnostics(exception);
 
     let status: number;
     let message: string | string[];
@@ -30,7 +51,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         this.logger.warn(`Validation Error 400: ${JSON.stringify(res)}`);
       } else if (status >= 500) {
         this.logger.error(
-          `HttpException ${status} ${request.method} ${request.url} requestId=${requestId ?? ''}`,
+          `HttpException ${status} ${request.method} ${request.url} requestId=${requestId ?? ''} constructor=${diagnostics.constructorName ?? ''} ${JSON.stringify(diagnostics)}`,
           exception instanceof Error ? exception.stack : String(exception),
         );
         void this.errorReporter?.report({
@@ -41,14 +62,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           userId,
           message: exception.message,
           stack: exception instanceof Error ? exception.stack : String(exception),
+          extra: diagnostics,
         });
       }
     } else {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Interner Serverfehler.';
-      // NEVER expose raw exception details to client
       this.logger.error(
-        `Unhandled exception 500 ${request.method} ${request.url} requestId=${requestId ?? ''}`,
+        `Unhandled exception 500 ${request.method} ${request.url} requestId=${requestId ?? ''} ${JSON.stringify(diagnostics)}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
       void this.errorReporter?.report({
@@ -59,6 +80,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         userId,
         message: exception instanceof Error ? exception.message : 'Unhandled exception',
         stack: exception instanceof Error ? exception.stack : String(exception),
+        extra: diagnostics,
       });
     }
 
