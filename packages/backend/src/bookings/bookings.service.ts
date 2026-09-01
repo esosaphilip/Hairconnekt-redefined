@@ -301,13 +301,14 @@ export class BookingsService {
   }
 
   private async findIdempotentPendingBooking(
+    repo: Repository<Booking>,
     clientId: string,
     providerId: string,
     scheduledDate: string,
     scheduledTime: string,
     serviceIds: string[],
   ): Promise<Booking | null> {
-    const existing = await this.bookingRepo
+    const existing = await repo
       .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.services', 'service')
       .where('booking.clientId = :clientId', { clientId })
@@ -390,21 +391,6 @@ export class BookingsService {
 
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
 
-    const idempotentBooking = await this.findIdempotentPendingBooking(
-      clientId,
-      providerId,
-      scheduledDate,
-      scheduledTime,
-      serviceIds,
-    );
-    if (idempotentBooking) {
-      const full = await this.loadFullBooking(idempotentBooking.id);
-      return {
-        message: 'Booking created successfully',
-        booking: full ?? idempotentBooking,
-      };
-    }
-
     const useTransaction = !!this.dataSource;
     let savedBookingId: string;
     let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
@@ -419,6 +405,23 @@ export class BookingsService {
         await manager.query('SET LOCAL statement_timeout = \'10s\'');
 
         await this.acquireProviderDayXactLock(manager, providerId, scheduledDate);
+
+        const idempotentBooking = await this.findIdempotentPendingBooking(
+          manager.getRepository(Booking),
+          clientId,
+          providerId,
+          scheduledDate,
+          scheduledTime,
+          serviceIds,
+        );
+        if (idempotentBooking) {
+          await queryRunner.commitTransaction();
+          const full = await this.loadFullBooking(idempotentBooking.id);
+          return {
+            message: 'Booking created successfully',
+            booking: full ?? idempotentBooking,
+          };
+        }
 
         await this.assertNoBookingConflict(
           manager.getRepository(Booking),
@@ -468,6 +471,23 @@ export class BookingsService {
         await nonTxManager.query('SET LOCAL statement_timeout = \'10s\'');
 
         await this.acquireProviderDayXactLock(nonTxManager, providerId, scheduledDate);
+
+        const idempotentBooking = await this.findIdempotentPendingBooking(
+          nonTxManager.getRepository(Booking),
+          clientId,
+          providerId,
+          scheduledDate,
+          scheduledTime,
+          serviceIds,
+        );
+        if (idempotentBooking) {
+          await nonTxQr.commitTransaction();
+          const full = await this.loadFullBooking(idempotentBooking.id);
+          return {
+            message: 'Booking created successfully',
+            booking: full ?? idempotentBooking,
+          };
+        }
 
         await this.assertNoBookingConflict(
           nonTxManager.getRepository(Booking),
