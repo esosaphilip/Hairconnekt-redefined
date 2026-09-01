@@ -8,6 +8,7 @@ import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
+import { GetBookingsQueryDto } from './dto/get-bookings-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,15 +36,11 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
   @Roles(UserRole.CLIENT, UserRole.PROVIDER)
   async getBookings(
-    @Request() req: AuthRequest, 
-    @Query('status') status: string,
-    @Query('today') today: string,
-    @Query('month') month: string,
-    @Query('page') pageStr?: string,
-    @Query('limit') limitStr?: string
+    @Request() req: AuthRequest,
+    @Query() query: GetBookingsQueryDto,
   ) {
-    const { page, limit } = parsePagination(pageStr, limitStr);
-    return this.bookingsService.findAll(req.user, status, page, limit, today === 'true', month);
+    const { page, limit } = parsePagination(query.page, query.limit);
+    return this.bookingsService.findAll(req.user, query.status ?? '', page, limit, query.today === 'true', query.month);
   }
 
   @Get(':id')
