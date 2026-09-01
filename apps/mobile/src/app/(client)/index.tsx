@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
@@ -98,6 +99,7 @@ export default function ClientHome() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const { isFavourite, toggleFavourite } = useFavourites();
+  const insets = useSafeAreaInsets();
   
   const [firstName, setFirstName] = useState('');
   const [userCity, setUserCity] = useState<string | null>(null);
@@ -431,8 +433,8 @@ export default function ClientHome() {
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
             style={styles.locationModal}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === 'android' ? insets.top : 0}
           >
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.locationModalTitle}>{t('homeLocationModal')}</Text>
@@ -459,12 +461,28 @@ export default function ClientHome() {
                 style={styles.locationGpsBtn}
                 onPress={async () => {
                   Keyboard.dismiss();
-                  setShowLocationModal(false);
                   await setDiscoveryOverride(null);
                   const coords = await getDiscoveryCoordinates(true);
                   setDiscoveryLocation(coords);
-                  await fetchProviders(coords);
-                  setUserCity(t('countryDefault'));
+                  if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+                    let resolvedCity: string | null = null;
+                    try {
+                      const results = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
+                      const first = Array.isArray(results) ? results[0] : null;
+                      resolvedCity = first?.city || first?.subregion || first?.region || null;
+                    } catch {
+                      resolvedCity = null;
+                    }
+                    if (resolvedCity) {
+                      await setDiscoveryOverride({ city: resolvedCity, lat: coords.lat, lng: coords.lng });
+                    }
+                    setUserCity(resolvedCity || t('countryDefault'));
+                    await fetchProviders(coords);
+                  } else {
+                    setUserCity(t('countryDefault'));
+                    await fetchProviders(coords);
+                  }
+                  setShowLocationModal(false);
                 }}
               >
                 <Feather name="navigation" size={16} color={colors.teal} />
