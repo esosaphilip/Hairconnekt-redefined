@@ -53,7 +53,7 @@ export const TRANSLATIONS = {
   calendarDeleteBlockedTime: { de: 'Zeitblock löschen', en: 'Delete blocked time' },
   shareProfileAction: { de: 'Profil teilen', en: 'Share profile' },
   shareProfileMessage: {
-    de: 'Schau dir {name} auf HairConnekt an — deine Anbieter-Profil',
+    de: 'Schau dir {name} auf HairConnekt an — mein Geheimtipp für Braids!',
     en: 'Check out {name} on HairConnekt — your go-to braider spot.',
   },
   favouritesAddAction: { de: 'Zu Favoriten hinzufügen', en: 'Add to favourites' },
