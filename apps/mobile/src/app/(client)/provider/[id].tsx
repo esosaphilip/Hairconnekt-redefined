@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -245,6 +245,16 @@ export default function ProviderProfile() {
             <View style={styles.heroControlsRight}>
               <TouchableOpacity
                 style={styles.iconButton}
+                onPress={() => {
+                  try {
+                    const businessName = provider?.businessName || t('providerGeneric');
+                    const message = t('shareProfileMessage').replace('{name}', businessName);
+                    const url = `hairconnekt://provider/${providerId}`;
+                    void Share.share({ message, url });
+                  } catch (err) {
+                    debugLog('Share provider profile failed:', err);
+                  }
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={shareLabel}
               >
