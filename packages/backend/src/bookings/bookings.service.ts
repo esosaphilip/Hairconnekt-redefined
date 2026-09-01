@@ -591,13 +591,13 @@ export class BookingsService {
       where.scheduledDate = new Date().toISOString().split('T')[0];
     } else if (month) {
       if (!/^\d{4}-\d{2}$/.test(month)) {
-        throw new BadRequestException('month must be in YYYY-MM format');
+        throw new BadRequestException('Monat muss im JJJJ-MM-Format sein, z.B. 2026-09.');
       }
       const [yearStr, monthNumStr] = month.split('-');
       const year = parseInt(yearStr, 10);
       const monthNum = parseInt(monthNumStr, 10);
       if (monthNum < 1 || monthNum > 12 || Number.isNaN(year) || Number.isNaN(monthNum)) {
-        throw new BadRequestException('month must be in YYYY-MM format');
+        throw new BadRequestException('Monat muss im JJJJ-MM-Format sein, z.B. 2026-09.');
       }
       const startDate = `${month}-01`;
       const nextMonthNum = monthNum === 12 ? 1 : monthNum + 1;

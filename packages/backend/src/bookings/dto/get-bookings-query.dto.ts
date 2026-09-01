@@ -12,7 +12,7 @@ export class GetBookingsQueryDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d{4}-\d{2}$/, { message: 'month must be in YYYY-MM format' })
+  @Matches(/^\d{4}-\d{2}$/, { message: 'Monat muss im JJJJ-MM-Format sein, z.B. 2026-09.' })
   month?: string;
 
   @IsOptional()
