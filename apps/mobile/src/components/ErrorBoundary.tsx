@@ -50,7 +50,6 @@ function resolve(key: TransKey, ctx: CtxShape | null | undefined): string {
 
 export class ErrorBoundary extends Component<Props, State> {
   static contextType = LanguageContext;
-  context!: React.ContextType<typeof LanguageContext>;
 
   constructor(props: Props) {
     super(props);
