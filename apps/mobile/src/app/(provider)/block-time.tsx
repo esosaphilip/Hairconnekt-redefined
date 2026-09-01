@@ -151,7 +151,9 @@ export default function BlockTimeScreen() {
 
   const formatTime = (time: Date | null) => {
     if (!time) return 'HH:MM';
-    return time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    const hours = String(time.getHours()).padStart(2, '0');
+    const minutes = String(time.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
   };
 
   // Convert local Date to YYYY-MM-DD format

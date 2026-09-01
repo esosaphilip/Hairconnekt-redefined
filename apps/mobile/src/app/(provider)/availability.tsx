@@ -107,7 +107,9 @@ export default function AvailabilityScreen() {
   };
 
   const handlePickerConfirm = (selectedDate: Date) => {
-    const timeStr = selectedDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    const hours = String(selectedDate.getHours()).padStart(2, '0');
+    const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
     setSchedule((prev) =>
       prev.map((day) =>
         day.dayOfWeek === pickerState.dayOfWeek ? { ...day, [pickerState.field]: timeStr } : day,
