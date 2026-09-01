@@ -54,7 +54,7 @@ export class FavouritesService {
     });
     
     if (existing) {
-      throw new ConflictException('Provider already favourited');
+      throw new ConflictException('Anbieter wurde bereits favorisiert.');
     }
 
     // Add new favourite
@@ -72,7 +72,7 @@ export class FavouritesService {
 
     const result = await this.favouriteRepository.delete({ clientId: userId, providerId });
     if (result.affected === 0) {
-      throw new NotFoundException('Favourite not found');
+      throw new NotFoundException('Favorit nicht gefunden.');
     }
   }
 }
