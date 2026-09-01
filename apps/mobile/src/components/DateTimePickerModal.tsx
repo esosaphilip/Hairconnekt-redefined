@@ -9,6 +9,7 @@ interface Props {
   value: Date;
   minimumDate?: Date;
   locale?: string;
+  is24Hour?: boolean;
   cancelLabel?: string;
   confirmLabel?: string;
   onConfirm: (date: Date) => void;
@@ -26,6 +27,7 @@ export function DateTimePickerModal({
   value,
   minimumDate,
   locale,
+  is24Hour,
   cancelLabel,
   confirmLabel,
   onConfirm,
@@ -33,6 +35,11 @@ export function DateTimePickerModal({
 }: Props): React.ReactElement | null {
   const [tempDate, setTempDate] = useState<Date>(value);
   const normalizedLocale = useMemo(() => normalizeLocale(locale), [locale]);
+  const effectiveIs24Hour = is24Hour !== undefined ? is24Hour : mode === 'time';
+  const effectivePickerLocale = useMemo(() => {
+    if (Platform.OS !== 'ios' || mode !== 'time') return normalizeLocale(locale);
+    return effectiveIs24Hour ? 'de_DE' : normalizeLocale(locale);
+  }, [locale, mode, effectiveIs24Hour]);
   const iosDisplay: 'inline' | 'spinner' | 'default' | 'compact' =
     mode === 'date' ? 'inline' : 'spinner';
 
@@ -60,6 +67,7 @@ export function DateTimePickerModal({
         mode={mode}
         display="default"
         minimumDate={minimumDate}
+        is24Hour={mode === 'time' ? effectiveIs24Hour : undefined}
         onChange={handleChange}
       />
     );
@@ -87,7 +95,7 @@ export function DateTimePickerModal({
               display={iosDisplay}
               minimumDate={minimumDate}
               onChange={handleChange}
-              locale={normalizedLocale}
+              locale={effectivePickerLocale}
               textColor={colors.textPrimary as any}
             />
           </View>
