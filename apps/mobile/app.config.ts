@@ -27,7 +27,7 @@ const baseConfig: ExpoConfig = {
   android: {
     backgroundColor: '#FFFFFF',
     package: 'de.hairconnekt.app',
-    versionCode: 7,
+    versionCode: 8,
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
