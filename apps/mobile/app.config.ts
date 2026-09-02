@@ -18,7 +18,7 @@ const baseConfig: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'de.hairconnekt.app',
-    buildNumber: '6',
+    buildNumber: '7',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen.',
