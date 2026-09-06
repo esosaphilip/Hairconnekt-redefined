@@ -214,7 +214,7 @@ export default function Providers() {
       {isLoading && providers.length === 0 ? (
         <LoadingSpinner label="Anbieter werden geladen…" />
       ) : (
-        <div className="table-container" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+        <div className="table-container">
           <table>
             <thead>
               <tr>

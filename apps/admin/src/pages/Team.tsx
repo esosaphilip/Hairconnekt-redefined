@@ -335,7 +335,7 @@ export default function Team() {
           {isLoadingUsers && users.length === 0 ? (
             <LoadingSpinner label="Admin-Benutzer werden geladen…" />
           ) : (
-            <div className="table-container" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+            <div className="table-container">
               <table>
                 <thead>
                   <tr>
@@ -415,7 +415,7 @@ export default function Team() {
           {isLoadingInvitations && invitations.length === 0 ? (
             <LoadingSpinner label="Einladungen werden geladen…" />
           ) : (
-            <div className="table-container" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+            <div className="table-container">
               <table>
                 <thead>
                   <tr>

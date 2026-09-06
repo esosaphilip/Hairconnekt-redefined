@@ -249,7 +249,7 @@ export default function ProviderProfile() {
                   try {
                     const businessName = provider?.businessName || t('providerGeneric');
                     const message = t('shareProfileMessage').replace('{name}', businessName);
-                    const url = `hairconnekt://provider/${providerId}`;
+                    const url = 'https://hairconnekt.de/';
                     void Share.share({ message, url });
                   } catch (err) {
                     debugLog('Share provider profile failed:', err);
