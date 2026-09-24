@@ -181,6 +181,31 @@ Base URL: `https://www.figma.com/design/nDwVaZoQo7e6zpx8YijMSj/Hairconnekt-redef
 
 ---
 
+## EXPO / EAS BUILD GOTCHAS (apps/mobile/)
+
+### Real EAS config location and profiles
+- The real EAS build config lives at `apps/mobile/eas.json`. It is intentionally **gitignored** (do not add it).
+- It contains all real build profiles: `development`, `preview`, `preview-ios-sim`, `staging`, `testflight`, `production`, and `production-internal`.
+- `production-internal` is the profile used for direct-install Android `.apk` files used for physical-device testing (as opposed to `production`, which produces Play Store `.aab` files).
+
+### Never run `eas build:configure` from the repo root
+Running `eas build:configure` from `$repo_root` (instead of from `apps/mobile/`) creates a stripped, useless, duplicate skeleton `eas.json` at the repo root with NONE of the real profiles or env vars. If you see a root-level `eas.json`, it is a stray artifact — delete it and use `apps/mobile/eas.json` only.
+
+### Recovering `apps/mobile/eas.json` if it goes missing
+- It was tracked in git up through commit `b8db4f9e` (before being gitignored later). The full historical state with all 8 profiles and all env vars is recoverable exactly via: `git show b8db4f9e:apps/mobile/eas.json`.
+- As a secondary recovery source, cross-reference EAS's own server build history: from `apps/mobile/`, run `npx eas-cli build:list --limit 50 --json` and then `npx eas-cli build:view <buildId> --json` against past `production-internal` / `production` builds for their resolved configuration.
+
+### `apps/mobile/package.json` scripts drift (expo prebuild side-effect)
+- The canonical package scripts for the mobile app are:
+  - `"android": "expo start --android"`
+  - `"ios": "expo start --ios"`
+- Running `npx expo prebuild` (or native module installs that implicitly trigger prebuild) can silently:
+  1. Rewrite these two scripts to `"expo run:android"` / `"expo run:ios"`
+  2. Regenerate local `apps/mobile/ios/` and `apps/mobile/android/` folders (gitignored via `/ios` and `/android` lines in `apps/mobile/.gitignore`)
+- If you ever see `android/ios` scripts set to anything other than `expo start --android` / `expo start --ios` without an explicitly intentional change, it is almost certainly a stray `expo prebuild` side-effect. Revert both script lines to the `expo start --*` form before committing anything.
+
+---
+
 ## PHASE 1 CONSTRAINTS
 - Payments: cash only (`Vor Ort bar zahlen`). No Stripe.
 - All providers: free tier. `platformFeePercent = 0`. `providerPayout = totalPrice`.
