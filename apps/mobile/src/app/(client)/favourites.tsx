@@ -43,7 +43,7 @@ export default function FavouritesScreen() {
         msg.includes('authentication') ||
         err?.status === 401;
       if (isGuestError) {
-        router.replace('/(auth)/login');
+        router.push('/(auth)/login?returnTo=/(client)/favourites' as any);
         return;
       }
       debugError('Client favourites load failed', err);

@@ -31,7 +31,7 @@ export default function ClientProfileScreen() {
         msg.includes('authentication') ||
         err?.status === 401;
       if (isGuestError) {
-        router.replace('/(auth)/login');
+        router.push('/(auth)/login?returnTo=/(client)/profile' as any);
         return;
       }
       debugError('Client profile load failed', err);

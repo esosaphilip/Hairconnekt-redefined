@@ -98,8 +98,20 @@ export default function LoginScreen() {
     }
   };
 
+  const hasReturnTo = typeof returnTo === 'string' && returnTo.length > 0;
+
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
+      {hasReturnTo && (
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Text style={styles.backText}>{'← ' + t('back')}</Text>
+        </TouchableOpacity>
+      )}
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -198,6 +210,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  backButton: { position: 'absolute', top: spacing.xl, left: spacing.lg, zIndex: 10, padding: spacing.sm },
+  backText: { fontFamily: fonts.bodyMedium, color: colors.textSecondary, fontSize: fontSizes.md },
   keyboardContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, justifyContent: 'center', flexGrow: 1, paddingVertical: spacing.lg },
   logo: { width: spacing.xxl * 4 + spacing.xs, height: layout.avatarMd, alignSelf: 'center', marginBottom: spacing.xl },
