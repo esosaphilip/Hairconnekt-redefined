@@ -101,6 +101,7 @@ export default function RegisterStep3Screen() {
   const handleNext = () => {
     Keyboard.dismiss();
     if (languages.length === 0) return;
+    if (selectedIds.length === 0) return;
     update({
       serviceIds: selectedIds,
       experienceYears,
@@ -169,6 +170,9 @@ export default function RegisterStep3Screen() {
                   );
                 })}
               </View>
+            )}
+            {!loadingServices && !servicesError && selectedIds.length === 0 && (
+              <Text style={styles.languagesErrorText}>{t('providerRegisterStep3ServicesRequired')}</Text>
             )}
           </View>
 
@@ -256,7 +260,7 @@ export default function RegisterStep3Screen() {
             label={t('next')} 
             onPress={handleNext} 
             variant="filled" 
-            disabled={languages.length === 0}
+            disabled={languages.length === 0 || selectedIds.length === 0}
           />
         </View>
       </KeyboardAvoidingView>

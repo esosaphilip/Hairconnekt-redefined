@@ -826,6 +826,7 @@ export const TRANSLATIONS = {
     de: 'Die ersten 6 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten — wir verdienen erst mit, wenn HairConnekt über dich Produkte verkauft.',
     en: 'Your first 6 months are free. No subscription, no hidden costs — we only earn when HairConnekt sells products through you.',
   },
+  providerRegisterStep3ServicesRequired: { de: 'Bitte wähle mindestens einen Service aus.', en: 'Please select at least one service.' },
 } as const;
 
 export type TranslationKey = keyof typeof TRANSLATIONS;
