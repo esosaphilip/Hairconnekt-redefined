@@ -105,7 +105,21 @@ export default function RegisterScreen() {
       router.replace(`/(auth)/verify-email?${params.toString()}` as any);
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
-      const specific = getApiMessage(err?.body) ?? getApiMessage(err?.response?.data) ?? undefined;
+      const body = err?.body ?? err?.response?.data;
+      if (status === 409 && body?.errorCode === 'EMAIL_NOT_VERIFIED' && typeof body?.email === 'string') {
+        const targetEmail = body.email;
+        const targetRole = body?.role === 'provider' ? 'provider' : 'client';
+        const params = new URLSearchParams({ email: targetEmail });
+        if (typeof returnTo === 'string' && returnTo.length > 0) {
+          params.set('returnTo', returnTo);
+        }
+        const screen = targetRole === 'provider'
+          ? `/(auth)/provider-verify-email?${params.toString()}`
+          : `/(auth)/verify-email?${params.toString()}`;
+        router.replace(screen as any);
+        return;
+      }
+      const specific = getApiMessage(body) ?? getApiMessage(err?.response?.data) ?? undefined;
       showError(mapHttpError(status, specific, lang), status);
     } finally {
       setIsLoading(false);

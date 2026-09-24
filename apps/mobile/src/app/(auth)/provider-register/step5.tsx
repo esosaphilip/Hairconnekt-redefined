@@ -181,6 +181,14 @@ export default function RegisterStep5Screen() {
 
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
+        const body = error.body as any;
+        if (body?.errorCode === 'EMAIL_NOT_VERIFIED') {
+          const email = typeof body?.email === 'string' && body.email.length > 0
+            ? body.email
+            : form.email;
+          router.replace(`/(auth)/provider-verify-email?email=${encodeURIComponent(email)}` as any);
+          return;
+        }
         setError(t('providerRegisterEmailTaken'));
       } else if (error instanceof Error) {
         setError(error.message);

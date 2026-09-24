@@ -82,6 +82,16 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       const status = err?.status ?? err.response?.status;
+      const body = err?.body ?? err?.response?.data;
+      if (body?.errorCode === 'EMAIL_NOT_VERIFIED' && typeof body?.email === 'string') {
+        const targetEmail = body.email;
+        const targetRole = body?.role === 'provider' ? 'provider' : 'client';
+        const screen = targetRole === 'provider'
+          ? `/(auth)/provider-verify-email?email=${encodeURIComponent(targetEmail)}`
+          : `/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}`;
+        router.replace(screen as any);
+        return;
+      }
       showError(mapHttpError(status, err?.message, lang), status);
     } finally {
       setIsLoading(false);

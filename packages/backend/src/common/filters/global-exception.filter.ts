@@ -40,6 +40,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let status: number;
     let message: string | string[];
+    let extraFields: Record<string, unknown> | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -47,6 +48,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = typeof res === 'object' && 'message' in (res as object)
         ? (res as any).message
         : exception.message;
+      if (typeof res === 'object' && res !== null) {
+        const reserved = new Set(['statusCode', 'message', 'timestamp', 'path', 'requestId', 'error']);
+        const extras: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(res as Record<string, unknown>)) {
+          if (reserved.has(k)) continue;
+          extras[k] = v;
+        }
+        if (Object.keys(extras).length > 0) extraFields = extras;
+      }
       if (status === 400) {
         this.logger.warn(`Validation Error 400: ${JSON.stringify(res)}`);
       } else if (status >= 500) {
@@ -82,12 +92,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       });
     }
 
-    response.status(status).json({
+    const body: Record<string, unknown> = {
       statusCode: status,
       message,
       timestamp: new Date().toISOString(),
       path: request.url,
       requestId,
-    });
+    };
+    if (extraFields !== undefined) Object.assign(body, extraFields);
+
+    response.status(status).json(body);
   }
 }

@@ -90,6 +90,14 @@ export class AuthService {
 
     const existing = await this.userRepo.findOne({ where: { email } });
     if (existing) {
+      if (existing.isEmailVerified === false) {
+        throw new ConflictException({
+          message: 'Diese E-Mail-Adresse ist bereits registriert.',
+          errorCode: 'EMAIL_NOT_VERIFIED',
+          email,
+          role: dto.role,
+        });
+      }
       throw new ConflictException('Diese E-Mail-Adresse ist bereits registriert.');
     }
 
@@ -164,13 +172,8 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('E-Mail oder Passwort falsch.');
 
-    if (!user.isEmailVerified) {
-      throw new UnauthorizedException(
-        'Bitte bestätige zuerst deine E-Mail-Adresse.',
-      );
-    }
-
-    // Guard against Google-only accounts
+    // Guard against Google-only accounts (must come before bcrypt.compare since
+    // accounts with no passwordHash would otherwise throw on bcrypt)
     if (!user.passwordHash) {
       throw new UnauthorizedException(
         'Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an.',
@@ -179,6 +182,15 @@ export class AuthService {
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isMatch) throw new UnauthorizedException('E-Mail oder Passwort falsch.');
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException({
+        message: 'Bitte bestätige zuerst deine E-Mail-Adresse.',
+        errorCode: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
+        role: user.role,
+      });
+    }
 
     return this.generateAuthResponse(user);
   }
