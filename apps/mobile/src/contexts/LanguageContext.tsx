@@ -821,10 +821,10 @@ export const TRANSLATIONS = {
   errorGenericTryAgain: { de: 'Bitte versuche es erneut', en: 'Please try again' },
   errorGenericContactSupport: { de: 'Bitte kontaktiere den Support', en: 'Please contact support' },
 
-  gracePeriodHeadline: { de: '4 Monate komplett kostenlos', en: '4 months, completely free' },
+  gracePeriodHeadline: { de: '6 Monate komplett kostenlos', en: '6 months, completely free' },
   gracePeriodBody: {
-    de: 'Die ersten 4 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten — wir verdienen erst mit, wenn du über HairConnekt Produkte verkaufst.',
-    en: 'Your first 4 months are free. No subscription, no hidden costs — we only earn when you sell products through HairConnekt.',
+    de: 'Die ersten 6 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten — wir verdienen erst mit, wenn HairConnekt über dich Produkte verkauft.',
+    en: 'Your first 6 months are free. No subscription, no hidden costs — we only earn when HairConnekt sells products through you.',
   },
 } as const;
 
