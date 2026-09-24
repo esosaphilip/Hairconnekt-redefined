@@ -160,20 +160,32 @@ export class InvitationsService {
       throw new NotFoundException('Einladung nicht gefunden.');
     }
     if (inv.status === InvitationStatus.ACCEPTED) {
-      throw new GoneException('Einladung wurde bereits angenommen.');
+      throw new GoneException({
+        message: 'Einladung wurde bereits angenommen.',
+        errorCode: 'INVITATION_ALREADY_ACCEPTED',
+      });
     }
     if (inv.status === InvitationStatus.REVOKED) {
-      throw new GoneException('Einladung wurde widerrufen.');
+      throw new GoneException({
+        message: 'Einladung wurde widerrufen.',
+        errorCode: 'INVITATION_REVOKED',
+      });
     }
     if (new Date(inv.expiresAt).getTime() < Date.now()) {
       if (inv.status !== InvitationStatus.EXPIRED) {
         inv.status = InvitationStatus.EXPIRED;
         await this.inviteRepo.save(inv);
       }
-      throw new GoneException('Einladung ist abgelaufen.');
+      throw new GoneException({
+        message: 'Einladung ist abgelaufen.',
+        errorCode: 'INVITATION_EXPIRED',
+      });
     }
     if (opts?.forAccept && inv.status === InvitationStatus.EXPIRED) {
-      throw new GoneException('Einladung ist abgelaufen.');
+      throw new GoneException({
+        message: 'Einladung ist abgelaufen.',
+        errorCode: 'INVITATION_EXPIRED',
+      });
     }
     return inv;
   }
@@ -208,9 +220,10 @@ export class InvitationsService {
           withDeleted: true,
         });
         if (existingUser) {
-          throw new ConflictException(
-            'Es existiert bereits ein Benutzer mit dieser E-Mail.',
-          );
+          throw new ConflictException({
+            message: 'Es existiert bereits ein Benutzer mit dieser E-Mail.',
+            errorCode: 'USER_ALREADY_EXISTS',
+          });
         }
 
         const user = manager.getRepository(User).create({
@@ -244,9 +257,10 @@ export class InvitationsService {
         withDeleted: true,
       });
       if (existingUser) {
-        throw new ConflictException(
-          'Es existiert bereits ein Benutzer mit dieser E-Mail.',
-        );
+        throw new ConflictException({
+          message: 'Es existiert bereits ein Benutzer mit dieser E-Mail.',
+          errorCode: 'USER_ALREADY_EXISTS',
+        });
       }
 
       const user = this.userRepo.create({

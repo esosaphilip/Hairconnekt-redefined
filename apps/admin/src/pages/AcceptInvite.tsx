@@ -11,6 +11,20 @@ type InviteInfo = {
   role: string;
 };
 
+type InviteErrorPayload = {
+  message?: unknown;
+  errorCode?: string;
+};
+
+function readErrorPayload(err: unknown): InviteErrorPayload | null {
+  if (!axios.isAxiosError(err)) return null;
+  const data = err.response?.data as unknown;
+  if (data && typeof data === 'object') {
+    return data as InviteErrorPayload;
+  }
+  return null;
+}
+
 function mapVerifyError(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status;
@@ -18,10 +32,18 @@ function mapVerifyError(err: unknown): string {
       return 'Einladung nicht gefunden.';
     }
     if (status === 410) {
+      const payload = readErrorPayload(err);
+      const code = payload?.errorCode;
+      if (code === 'INVITATION_ALREADY_ACCEPTED') {
+        return 'Einladung wurde bereits angenommen.';
+      }
+      if (code === 'INVITATION_REVOKED') {
+        return 'Einladung wurde widerrufen.';
+      }
+      if (code === 'INVITATION_EXPIRED') {
+        return 'Einladung ist abgelaufen.';
+      }
       return 'Einladung ist abgelaufen oder wurde widerrufen.';
-    }
-    if (status === 409) {
-      return 'Einladung wurde bereits angenommen.';
     }
     const detail = formatApiError(err);
     if (detail && !detail.includes('Unbekannter Fehler')) {
@@ -34,20 +56,43 @@ function mapVerifyError(err: unknown): string {
 function mapAcceptError(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status;
+    const payload = readErrorPayload(err);
     if (status === 404) {
       return 'Einladung nicht gefunden.';
     }
     if (status === 410) {
+      const code = payload?.errorCode;
+      if (code === 'INVITATION_ALREADY_ACCEPTED') {
+        return 'Einladung wurde bereits angenommen.';
+      }
+      if (code === 'INVITATION_REVOKED') {
+        return 'Einladung wurde widerrufen.';
+      }
+      if (code === 'INVITATION_EXPIRED') {
+        return 'Einladung ist abgelaufen.';
+      }
       return 'Einladung ist abgelaufen oder wurde widerrufen.';
     }
     if (status === 409) {
-      return 'Einladung wurde bereits angenommen.';
+      const code = payload?.errorCode;
+      if (code === 'USER_ALREADY_EXISTS') {
+        const msg = payload?.message;
+        if (typeof msg === 'string') return msg;
+        return 'Es existiert bereits ein Benutzer mit dieser E-Mail.';
+      }
+      const msg = payload?.message;
+      if (typeof msg === 'string') return msg;
+      const detail = formatApiError(err);
+      if (detail && !detail.includes('Unbekannter Fehler')) {
+        return detail;
+      }
+      return 'Konflikt bei der Kontoerstellung.';
     }
     if (status === 400) {
       const detail = formatApiError(err);
       if (detail) {
-        const lowered = detail.toLowerCase();
-        if (lowered.includes('passwort') || lowered.includes('password')) {
+        const loweredDetail = detail.toLowerCase();
+        if (loweredDetail.includes('passwort') || loweredDetail.includes('password')) {
           return detail;
         }
         return `Ungültige Anfrage. ${detail}`;
