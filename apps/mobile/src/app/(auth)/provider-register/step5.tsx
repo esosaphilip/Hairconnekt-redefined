@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -60,6 +60,7 @@ export default function RegisterStep5Screen() {
   const router = useRouter();
   const { form, reset } = useRegistration();
   const { t } = useLanguage();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressText, setProgressText] = useState('');
@@ -187,7 +188,8 @@ export default function RegisterStep5Screen() {
 
       const emailParam = encodeURIComponent(form.email);
       const deliveryParam = authData.emailDeliveryFailed ? '&deliveryFailed=1' : '';
-      router.replace(`/(auth)/provider-verify-email?email=${emailParam}${deliveryParam}` as any);
+      const codeSentParam = !authData.emailDeliveryFailed ? '&codeSent=1' : '';
+      router.replace(`/(auth)/provider-verify-email?email=${emailParam}${deliveryParam}${codeSentParam}` as any);
 
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -205,6 +207,9 @@ export default function RegisterStep5Screen() {
       } else {
         setError(t('errorUnknown'));
       }
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 50);
     } finally {
       setIsSubmitting(false);
       setProgressText('');
@@ -235,7 +240,7 @@ export default function RegisterStep5Screen() {
         <View style={[styles.progressSegment, styles.progressActive]} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t('providerRegisterSummaryTitle')}</Text>
         <Text style={styles.subtitle}>{t('providerRegisterSummarySubtitle')}</Text>
 
