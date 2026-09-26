@@ -37,14 +37,20 @@ const normalizeProviderStatus = (status?: string | null): string =>
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { email, deliveryFailed } = useLocalSearchParams<{ email?: string; deliveryFailed?: string }>();
+  const { email, deliveryFailed, codeSent } = useLocalSearchParams<{
+    email?: string;
+    deliveryFailed?: string;
+    codeSent?: string;
+  }>();
   const { lang, t } = useLanguage();
   const emailString = typeof email === 'string' ? email : '';
+
+  const isCodeJustSent = codeSent === '1' && deliveryFailed !== '1';
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(120);
+  const [resendCountdown, setResendCountdown] = useState(isCodeJustSent ? 120 : 0);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
