@@ -17,6 +17,7 @@ import { createHash, randomBytes } from 'crypto';
 import * as disposableEmailDomains from 'disposable-email-domains';
 import { sendEmail } from '../common/email/mailer';
 import { User } from '../entities/user.entity';
+import { Provider } from '../entities/provider.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
@@ -50,6 +51,9 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
 
+    @InjectRepository(Provider)
+    private readonly providerRepo: Repository<Provider>,
+
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepo: Repository<RefreshToken>,
 
@@ -62,9 +66,11 @@ export class AuthService {
   // ─── REGISTER ──────────────────────────────────────────────────────────────
   async register(dto: RegisterDto): Promise<{
     message: string;
-    needsEmailVerification: true;
+    needsEmailVerification: boolean;
     emailDeliveryFailed: boolean;
     onboardingToken: string;
+    accessToken?: string;
+    refreshToken?: string;
     user: { id: string; email: string; firstName: string; role: string };
   }> {
     const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
@@ -88,7 +94,12 @@ export class AuthService {
       throw new BadRequestException('Bitte verwende eine echte E-Mail-Adresse.');
     }
 
-    const existing = await this.userRepo.findOne({ where: { email } });
+    const existing = await this.userRepo
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.email = :email', { email })
+      .getOne();
+
     if (existing) {
       if (existing.isEmailVerified === false) {
         throw new ConflictException({
@@ -98,6 +109,64 @@ export class AuthService {
           role: dto.role,
         });
       }
+
+      // Recovery path for verified providers who have not completed provider profile creation
+      if (dto.role === 'provider' && existing.role === 'provider') {
+        const providerProfile = await this.providerRepo.findOne({
+          where: { userId: existing.id },
+        });
+        if (!providerProfile) {
+          if (!existing.passwordHash) {
+            throw new UnauthorizedException(
+              'Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an.',
+            );
+          }
+          const isMatch = await bcrypt.compare(dto.password, existing.passwordHash);
+          if (!isMatch) {
+            throw new UnauthorizedException('E-Mail oder Passwort falsch.');
+          }
+
+          if (dto.firstName || dto.lastName || dto.phone) {
+            await this.userRepo.update(existing.id, {
+              firstName: dto.firstName ?? existing.firstName,
+              lastName: dto.lastName ?? existing.lastName,
+              phone: dto.phone ?? existing.phone,
+            });
+            existing.firstName = dto.firstName ?? existing.firstName;
+            existing.lastName = dto.lastName ?? existing.lastName;
+            if (dto.phone) existing.phone = dto.phone;
+          }
+
+          const onboardingPayload: any = {
+            sub: existing.id,
+            email: existing.email,
+            role: existing.role,
+            scope: 'onboarding',
+          };
+          const onboardingToken = this.jwtService.sign(onboardingPayload, {
+            secret: process.env.JWT_ACCESS_SECRET,
+            expiresIn: '15m',
+          });
+
+          const authResponse = await this.generateAuthResponse(existing);
+
+          return {
+            message: 'Registrierung wird fortgesetzt.',
+            needsEmailVerification: false,
+            emailDeliveryFailed: false,
+            onboardingToken,
+            accessToken: authResponse.accessToken,
+            refreshToken: authResponse.refreshToken,
+            user: {
+              id: existing.id,
+              email: existing.email,
+              firstName: existing.firstName,
+              role: existing.role,
+            },
+          };
+        }
+      }
+
       throw new ConflictException('Diese E-Mail-Adresse ist bereits registriert.');
     }
 

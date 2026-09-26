@@ -53,9 +53,11 @@ export class AuthController {
     @Body() dto: RegisterDto,
   ): Promise<{
     message: string;
-    needsEmailVerification: true;
+    needsEmailVerification: boolean;
     emailDeliveryFailed: boolean;
     onboardingToken: string;
+    accessToken?: string;
+    refreshToken?: string;
     user: { id: string; email: string; firstName: string; role: string };
   }> {
     return this.authService.register(dto);

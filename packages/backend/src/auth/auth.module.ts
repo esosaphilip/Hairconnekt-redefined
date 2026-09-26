@@ -9,6 +9,7 @@ import { RefreshJwtStrategy } from './strategies/refresh-jwt.strategy';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetRequest } from './entities/password-reset-request.entity';
 import { User } from '../entities/user.entity';
+import { Provider } from '../entities/provider.entity';
 import { IpThrottlerGuard } from './guards/ip-throttler.guard';
 import { UserThrottlerGuard } from './guards/user-throttler.guard';
 import { AdminLoginThrottlerGuard } from './guards/admin-login-throttler.guard';
@@ -21,7 +22,7 @@ import { AuditModule } from '../audit/audit.module';
       secret: process.env.JWT_ACCESS_SECRET,
       signOptions: { expiresIn: (process.env.JWT_ACCESS_EXPIRES ?? '15m') as any },
     }),
-    TypeOrmModule.forFeature([User, RefreshToken, PasswordResetRequest]),
+    TypeOrmModule.forFeature([User, RefreshToken, PasswordResetRequest, Provider]),
     AuditModule,
   ],
   controllers: [AuthController],
