@@ -4,7 +4,7 @@ const baseConfig: ExpoConfig = {
   name: 'HairConnekt',
   slug: 'hairconnekt-redefined',
   owner: 'esosaphilip',
-  version: '1.0.2',
+  version: '1.0.3',
   scheme: 'hairconnekt',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
@@ -18,7 +18,7 @@ const baseConfig: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'de.hairconnekt.app',
-    buildNumber: '8',
+    buildNumber: '9',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen.',
@@ -27,7 +27,7 @@ const baseConfig: ExpoConfig = {
   android: {
     backgroundColor: '#FFFFFF',
     package: 'de.hairconnekt.app',
-    versionCode: 10,
+    versionCode: 11,
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
