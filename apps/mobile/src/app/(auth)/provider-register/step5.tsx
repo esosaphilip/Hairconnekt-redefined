@@ -10,9 +10,11 @@ import { ApiError, apiFetch, apiJson } from '@/services/apiClient';
 
 type RegisterAuthResponse = {
   message: string;
-  needsEmailVerification: true;
+  needsEmailVerification: boolean;
   emailDeliveryFailed: boolean;
   onboardingToken: string;
+  accessToken?: string;
+  refreshToken?: string;
   user: { id: string; email: string; firstName: string; role: string };
 };
 
@@ -175,6 +177,14 @@ export default function RegisterStep5Screen() {
 
       setProgressText(t('done'));
       reset();
+
+      if (authData.needsEmailVerification === false && authData.accessToken && authData.refreshToken) {
+        await tokenStorage.save(authData.accessToken, authData.refreshToken, 'provider');
+        await tokenStorage.setUser(authData.user);
+        router.replace('/(provider)/pending' as any);
+        return;
+      }
+
       const emailParam = encodeURIComponent(form.email);
       const deliveryParam = authData.emailDeliveryFailed ? '&deliveryFailed=1' : '';
       router.replace(`/(auth)/provider-verify-email?email=${emailParam}${deliveryParam}` as any);
