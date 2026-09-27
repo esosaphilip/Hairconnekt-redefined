@@ -32,7 +32,8 @@ const DRAFT_STORAGE_KEY = 'hc_provider_registration_draft';
 
 export async function saveRegistrationDraft(draft: RegistrationForm): Promise<void> {
   try {
-    await AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    const { password, ...safeDraft } = draft;
+    await AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(safeDraft));
   } catch (err) {
     debugError('Failed to save provider registration draft', err);
   }
@@ -47,6 +48,7 @@ export async function loadRegistrationDraft(): Promise<RegistrationForm | null> 
     return {
       ...DEFAULTS,
       ...parsed,
+      password: '',
     };
   } catch (err) {
     debugError('Failed to load provider registration draft', err);
