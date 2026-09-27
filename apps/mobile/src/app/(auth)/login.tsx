@@ -105,7 +105,7 @@ export default function LoginScreen() {
       {hasReturnTo && (
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(client)' as any)}
           accessibilityRole="button"
           accessibilityLabel={t('back')}
         >
