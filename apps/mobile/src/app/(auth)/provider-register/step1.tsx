@@ -41,7 +41,7 @@ export default function RegisterStep1Screen() {
   const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [password, setPassword] = useState(form.password || '');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(form.password || '');
   const [acceptedTerms, setAcceptedTerms] = useState(form.acceptedTerms || false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

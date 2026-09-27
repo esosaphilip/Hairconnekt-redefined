@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -9,9 +9,15 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderTypeScreen() {
   const router = useRouter();
-  const { update } = useRegistration();
+  const { form, update } = useRegistration();
   const { t } = useLanguage();
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(form.providerType || '');
+
+  useEffect(() => {
+    if (form.providerType && !selected) {
+      setSelected(form.providerType);
+    }
+  }, [form.providerType]);
 
   const types = [
     { value: 'freelancer', emoji: '🧑', titleKey: 'providerTypeFreelancerTitle', subtitleKey: 'providerTypeFreelancerSub' },
