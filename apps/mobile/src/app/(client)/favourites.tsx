@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { useFavourites } from '../../contexts/FavouritesContext';
@@ -29,13 +29,17 @@ export default function FavouritesScreen() {
   const { toggleFavourite, refreshFavourites, favouriteIds } = useFavourites();
   const [favourites, setFavourites] = useState<ProviderSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isRedirectingRef = useRef(false);
 
   const fetchFavourites = useCallback(async () => {
+    let isGuest = false;
     try {
       setIsLoading(true);
       const res = await apiJson<any>('/favourites', { auth: true });
       const payload = res?.data ?? res ?? [];
       setFavourites(Array.isArray(payload) ? payload : []);
+      setIsAuthenticated(true);
     } catch (err: any) {
       const msg = err?.message ?? String(err ?? '');
       const isGuestError =
@@ -43,23 +47,38 @@ export default function FavouritesScreen() {
         msg.includes('authentication') ||
         err?.status === 401;
       if (isGuestError) {
-        router.push('/(auth)/login?returnTo=/(client)/favourites' as any);
+        isGuest = true;
+        setIsAuthenticated(false);
+        if (!isRedirectingRef.current) {
+          isRedirectingRef.current = true;
+          router.push('/(auth)/login?returnTo=/(client)/favourites' as any);
+        }
         return;
       }
       debugError('Client favourites load failed', err);
     } finally {
-      setIsLoading(false);
+      if (!isGuest) {
+        setIsLoading(false);
+      }
     }
   }, [router]);
 
-  useEffect(() => {
-    fetchFavourites();
-    void refreshFavourites();
-  }, [fetchFavourites, refreshFavourites]);
+  useFocusEffect(
+    useCallback(() => {
+      isRedirectingRef.current = false;
+      fetchFavourites();
+      void refreshFavourites();
+      return () => {
+        isRedirectingRef.current = false;
+      };
+    }, [fetchFavourites, refreshFavourites])
+  );
 
   useEffect(() => {
-    fetchFavourites();
-  }, [favouriteIds.length, fetchFavourites]);
+    if (isAuthenticated) {
+      fetchFavourites();
+    }
+  }, [favouriteIds.length, fetchFavourites, isAuthenticated]);
 
   const renderItem = ({ item }: { item: ProviderSummaryDto }) => {
     const avatar = item.avatarUrl;
@@ -119,7 +138,7 @@ export default function FavouritesScreen() {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || !isAuthenticated) {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>

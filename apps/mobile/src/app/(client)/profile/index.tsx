@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { tokenStorage } from '../../../utils/token-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,12 +18,19 @@ export default function ClientProfileScreen() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   // BUG 4: bump this after upload to force React Native to re-render the Image
   const [avatarVersion, setAvatarVersion] = useState(Date.now());
+  const userRef = useRef<any>(null);
+  const isRedirectingRef = useRef(false);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
+    let isGuest = false;
     try {
-      setIsLoading(true);
+      if (!userRef.current) {
+        setIsLoading(true);
+      }
       const res = await apiJson<any>('/users/me', { auth: true });
-      setUser(res?.data || res);
+      const fetchedUser = res?.data || res;
+      userRef.current = fetchedUser;
+      setUser(fetchedUser);
     } catch (err: any) {
       const msg = err?.message ?? String(err ?? '');
       const isGuestError =
@@ -31,18 +38,32 @@ export default function ClientProfileScreen() {
         msg.includes('authentication') ||
         err?.status === 401;
       if (isGuestError) {
-        router.push('/(auth)/login?returnTo=/(client)/profile' as any);
+        isGuest = true;
+        userRef.current = null;
+        setUser(null);
+        if (!isRedirectingRef.current) {
+          isRedirectingRef.current = true;
+          router.push('/(auth)/login?returnTo=/(client)/profile' as any);
+        }
         return;
       }
       debugError('Client profile load failed', err);
     } finally {
-      setIsLoading(false);
+      if (!isGuest) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [router]);
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      isRedirectingRef.current = false;
+      fetchUser();
+      return () => {
+        isRedirectingRef.current = false;
+      };
+    }, [fetchUser])
+  );
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,6 +126,8 @@ export default function ClientProfileScreen() {
     Alert.alert(t('settingsLogoutConfirm'), t('settingsLogoutBody'), [
       { text: t('cancel'), style: 'cancel' },
       { text: t('settingsLogout'), style: 'destructive', onPress: async () => {
+        userRef.current = null;
+        setUser(null);
         await tokenStorage.clear();
         router.replace('/(auth)/login');
       } }
@@ -120,6 +143,8 @@ export default function ClientProfileScreen() {
         {
           text: t('next'),
           onPress: async () => {
+            userRef.current = null;
+            setUser(null);
             await AuthService.logout();
             router.replace('/(auth)/login?role=provider' as any);
           },
@@ -128,21 +153,21 @@ export default function ClientProfileScreen() {
     );
   };
 
-  // BUG 2: R2 always returns full https:// URLs — use directly, no prefix logic needed
-  const avatarUri = user?.avatarUrl as string | undefined;
-  const fullName = user?.firstName ? `${user.firstName} ${user.lastName}` : t('clientNameDefault');
-  const email = user?.email || '';
-  const phone = user?.phone || '';
-  const emailVerified = user?.isEmailVerified;
-  const phoneVerified = user?.isPhoneVerified;
-
-  if (isLoading && !user) {
+  if (isLoading || !user) {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
+
+  // BUG 2: R2 always returns full https:// URLs — use directly, no prefix logic needed
+  const avatarUri = user.avatarUrl as string | undefined;
+  const fullName = user.firstName ? `${user.firstName} ${user.lastName}` : t('clientNameDefault');
+  const email = user.email || '';
+  const phone = user.phone || '';
+  const emailVerified = user.isEmailVerified;
+  const phoneVerified = user.isPhoneVerified;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
