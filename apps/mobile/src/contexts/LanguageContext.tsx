@@ -823,8 +823,8 @@ export const TRANSLATIONS = {
 
   gracePeriodHeadline: { de: '6 Monate komplett kostenlos', en: '6 months, completely free' },
   gracePeriodBody: {
-    de: 'Die ersten 6 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten — wir verdienen erst mit, wenn HairConnekt über dich Produkte verkauft.',
-    en: 'Your first 6 months are free. No subscription, no hidden costs — we only earn when HairConnekt sells products through you.',
+    de: 'Die ersten 6 Monate zahlst du nichts. Kein Abo, keine versteckten Kosten.',
+    en: 'Your first 6 months are free. No subscription, no hidden costs.',
   },
   providerRegisterStep3ServicesRequired: { de: 'Bitte wähle mindestens einen Service aus.', en: 'Please select at least one service.' },
 } as const;
