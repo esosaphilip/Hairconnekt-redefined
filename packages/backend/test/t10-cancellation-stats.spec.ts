@@ -109,4 +109,41 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
     // but the backend does count({ where: { providerId, scheduledDate: today } }) without filtering status
     expect(statsRes.body.todayAppointments).toBe(0);
   }, true));
+
+  // KNOWN BUG-024: provider next appointment stat ignores cancelled bookings and reflects the next active booking
+  it.failing('[KNOWN BUG-024] provider next appointment stat ignores cancelled bookings', runTest(async () => {
+    const { user: client } = await createTestClient(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 1. Cancelled booking earlier today at 10:00
+    await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CANCELLED,
+      scheduledDate: todayStr,
+      scheduledTime: '10:00',
+    });
+
+    // 2. Confirmed booking later today at 14:00
+    await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CONFIRMED,
+      scheduledDate: todayStr,
+      scheduledTime: '14:00',
+    });
+
+    // Fetch dashboard stats via GET /providers/me/stats: asserts nextAppointmentTime is '14:00' (ignoring cancelled 10:00 slot)
+    // BUG-024: Backend currently returns nextAppointmentTime: null without calculating the next active appointment
+    const statsRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/providers/me/stats')
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(200);
+
+    expect(statsRes.body.nextAppointmentTime).toBe('14:00');
+  }, true));
 });
