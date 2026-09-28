@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, generateTestEmail, TEST_PASSWORD } from './test-factories';
 
 describe('T02: Password Reset', () => {
@@ -11,6 +11,10 @@ describe('T02: Password Reset', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -53,7 +57,7 @@ describe('T02: Password Reset', () => {
       .post('/api/v1/auth/verify-otp')
       .send({
         email: user.email,
-        code: resetOtp!,
+        otp: resetOtp!,
       })
       .expect(200);
 

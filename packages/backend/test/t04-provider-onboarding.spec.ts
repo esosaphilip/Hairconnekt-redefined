@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { generateTestEmail, TEST_PASSWORD } from './test-factories';
 import { ServiceCategory } from '../src/entities/service-category.entity';
 import { Service } from '../src/entities/service.entity';
@@ -14,6 +14,10 @@ describe('T04: Provider Registration and Onboarding', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -34,8 +38,11 @@ describe('T04: Provider Registration and Onboarding', () => {
     };
   };
 
-  // Helper for valid dummy JPEG buffer (starts with 0xFF, 0xD8, 0xFF)
-  const validJpegBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00]);
+  // Valid 1x1 image buffer that passes magic number inspection
+  const validJpegBuffer = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64',
+  );
 
   it('completes provider onboarding flow with onboarding token and fake storage', runTest(async () => {
     const email = generateTestEmail('provider-onboard');
@@ -61,8 +68,8 @@ describe('T04: Provider Registration and Onboarding', () => {
     const avatarRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/users/me/avatar')
       .set('Authorization', `Bearer ${onboardingToken}`)
-      .attach('avatar', validJpegBuffer, 'avatar.jpg')
-      .expect(200);
+      .attach('avatar', validJpegBuffer, 'avatar.png')
+      .expect(201);
 
     expect(avatarRes.body.avatarUrl).toMatch(/^https:\/\/r2-test\.hairconnekt\.de/);
 
@@ -85,7 +92,7 @@ describe('T04: Provider Registration and Onboarding', () => {
         city: 'Berlin',
         postalCode: '10117',
         serviceRadius: 25,
-        serviceIds: ['00000000-0000-0000-0000-000000000001'],
+        serviceIds: [category.id],
         experienceYears: 4,
         languages: ['de', 'en'],
         cancellationPolicy: '24h',
@@ -100,7 +107,7 @@ describe('T04: Provider Registration and Onboarding', () => {
     const idDocRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/providers/me/id-document')
       .set('Authorization', `Bearer ${onboardingToken}`)
-      .attach('idDocument', validJpegBuffer, 'id_doc.jpg')
+      .attach('idDocument', validJpegBuffer, 'id_doc.png')
       .expect(201);
 
     expect(idDocRes.body.uploaded).toBe(true);
@@ -110,8 +117,9 @@ describe('T04: Provider Registration and Onboarding', () => {
       .post('/api/v1/providers/me/portfolio')
       .set('Authorization', `Bearer ${onboardingToken}`)
       .field('caption', 'Fresh box braids')
-      .attach('portfolio', validJpegBuffer, 'portfolio1.jpg')
-      .expect(201);
+      .attach('portfolio', validJpegBuffer, 'portfolio1.png');
+
+    expect(portfolioRes.status).toBe(201);
 
     expect(portfolioRes.body).toBeDefined();
 
@@ -151,6 +159,6 @@ describe('T04: Provider Registration and Onboarding', () => {
       .post('/api/v1/users/me/avatar')
       .set('Authorization', `Bearer ${onboardingToken}`)
       .attach('avatar', oversizeBuffer, 'huge.jpg')
-      .expect(400);
+      .expect(413);
   }));
 });

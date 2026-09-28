@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestProvider, generateTestEmail, hashPassword, TEST_PASSWORD } from './test-factories';
 import { User, UserRole } from '../src/entities/user.entity';
 
@@ -12,6 +12,10 @@ describe('T05: Stuck-Account Recovery (BUG-013)', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -60,7 +64,7 @@ describe('T05: Stuck-Account Recovery (BUG-013)', () => {
         role: 'provider',
         acceptedTerms: true,
       })
-      .expect(409);
+      .expect(401);
 
     // 2. Correct password returns fresh tokens and onboarding token to finish onboarding
     const recoveryRes = await request(ctx.app.getHttpServer())

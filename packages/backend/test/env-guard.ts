@@ -11,23 +11,29 @@
 
 export const ALLOWED_DB_HOSTS = ['localhost', '127.0.0.1', 'postgres'];
 
-export function assertSafeDatabaseHost(databaseUrl?: string, databaseHost?: string): void {
+export function assertSafeDatabase(databaseUrl?: string, databaseHost?: string, databaseName?: string): void {
   const url = (databaseUrl ?? process.env.DATABASE_URL ?? '').trim();
   const hostParam = (databaseHost ?? process.env.DATABASE_HOST ?? '').trim();
+  const nameParam = (databaseName ?? process.env.DATABASE_NAME ?? '').trim();
 
-  // 1. Neon check (case-insensitive)
-  if (/neon/i.test(url) || /neon/i.test(hostParam)) {
+  // 1. Neon check (case-insensitive) across url, host, and name
+  if (/neon/i.test(url) || /neon/i.test(hostParam) || /neon/i.test(nameParam)) {
     throw new Error(
-      `PRODUCTION GUARD TRIGGERED: Database URL or Host contains "neon". Connection blocked to protect production data. (URL: ${url})`,
+      `PRODUCTION GUARD TRIGGERED: Database URL, Host, or Name contains "neon". Connection blocked to protect production data. (URL: ${url})`,
     );
   }
 
-  // 2. Extract host
+  // 2. Extract host and database name
   let host = hostParam;
+  let dbName = nameParam;
   if (url) {
     try {
       const parsed = new URL(url);
       host = parsed.hostname;
+      const extractedDbName = parsed.pathname ? parsed.pathname.replace(/^\//, '') : '';
+      if (extractedDbName) {
+        dbName = extractedDbName;
+      }
     } catch {
       // In case of non-standard URL, extract host regex
       const match = url.match(/@([^:/]+)/);
@@ -41,28 +47,67 @@ export function assertSafeDatabaseHost(databaseUrl?: string, databaseHost?: stri
     throw new Error('PRODUCTION GUARD TRIGGERED: No database host found in environment.');
   }
 
-  // 3. Validate against allowlist
+  // 3. Validate host against allowlist
   if (!ALLOWED_DB_HOSTS.includes(host.toLowerCase())) {
     throw new Error(
       `PRODUCTION GUARD TRIGGERED: Database host "${host}" is not permitted. Only [${ALLOWED_DB_HOSTS.join(', ')}] are allowed in tests.`,
     );
   }
+
+  // 4. Validate database name ends in "_test" (Rule: Protect real local databases from table truncation)
+  if (!dbName || !dbName.endsWith('_test')) {
+    throw new Error(
+      `PRODUCTION GUARD TRIGGERED: Database name "${dbName}" must end in "_test". Connection blocked to protect real databases from table truncation.`,
+    );
+  }
 }
+
+// Backward-compatible alias
+export const assertSafeDatabaseHost = assertSafeDatabase;
 
 export function initializeTestEnvironment(): void {
   // Always run tests in UTC
   process.env.TZ = 'UTC';
 
+  // Determine database config: respect DATABASE_URL if already set and safe, otherwise build default
+  const incomingUrl = process.env.DATABASE_URL?.trim();
+  let dbHost = '127.0.0.1';
+  let dbPort = process.env.DATABASE_PORT || (process.env.CI ? '5432' : '5433');
+  let dbUser = 'testuser';
+  let dbPass = 'testpass';
+  let dbName = 'hairconnekt_test';
+  let dbUrl = `postgres://${dbUser}:${dbPass}@${dbHost}:${dbPort}/${dbName}`;
+
+  if (incomingUrl) {
+    try {
+      const parsed = new URL(incomingUrl);
+      dbHost = parsed.hostname || dbHost;
+      dbPort = parsed.port || dbPort;
+      dbUser = parsed.username || dbUser;
+      dbPass = parsed.password || dbPass;
+      const parsedDbName = parsed.pathname.replace(/^\//, '');
+      if (parsedDbName) {
+        dbName = parsedDbName;
+      }
+      dbUrl = incomingUrl;
+    } catch {
+      dbUrl = incomingUrl;
+    }
+  }
+
+  // Validate the target database before populating environment
+  assertSafeDatabase(dbUrl, dbHost, dbName);
+
   // Apply complete set of dummy environment variables (Rule R10)
   const dummyEnv: Record<string, string> = {
     NODE_ENV: 'test',
     PORT: '3000',
-    DATABASE_HOST: '127.0.0.1',
-    DATABASE_PORT: '5432',
-    DATABASE_USER: 'testuser',
-    DATABASE_PASSWORD: 'testpass',
-    DATABASE_NAME: 'hairconnekt_test',
-    DATABASE_URL: 'postgres://testuser:testpass@127.0.0.1:5432/hairconnekt_test',
+    DATABASE_HOST: dbHost,
+    DATABASE_PORT: dbPort,
+    DATABASE_USER: dbUser,
+    DATABASE_PASSWORD: dbPass,
+    DATABASE_NAME: dbName,
+    DATABASE_URL: dbUrl,
     DATABASE_SSL: 'false',
     JWT_ACCESS_SECRET: 'test-access-secret-32-chars-long-minimum-safe-dummy',
     JWT_SECRET: 'test-access-secret-32-chars-long-minimum-safe-dummy',
@@ -101,9 +146,6 @@ export function initializeTestEnvironment(): void {
     // Override whatever is in process.env so .env file values cannot leak
     process.env[key] = value;
   }
-
-  // Run the guard check
-  assertSafeDatabaseHost();
 }
 
 // Auto-run on import

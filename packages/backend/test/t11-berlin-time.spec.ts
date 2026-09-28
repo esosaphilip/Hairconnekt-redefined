@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { SUMMER_NOW, WINTER_NOW, DST_SWITCH_DAY, freezeClock, unfreezeClock } from './test-time';
@@ -13,6 +13,10 @@ describe('T11: Berlin Time Correctness (server in UTC)', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {

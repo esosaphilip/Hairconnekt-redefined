@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestProvider } from './test-factories';
 import { ServiceCategory } from '../src/entities/service-category.entity';
 
@@ -12,6 +12,10 @@ describe('T07: Provider Setup', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -49,6 +53,7 @@ describe('T07: Provider Setup', () => {
         name: 'Knotless Braids Medium',
         description: 'Mid-back length knotless braids',
         price: 120,
+        priceType: 'fixed',
         durationMin: 180,
       })
       .expect(201);
@@ -71,7 +76,7 @@ describe('T07: Provider Setup', () => {
       .set('Authorization', `Bearer ${providerToken}`)
       .expect(200);
 
-    const schedule = Array.isArray(availRes.body) ? availRes.body : availRes.body.data;
+    const schedule = Array.isArray(availRes.body) ? availRes.body : (availRes.body.schedule || availRes.body.data);
     expect(schedule).toHaveLength(7);
 
     // 5. Update availability schedule via PUT /api/v1/providers/me/availability

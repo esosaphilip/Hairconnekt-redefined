@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, createTestProvider, createTestAdmin, signTestToken } from './test-factories';
 
 describe('T03: Auth, Tokens and Role Guards', () => {
@@ -11,6 +11,10 @@ describe('T03: Auth, Tokens and Role Guards', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {

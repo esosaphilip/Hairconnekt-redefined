@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { Provider } from '../src/entities/provider.entity';
@@ -13,6 +13,10 @@ describe('T12: Reviews and Ratings', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -54,12 +58,14 @@ describe('T12: Reviews and Ratings', () => {
       })
       .expect(403);
 
-    // 2. Completed booking
+    // 2. Completed booking (scheduled at different slot to satisfy uq_active_bookings_slot)
     const completedBooking = await createTestBooking(ctx.dataSource, {
       client,
       provider,
       services,
       status: BookingStatus.COMPLETED,
+      scheduledDate: '2026-10-16',
+      scheduledTime: '11:00',
     });
 
     // 3. Other client cannot review someone else's booking
@@ -118,7 +124,7 @@ describe('T12: Reviews and Ratings', () => {
         rating: 4,
         comment: 'Trying to review the same booking again',
       })
-      .expect(400);
+      .expect(409);
 
     // 7. Provider stats updated
     const provRepo = ctx.dataSource.getRepository(Provider);

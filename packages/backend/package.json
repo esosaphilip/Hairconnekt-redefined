@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main",
     "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
-    "test": "jest --runInBand",
+    "test": "TZ=UTC jest --runInBand --forceExit",
     "test:bookings": "node --require ts-node/register/transpile-only --test test/bookings.service.test.js",
     "test:integration": "bash run_tests.sh",
     "type-check": "tsc --noEmit",

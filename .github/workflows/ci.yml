@@ -90,7 +90,17 @@ jobs:
           EXPO_ACCESS_TOKEN: dummy-expo-token
           FRONTEND_URL: http://localhost:5173
           PORT: 3001
-        run: npm test
+        run: |
+          npm test -- --json --outputFile=test-results.json
+          node -e "
+            const res = require('./test-results.json');
+            const skipped = res.numPendingTests || 0;
+            if (skipped > 0) {
+              console.error('ERROR: ' + skipped + ' tests were skipped in CI. Skipping DB-backed tests is forbidden in CI.');
+              process.exit(1);
+            }
+            console.log('CI verification passed: Zero tests were skipped (' + res.numPassedTests + ' passed).');
+          "
 
   mobile:
     name: Mobile (Tests T14–T15 & Typecheck)

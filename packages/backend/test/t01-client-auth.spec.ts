@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { generateTestEmail, TEST_PASSWORD } from './test-factories';
 
 describe('T01: Client Registration, Verification, Login', () => {
@@ -11,6 +11,10 @@ describe('T01: Client Registration, Verification, Login', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -98,7 +102,8 @@ describe('T01: Client Registration, Verification, Login', () => {
       })
       .expect(200);
 
-    expect(verifyRes.body).toHaveProperty('message');
+    expect(verifyRes.body.success).toBe(true);
+    expect(verifyRes.body).toHaveProperty('accessToken');
 
     // 7. Login now succeeds
     const loginRes = await request(ctx.app.getHttpServer())

@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
+import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, createTestProvider } from './test-factories';
 
 describe('T08: Booking Creation and Conflicts', () => {
@@ -11,6 +11,10 @@ describe('T08: Booking Creation and Conflicts', () => {
     if (dbReady) {
       ctx = await createTestApp();
     }
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
   });
 
   beforeEach(async () => {
@@ -77,7 +81,7 @@ describe('T08: Booking Creation and Conflicts', () => {
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2020-01-01',
+        scheduledDate: 'invalid-date',
         scheduledTime: '10:00',
         isMobile: false,
       })

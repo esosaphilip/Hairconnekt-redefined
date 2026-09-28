@@ -1,5 +1,23 @@
 import './env-guard'; // MUST be first (R10, R11)
 import 'reflect-metadata';
+
+// Mock load-esm so NestJS FileTypeValidator can inspect magic numbers in CommonJS Jest
+jest.mock('load-esm', () => ({
+  loadEsm: jest.fn().mockResolvedValue({
+    fileTypeFromBuffer: async (buf: Buffer) => {
+      if (buf && buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+        return { ext: 'png', mime: 'image/png' };
+      }
+      if (buf && buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+        return { ext: 'jpg', mime: 'image/jpeg' };
+      }
+      if (buf && buf.length >= 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP') {
+        return { ext: 'webp', mime: 'image/webp' };
+      }
+      return undefined;
+    },
+  }),
+}));
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import helmet from 'helmet';
@@ -30,6 +48,7 @@ export interface TestAppContext {
 let cachedContext: TestAppContext | null = null;
 
 export async function isDatabaseAvailable(): Promise<boolean> {
+  const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
   const { Client } = require('pg');
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
@@ -39,7 +58,12 @@ export async function isDatabaseAvailable(): Promise<boolean> {
     await client.connect();
     await client.end();
     return true;
-  } catch {
+  } catch (err) {
+    if (isCI) {
+      throw new Error(
+        `CRITICAL CI FAILURE: Database connection failed at ${process.env.DATABASE_URL}. Skipping tests is forbidden in CI environment. (${(err as any)?.message})`,
+      );
+    }
     return false;
   }
 }
@@ -48,6 +72,25 @@ export async function createTestApp(): Promise<TestAppContext> {
   if (cachedContext) {
     return cachedContext;
   }
+
+  // Fast test config: Set TypeORM retryAttempts to 1 and short connection timeout
+  try {
+    const imports = Reflect.getMetadata('imports', AppModule) || [];
+    for (const imp of imports) {
+      if (imp?.imports?.[0]?.module?.name === 'TypeOrmCoreModule') {
+        const optProvider = imp.imports[0].providers?.find(
+          (p: any) => p?.provide === 'TYPEORM_MODULE_OPTIONS',
+        );
+        if (optProvider?.useValue) {
+          optProvider.useValue.retryAttempts = 1;
+          optProvider.useValue.retryDelay = 500;
+          if (optProvider.useValue.extra) {
+            optProvider.useValue.extra.connectionTimeoutMillis = 1000;
+          }
+        }
+      }
+    }
+  } catch (_) {}
 
   // Install fake mailer
   fakeMailer.install();
@@ -70,7 +113,8 @@ export async function createTestApp(): Promise<TestAppContext> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(helmet());
-  app.use(cookieParser());
+  const cookieMiddleware = typeof cookieParser === 'function' ? cookieParser : (cookieParser as any).default;
+  app.use(cookieMiddleware());
 
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!isAdminCsrfProtectedRequest(req as any)) {
@@ -143,6 +187,11 @@ export async function createTestApp(): Promise<TestAppContext> {
 export async function closeTestApp(): Promise<void> {
   if (cachedContext) {
     try {
+      if (cachedContext.dataSource && cachedContext.dataSource.isInitialized) {
+        await cachedContext.dataSource.destroy();
+      }
+    } catch (_) {}
+    try {
       await cachedContext.app.close();
     } catch (_) {}
     fakeMailer.restore();
@@ -161,7 +210,7 @@ export async function truncateAllTables(dataSource: DataSource): Promise<void> {
       SELECT tablename 
       FROM pg_tables 
       WHERE schemaname = 'public' 
-        AND tablename NOT IN ('service_categories', 'popular_styles', 'migrations')
+        AND tablename NOT IN ('service_categories', 'popular_styles', 'migrations', 'spatial_ref_sys')
     `);
 
     if (tables.length > 0) {

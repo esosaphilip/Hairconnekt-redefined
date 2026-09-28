@@ -128,6 +128,7 @@ export async function createTestProvider(
   const provider = await providerRepo.save(
     providerRepo.create({
       userId: user.id,
+      providerType: ProviderType.SALON,
       businessName: 'Studio HairConnekt',
       bio: 'Professional braiding studio',
       street: 'Alexanderplatz',

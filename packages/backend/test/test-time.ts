@@ -21,6 +21,13 @@ export function freezeClock(isoInstant: string | Date): void {
       'clearInterval',
       'setTimeout',
       'clearTimeout',
+      'hrtime',
+      'performance',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
     ],
   });
   jest.setSystemTime(new Date(isoInstant));
