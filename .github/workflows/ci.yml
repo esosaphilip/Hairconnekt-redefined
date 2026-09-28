@@ -1,0 +1,167 @@
+name: CI Safety-Net
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Tests T01–T13 & Build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/backend
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: hairconnekt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U testuser -d hairconnekt_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Type-check backend
+        run: npm run type-check
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Run database migrations on test container
+        env:
+          DATABASE_URL: postgres://testuser:testpass@127.0.0.1:5432/hairconnekt_test
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: 5432
+          DATABASE_USER: testuser
+          DATABASE_PASSWORD: testpass
+          DATABASE_NAME: hairconnekt_test
+          DATABASE_SSL: "false"
+          NODE_ENV: test
+        run: npm run migration:run:dev
+
+      - name: Run backend regression test suite (T01–T13 & Guard)
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://testuser:testpass@127.0.0.1:5432/hairconnekt_test
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: 5432
+          DATABASE_USER: testuser
+          DATABASE_PASSWORD: testpass
+          DATABASE_NAME: hairconnekt_test
+          DATABASE_SSL: "false"
+          JWT_SECRET: dummy-test-jwt-secret-at-least-32-chars-long
+          REFRESH_TOKEN_SECRET: dummy-test-refresh-secret-at-least-32-chars-long
+          ADMIN_SECRET: dummy-test-admin-secret-at-least-32-chars-long
+          BREVO_API_KEY: dummy-brevo-api-key
+          R2_ACCOUNT_ID: dummy-r2-account-id
+          R2_ACCESS_KEY_ID: dummy-r2-access-key-id
+          R2_SECRET_ACCESS_KEY: dummy-r2-secret-access-key
+          R2_BUCKET_NAME: dummy-r2-bucket
+          R2_PUBLIC_URL: https://dummy-r2.hairconnekt.de
+          R2_INTERNAL_ENDPOINT: https://dummy-r2-internal.hairconnekt.de
+          GOOGLE_MAPS_API_KEY: dummy-google-maps-api-key
+          EXPO_ACCESS_TOKEN: dummy-expo-token
+          FRONTEND_URL: http://localhost:5173
+          PORT: 3001
+        run: npm test
+
+  mobile:
+    name: Mobile (Tests T14–T15 & Typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        run: npm ci
+
+      - name: Type-check mobile
+        run: npm run type-check
+
+      - name: Run mobile regression test suite (T14–T15)
+        run: npm test
+
+  admin:
+    name: Admin Dashboard (Build & Typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/admin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: Install admin dependencies
+        run: npm ci
+
+      - name: Build admin application
+        run: npm run build
+
+  summary:
+    name: CI Safety-Net Summary
+    runs-on: ubuntu-latest
+    needs: [backend, mobile, admin]
+    if: always()
+    steps:
+      - name: Publish Step Summary
+        run: |
+          echo "## 🛡️ HairConnekt CI Safety-Net Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Scope / Suites | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Backend** | T01–T13 + Safety Guard (DB migrations & API) | ${{ needs.backend.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Mobile** | T14–T15 (Logic, Error mapping, Formatting) | ${{ needs.mobile.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Admin** | TypeScript check & Vite production build | ${{ needs.admin.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.backend.result }}" = "success" ] && [ "${{ needs.mobile.result }}" = "success" ] && [ "${{ needs.admin.result }}" = "success" ]; then
+            echo "🎉 **All safety-net regression checks passed cleanly!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **One or more CI jobs failed. Please inspect logs above.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
