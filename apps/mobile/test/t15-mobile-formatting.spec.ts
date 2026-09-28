@@ -1,134 +1,95 @@
 import fs from 'fs';
 import path from 'path';
-import { formatAmount } from '../src/utils/format';
+import { formatAmount, AppLanguage } from '../src/utils/format';
 
-/**
- * Standard appointment time formatting helper used across the app
- * To safely format a HH:mm[:ss] time string without timezone distortion:
- */
-function normalizeTimeString(timeStr: string): string {
-  if (!timeStr) return '';
-  const parts = timeStr.split(':');
-  if (parts.length >= 2) {
-    return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+function getAllSourceFiles(dir: string): string[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...getAllSourceFiles(fullPath));
+    } else if (/\.(tsx?|jsx?)$/.test(entry.name)) {
+      files.push(fullPath);
+    }
   }
-  return timeStr;
+  return files;
 }
 
-function formatTimeToLocale(timeStr: string, locale: 'de' | 'en'): string {
-  const normalized = normalizeTimeString(timeStr);
-  if (!normalized) return '';
-  const [hStr, mStr] = normalized.split(':');
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
+function findScheduledDateFormatterViolations(filePath: string): string[] {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const violations: string[] = [];
 
-  if (locale === 'de') {
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  // Pattern 1: Variable assigned from new Date(...scheduledDate...) and then calls toLocaleTimeString or toLocaleString
+  const varPattern = /(?:const|let|var)\s+(\w+)\s*=\s*new\s+Date\([^)]*scheduledDate[^)]*\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = varPattern.exec(content)) !== null) {
+    const varName = match[1];
+    const timeCallRegex = new RegExp(`\\b${varName}\\s*\\.\\s*(toLocaleTimeString|toLocaleString)\\b`);
+    if (timeCallRegex.test(content)) {
+      violations.push(`${path.basename(filePath)}: variable '${varName}' created from scheduledDate calls toLocaleTimeString/toLocaleString`);
+    }
   }
 
-  // English 12-hour format
-  const period = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  // Pattern 2: Direct new Date(...scheduledDate...).toLocaleTimeString() or toLocaleString()
+  if (/new\s+Date\([^)]*scheduledDate[^)]*\)\s*\.\s*(toLocaleTimeString|toLocaleString)/i.test(content)) {
+    violations.push(`${path.basename(filePath)}: direct call new Date(...scheduledDate...).toLocaleTimeString/toLocaleString`);
+  }
+
+  // Pattern 3: Passing scheduledDate into toLocaleTimeString or toLocaleString
+  if (/toLocaleTimeString\([^)]*scheduledDate/i.test(content) || /toLocaleString\([^)]*scheduledDate/i.test(content)) {
+    violations.push(`${path.basename(filePath)}: scheduledDate passed directly into toLocaleTimeString/toLocaleString`);
+  }
+
+  return violations;
 }
 
-describe('T15: Mobile Time, Date & Currency Formatting', () => {
-  describe('Time Normalization and Formatting', () => {
-    it('formats 24-hour time strings correctly for German locale', () => {
-      expect(formatTimeToLocale('12:00:00', 'de')).toBe('12:00');
-      expect(formatTimeToLocale('14:00:00', 'de')).toBe('14:00');
-      expect(formatTimeToLocale('00:30:00', 'de')).toBe('00:30');
-      expect(formatTimeToLocale('00:00:00', 'de')).toBe('00:00');
-      expect(formatTimeToLocale('23:59:59', 'de')).toBe('23:59');
-    });
-
-    it('handles 2-part time strings without seconds ("HH:mm")', () => {
-      expect(formatTimeToLocale('14:00', 'de')).toBe('14:00');
-      expect(formatTimeToLocale('09:30', 'de')).toBe('09:30');
-      expect(formatTimeToLocale('14:00', 'en')).toBe('2:00 PM');
-      expect(formatTimeToLocale('09:30', 'en')).toBe('9:30 AM');
-    });
-
-    it('formats 12-hour time strings correctly for English locale', () => {
-      expect(formatTimeToLocale('12:00:00', 'en')).toBe('12:00 PM');
-      expect(formatTimeToLocale('14:00:00', 'en')).toBe('2:00 PM');
-      expect(formatTimeToLocale('00:30:00', 'en')).toBe('12:30 AM');
-      expect(formatTimeToLocale('00:00:00', 'en')).toBe('12:00 AM');
-      expect(formatTimeToLocale('23:59:00', 'en')).toBe('11:59 PM');
-      expect(formatTimeToLocale('08:05:00', 'en')).toBe('8:05 AM');
-    });
-
-    it('strips seconds cleanly without trailing artifacts', () => {
-      const rawWithSeconds = '15:45:30';
-      const formattedDe = formatTimeToLocale(rawWithSeconds, 'de');
-      expect(formattedDe).toBe('15:45');
-      expect(formattedDe).not.toContain(':30');
-
-      const formattedEn = formatTimeToLocale(rawWithSeconds, 'en');
-      expect(formattedEn).toBe('3:45 PM');
-      expect(formattedEn).not.toContain('30');
-    });
-  });
-
-  describe('Currency / Amount Formatting (formatAmount)', () => {
-    it('formats amounts in German locale with comma decimal separator', () => {
+describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
+  describe('Production Currency Formatter (formatAmount from utils/format.ts)', () => {
+    it('formats numbers and numeric strings in German locale with comma decimal separator (asserts comma output)', () => {
       expect(formatAmount(25, 'de')).toBe('25,00');
       expect(formatAmount(49.99, 'de')).toBe('49,99');
       expect(formatAmount('65.50', 'de')).toBe('65,50');
       expect(formatAmount('65,50', 'de')).toBe('65,50');
     });
 
-    it('formats amounts in English locale with dot decimal separator', () => {
+    it('formats numbers and numeric strings in English locale with dot decimal separator (asserts dot output)', () => {
       expect(formatAmount(25, 'en')).toBe('25.00');
       expect(formatAmount(49.99, 'en')).toBe('49.99');
       expect(formatAmount('65.50', 'en')).toBe('65.50');
       expect(formatAmount('65,50', 'en')).toBe('65.50');
     });
 
-    it('handles falsy / invalid values safely by falling back to 0.00', () => {
+    it('handles falsy or invalid values safely by falling back to 0.00 / 0,00', () => {
       expect(formatAmount(null, 'de')).toBe('0,00');
       expect(formatAmount(undefined, 'en')).toBe('0.00');
       expect(formatAmount('invalid', 'de')).toBe('0,00');
     });
   });
 
-  describe('Known Bug BUG-021: Provider Booking Request Screen Time Offset', () => {
-    // KNOWN BUG-021: In booking-request/[id].tsx, time is computed as:
-    //   const d = new Date(booking.scheduledDate);
-    //   const timeStr = d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'de-DE', { hour: '2-digit', minute: '2-digit' });
-    // This evaluates scheduledDate at midnight UTC, completely ignoring scheduledTime (e.g. "14:00")
-    // and rendering the local timezone offset of midnight UTC instead.
-    it.failing('[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset', () => {
-      const booking = {
-        id: 'booking-test-123',
-        scheduledDate: '2026-09-28',
-        scheduledTime: '14:00',
-        status: 'pending',
-      };
+  describe('Appointment Time Formatter Future Contract', () => {
+    it.todo('after BUG-021 fix: test formatBookingTime');
+  });
 
-      // Exactly the buggy logic in apps/mobile/src/app/(provider)/booking-request/[id].tsx lines 195-204:
-      const d = new Date(booking.scheduledDate);
-      const timeStr = d.toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+  describe('Static Source Scan for BUG-021 (scheduledDate passed to time formatters)', () => {
+    // KNOWN BUG-021: In apps/mobile/src/app/(provider)/booking-request/[id].tsx, scheduledDate is parsed
+    // with new Date(booking.scheduledDate) and formatted via d.toLocaleTimeString(), which displays the
+    // timezone offset of midnight UTC rather than the actual scheduled appointment time.
+    it.failing('[KNOWN BUG-021] static source scan: no file under apps/mobile/src passes scheduledDate into time formatters', () => {
+      const srcDir = path.resolve(__dirname, '../src');
+      const sourceFiles = getAllSourceFiles(srcDir);
+      const allViolations: string[] = [];
 
-      // The appointment was scheduled for 14:00, so timeStr must be "14:00"
-      // BUG-021 causes timeStr to be "02:00" (CEST offset of midnight) or "00:00" (UTC), NOT "14:00"
-      expect(timeStr).toBe(booking.scheduledTime);
-    });
+      for (const file of sourceFiles) {
+        const violations = findScheduledDateFormatterViolations(file);
+        if (violations.length > 0) {
+          allViolations.push(...violations);
+        }
+      }
 
-    it('static audit: asserts that booking-request/[id].tsx contains the problematic toLocaleTimeString on scheduledDate', () => {
-      const screenPath = path.resolve(
-        __dirname,
-        '../src/app/(provider)/booking-request/[id].tsx',
-      );
-      const content = fs.readFileSync(screenPath, 'utf8');
-
-      // The screen parses scheduledDate into d:
-      expect(content).toContain('new Date(booking.scheduledDate)');
-      // And calls toLocaleTimeString on that Date object:
-      expect(content).toContain('d.toLocaleTimeString');
+      // Asserts zero source files pass scheduledDate into time formatters
+      // Fails today because booking-request/[id].tsx has this bug
+      expect(allViolations).toEqual([]);
     });
   });
 });
