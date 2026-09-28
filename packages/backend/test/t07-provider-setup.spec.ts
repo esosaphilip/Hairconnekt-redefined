@@ -141,4 +141,39 @@ describe('T07: Provider Setup', () => {
     const blocksListAfter = Array.isArray(blocksAfterRes.body) ? blocksAfterRes.body : blocksAfterRes.body.data || [];
     expect(blocksListAfter.some((b: any) => b.id === blockId)).toBe(false);
   }));
+
+  it('an inactive category is not offered in GET services/categories', runTest(async () => {
+    const catRepo = ctx.dataSource.getRepository(ServiceCategory);
+
+    const activeCat = await catRepo.save(
+      catRepo.create({
+        name: `Active Cat ${Date.now()}`,
+        iconName: 'active',
+        isActive: true,
+        sortOrder: 1,
+      }),
+    );
+
+    const inactiveCat = await catRepo.save(
+      catRepo.create({
+        name: `Inactive Cat ${Date.now()}`,
+        iconName: 'inactive',
+        isActive: false,
+        sortOrder: 2,
+      }),
+    );
+
+    // Query GET /api/v1/services/categories (used in provider onboarding / setup to offer categories)
+    const res = await request(ctx.app.getHttpServer())
+      .get('/api/v1/services/categories')
+      .expect(200);
+
+    const categories = Array.isArray(res.body) ? res.body : res.body.data || [];
+    const catIds = categories.map((c: any) => c.id);
+
+    // Asserts active category is offered
+    expect(catIds).toContain(activeCat.id);
+    // Asserts inactive category is not offered
+    expect(catIds).not.toContain(inactiveCat.id);
+  }));
 });
