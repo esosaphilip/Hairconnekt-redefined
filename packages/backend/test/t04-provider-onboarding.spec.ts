@@ -161,4 +161,7 @@ describe('T04: Provider Registration and Onboarding', () => {
       .attach('avatar', oversizeBuffer, 'huge.jpg')
       .expect(413);
   }));
+
+  // BUG-008: Provider registration rule requiring at least one service exists only on mobile client, not yet enforced on backend
+  it.todo('server rule: at least one service');
 });
