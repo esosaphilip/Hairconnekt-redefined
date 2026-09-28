@@ -238,3 +238,8 @@ Running `eas build:configure` from `$repo_root` (instead of from `apps/mobile/`)
 - Stage only explicit file paths (never `git add .` or `git add -A`).
 - Changes to `apps/mobile/package.json` or its lockfile MUST always be committed in their own separate commit.
 
+### 5. Test Assertion & Production Coverage Rules
+- **Exercise Production Code Only**: Every test must exercise PRODUCTION code (controller, service, util, or screen source), never a copy of it or a helper from the test folder. If it cannot yet, write it as `it.todo` or `it.failing` with the bug ID.
+- **NO Conditional Assertions**: No `if` around an expect. Every assertion must always run unconditionally.
+- **Explicit Test Names & Comments**: The test name and comments must say exactly what is asserted.
+
