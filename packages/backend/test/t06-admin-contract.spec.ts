@@ -187,16 +187,17 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
     expect(styleId).toBeDefined();
 
     // Update popular style: asserts HTTP 200 and updated fields
+    const updatedStyleName = `Goddess Locs Updated ${Date.now()}`;
     const styleUpdateRes = await request(ctx.app.getHttpServer())
       .patch(`/api/v1/admin/popular-styles/${styleId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        name: 'Goddess Locs Updated',
+        name: updatedStyleName,
         sortOrder: 2,
       })
       .expect(200);
 
-    expect(styleUpdateRes.body.name).toBe('Goddess Locs Updated');
+    expect(styleUpdateRes.body.name).toBe(updatedStyleName);
     expect(styleUpdateRes.body.sortOrder).toBe(2);
 
     // Toggle popular style isActive to false: asserts HTTP 200 and isActive is false
