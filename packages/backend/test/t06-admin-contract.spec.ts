@@ -171,7 +171,7 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
     const inactiveFound = activeCatList.find((c: any) => c.id === categoryId);
     expect(inactiveFound).toBeUndefined();
 
-    // 3. Popular styles create and toggle
+    // 3. Popular styles create, update, and toggle
     const styleRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/admin/popular-styles')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -183,7 +183,40 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
       })
       .expect(201);
 
-    expect(styleRes.body.id).toBeDefined();
+    const styleId = styleRes.body.id;
+    expect(styleId).toBeDefined();
+
+    // Update popular style: asserts HTTP 200 and updated fields
+    const styleUpdateRes = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/admin/popular-styles/${styleId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Goddess Locs Updated',
+        sortOrder: 2,
+      })
+      .expect(200);
+
+    expect(styleUpdateRes.body.name).toBe('Goddess Locs Updated');
+    expect(styleUpdateRes.body.sortOrder).toBe(2);
+
+    // Toggle popular style isActive to false: asserts HTTP 200 and isActive is false
+    const styleToggleRes = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/admin/popular-styles/${styleId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        isActive: false,
+      })
+      .expect(200);
+
+    expect(styleToggleRes.body.isActive).toBe(false);
+
+    // Inactive popular style does not appear in public GET /popular-styles: asserts absence
+    const publicStylesRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/popular-styles')
+      .expect(200);
+
+    const publicStyles = Array.isArray(publicStylesRes.body) ? publicStylesRes.body : publicStylesRes.body.data || [];
+    expect(publicStyles.some((s: any) => s.id === styleId)).toBe(false);
 
     // 4. Invitations create
     const inviteEmail = generateTestEmail('admin-invite');
@@ -230,5 +263,36 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.isActive).toBe(true);
+  }, true));
+
+  // KNOWN BUG-019: category created with isActive: false must not appear in GET services/categories
+  it.failing('[KNOWN BUG-019] category created with isActive false must not appear in GET services/categories', runTest(async () => {
+    const { adminToken } = await loginAsAdmin();
+    const uniqueCatName = `Hidden Inactive Cat ${Date.now()}`;
+
+    // Admin attempts to create category directly with isActive: false
+    // BUG-019: CreateCategoryDto rejects isActive with 400
+    const catCreateRes = await request(ctx.app.getHttpServer())
+      .post('/api/v1/admin/categories')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: uniqueCatName,
+        description: 'Hidden inactive category',
+        iconName: 'hidden',
+        sortOrder: 99,
+        isActive: false,
+      })
+      .expect(201);
+
+    expect(catCreateRes.body.id).toBeDefined();
+    expect(catCreateRes.body.isActive).toBe(false);
+
+    // Inactive category must NOT appear in public GET /services/categories
+    const publicCatsRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/services/categories')
+      .expect(200);
+
+    const catList = Array.isArray(publicCatsRes.body) ? publicCatsRes.body : publicCatsRes.body.data || [];
+    expect(catList.some((c: any) => c.name === uniqueCatName)).toBe(false);
   }, true));
 });
