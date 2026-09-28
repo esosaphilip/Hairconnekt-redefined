@@ -32,7 +32,7 @@ export function signTestToken(
       role: user.role,
       onboarding,
     },
-    { expiresIn },
+    { expiresIn: expiresIn as any },
   );
 }
 
@@ -175,19 +175,15 @@ export async function createTestProvider(
   const count = options.serviceCount ?? 1;
   const services: Service[] = [];
   for (let i = 0; i < count; i++) {
-    services.push(
-      await serviceRepo.save(
-        serviceRepo.create({
-          providerId: provider.id,
-          categoryId: category.id,
-          name: `Standard Service ${i + 1}`,
-          description: 'High quality hair styling service',
-          price: 60 + i * 20,
-          durationMin: 60,
-          isMobileService: false,
-        }),
-      ),
-    );
+    const s = serviceRepo.create({
+      providerId: provider.id,
+      categoryId: category.id,
+      name: `Standard Service ${i + 1}`,
+      description: 'High quality hair styling service',
+      price: 60 + i * 20,
+      durationMin: 60,
+    });
+    services.push(await serviceRepo.save(s));
   }
 
   const token = signTestToken(user);

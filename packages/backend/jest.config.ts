@@ -26,6 +26,7 @@ const config: Config = {
   },
   setupFiles: ['<rootDir>/test/env-guard.ts'],
   testEnvironment: 'node',
+  watchman: false,
   testTimeout: 30000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

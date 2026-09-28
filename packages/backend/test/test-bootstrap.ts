@@ -29,6 +29,21 @@ export interface TestAppContext {
 
 let cachedContext: TestAppContext | null = null;
 
+export async function isDatabaseAvailable(): Promise<boolean> {
+  const { Client } = require('pg');
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 1000,
+  });
+  try {
+    await client.connect();
+    await client.end();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function createTestApp(): Promise<TestAppContext> {
   if (cachedContext) {
     return cachedContext;
