@@ -71,35 +71,133 @@ describe('T11: Berlin Time Correctness (server in UTC)', () => {
     expect(res.body.status).toBe('IN_PROGRESS');
   }, true));
 
-  it('DST switch and time mapping across 2026-10-25', runTest(async () => {
-    // Clocks change on DST_SWITCH_DAY (2026-10-25): 03:00 CEST -> 02:00 CET
-    // Saturday 2026-10-24 is CEST (UTC+2): 09:00 Berlin is 07:00 UTC
-    // Monday 2026-10-26 is CET (UTC+1): 09:00 Berlin is 08:00 UTC
+  // Summer boundary 1: 06:29Z is before the 30-min start window (window begins at 06:30Z for 09:00 Berlin / 07:00Z)
+  it('summer, 09:00 Berlin: rejected at 06:29Z (before 30m start window)', runTest(async () => {
+    freezeClock('2026-09-28T06:29:00Z');
 
     const { user: client } = await createTestClient(ctx.dataSource);
-    const { provider, services } = await createTestProvider(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
 
-    // 1. Summer booking (before DST)
-    const bookingSummer = await createTestBooking(ctx.dataSource, {
+    const booking = await createTestBooking(ctx.dataSource, {
       client,
       provider,
       services,
       status: BookingStatus.CONFIRMED,
-      scheduledDate: '2026-10-24',
+      scheduledDate: '2026-09-28',
       scheduledTime: '09:00',
     });
 
-    // 2. Winter booking (after DST)
-    const bookingWinter = await createTestBooking(ctx.dataSource, {
-      client,
-      provider,
-      services,
-      status: BookingStatus.CONFIRMED,
-      scheduledDate: '2026-10-26',
-      scheduledTime: '09:00',
-    });
+    // Asserts HTTP 400 rejection because 06:29Z is 1 minute before allowed start window
+    const res = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/bookings/${booking.id}/start`)
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(400);
 
-    expect(bookingSummer.scheduledDate).toBe('2026-10-24');
-    expect(bookingWinter.scheduledDate).toBe('2026-10-26');
+    expect(res.body.message).toMatch(/30 Minuten vor der geplanten Zeit/i);
   }));
+
+  // Summer boundary 2: 06:30Z is exact 30-min start window boundary (09:00 Berlin = 07:00Z, so 07:00Z - 30m = 06:30Z)
+  // KNOWN BUG-023: server interprets 09:00 wall-clock as 09:00 UTC (earliest start 08:30 UTC), rejecting 06:30Z with 400
+  it.failing('[KNOWN BUG-023] summer, 09:00 Berlin: allowed to start at 06:30Z (exact 30m boundary)', runTest(async () => {
+    freezeClock('2026-09-28T06:30:00Z');
+
+    const { user: client } = await createTestClient(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    const booking = await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CONFIRMED,
+      scheduledDate: '2026-09-28',
+      scheduledTime: '09:00',
+    });
+
+    // Asserts HTTP 200 OK and status IN_PROGRESS at 06:30Z
+    const res = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/bookings/${booking.id}/start`)
+      .set('Authorization', `Bearer ${providerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('IN_PROGRESS');
+  }, true));
+
+  // Winter boundary 1: 07:29Z is before the 30-min start window for 09:00 Berlin (winter 2026-11-03, 09:00 Berlin = 08:00Z, window at 07:30Z)
+  it('winter (2026-11-03, 09:00 Berlin = 08:00Z): rejected at 07:29Z (before 30m start window)', runTest(async () => {
+    freezeClock('2026-11-03T07:29:00Z');
+
+    const { user: client } = await createTestClient(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    const booking = await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CONFIRMED,
+      scheduledDate: '2026-11-03',
+      scheduledTime: '09:00',
+    });
+
+    // Asserts HTTP 400 rejection because 07:29Z is 1 minute before allowed start window
+    const res = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/bookings/${booking.id}/start`)
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(400);
+
+    expect(res.body.message).toMatch(/30 Minuten vor der geplanten Zeit/i);
+  }));
+
+  // Winter boundary 2: 07:30Z is exact 30-min start window boundary (09:00 Berlin = 08:00Z, so 08:00Z - 30m = 07:30Z)
+  // KNOWN BUG-023: server interprets 09:00 as 09:00 UTC (earliest start 08:30 UTC), rejecting 07:30Z with 400
+  it.failing('[KNOWN BUG-023] winter (2026-11-03, 09:00 Berlin = 08:00Z): allowed to start at 07:30Z (exact 30m boundary)', runTest(async () => {
+    freezeClock('2026-11-03T07:30:00Z');
+
+    const { user: client } = await createTestClient(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    const booking = await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CONFIRMED,
+      scheduledDate: '2026-11-03',
+      scheduledTime: '09:00',
+    });
+
+    // Asserts HTTP 200 OK and status IN_PROGRESS at 07:30Z
+    const res = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/bookings/${booking.id}/start`)
+      .set('Authorization', `Bearer ${providerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('IN_PROGRESS');
+  }, true));
+
+  // KNOWN BUG-023: At 00:30 Berlin time (22:30Z previous UTC day), provider today's stats evaluates today via UTC midnight
+  it.failing('[KNOWN BUG-023] 00:30 Berlin belongs to the right day for today provider stats', runTest(async () => {
+    // 2026-09-28T22:30:00Z is 2026-09-29 00:30:00 CEST (Berlin local time)
+    freezeClock('2026-09-28T22:30:00Z');
+
+    const { user: client } = await createTestClient(ctx.dataSource);
+    const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    // Create a confirmed booking for 2026-09-29 ("today" in Berlin)
+    await createTestBooking(ctx.dataSource, {
+      client,
+      provider,
+      services,
+      status: BookingStatus.CONFIRMED,
+      scheduledDate: '2026-09-29',
+      scheduledTime: '10:00',
+    });
+
+    // Query GET /api/v1/providers/me/stats: asserts todayAppointments is 1
+    // BUG-023: server uses new Date().toISOString().split('T')[0] which evaluates to '2026-09-28', returning 0
+    const statsRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/providers/me/stats')
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(200);
+
+    expect(statsRes.body.todayAppointments).toBe(1);
+  }, true));
 });
