@@ -212,3 +212,29 @@ Running `eas build:configure` from `$repo_root` (instead of from `apps/mobile/`)
 - UI Language: German only
 - Target device: Android (Play Store submission first)
 - Booking number format: `HC-YYYYMMDD-XXXX` (4-digit zero-padded daily counter)
+
+---
+
+## TESTING RULES & CI SAFETY-NET
+
+### 1. Automated Test Suites
+- **Backend Tests**: `packages/backend/test/` (T01–T13 + Safety Guard). Run via `npm test` inside `packages/backend`.
+- **Mobile Tests**: `apps/mobile/test/` (T14–T15). Run via `npm test` inside `apps/mobile`.
+- **Admin Build**: `apps/admin/`. Run via `npm run build` inside `apps/admin`.
+
+### 2. Production Safety Invariant (R10 & R11)
+- Never connect to production databases or third-party APIs during testing.
+- `packages/backend/test/env-guard.ts` intercepts all test database connections and enforces that the host is strictly `localhost`, `127.0.0.1`, or `postgres`, and never contains `neon`.
+- All external services (Brevo email, Cloudflare R2 storage, Google Geocoding, Expo Push) MUST use in-memory test doubles (`FakeMailer`, `FakeR2Service`, `FakeGeocodingService`).
+
+### 3. Zero Production Code Changes in Test Setup
+- When introducing or configuring tests, do NOT modify production code in `src/`.
+- If a bug is uncovered, capture it as an expected failure using `it.failing` and document it in `docs/testing/KNOWN_BUG_TESTS.md`.
+- Once the production fix is deployed, flip `it.failing` to `it`.
+
+### 4. Git & Branching Invariants
+- Never push directly to `main`.
+- Never force-push or merge `main` into feature branches.
+- Stage only explicit file paths (never `git add .` or `git add -A`).
+- Changes to `apps/mobile/package.json` or its lockfile MUST always be committed in their own separate commit.
+
