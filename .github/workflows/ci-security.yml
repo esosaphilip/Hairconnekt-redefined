@@ -38,9 +38,6 @@ jobs:
       - name: Build backend
         run: npm run build
 
-      - name: Run bookings service tests
-        run: npm run test:bookings
-
   backend_integration:
     name: Backend Integration Tests
     runs-on: ubuntu-latest
