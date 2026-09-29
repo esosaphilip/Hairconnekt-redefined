@@ -64,40 +64,48 @@ export class BookingsService {
     bookingId: string,
     notificationTasks: Array<{ context: string; payload: NotificationPayload }>,
   ): Promise<void> {
-    if (notificationTasks.length === 0) return;
-
-    let notificationsPending = false;
-    let notificationsError: string | null = null;
-    const errors: string[] = [];
-
-    for (const task of notificationTasks) {
-      try {
-        await this.sendNotificationSafely(task.context, task.payload);
-      } catch (error) {
-        notificationsPending = true;
-        const errStr =
-          error instanceof Error
-            ? `${error.message}${error.stack ? '\n' + error.stack.slice(0, 1500) : ''}`
-            : String(error);
-        errors.push(`[${task.context}] ${errStr.slice(0, 400)}`);
-      }
-    }
-
-    if (errors.length > 0) {
-      notificationsError = errors.join('; ').slice(0, 2000);
-    }
-
     try {
-      await this.bookingRepo
-        .createQueryBuilder()
-        .update(Booking)
-        .set({ notificationsPending, notificationsError })
-        .where('id = :id', { id: bookingId })
-        .execute();
-    } catch (updateErr) {
+      if (notificationTasks.length === 0) return;
+
+      let notificationsPending = false;
+      let notificationsError: string | null = null;
+      const errors: string[] = [];
+
+      for (const task of notificationTasks) {
+        try {
+          await this.sendNotificationSafely(task.context, task.payload);
+        } catch (error) {
+          notificationsPending = true;
+          const errStr =
+            error instanceof Error
+              ? `${error.message}${error.stack ? '\n' + error.stack.slice(0, 1500) : ''}`
+              : String(error);
+          errors.push(`[${task.context}] ${errStr.slice(0, 400)}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        notificationsError = errors.join('; ').slice(0, 2000);
+      }
+
+      try {
+        await this.bookingRepo
+          .createQueryBuilder()
+          .update(Booking)
+          .set({ notificationsPending, notificationsError })
+          .where('id = :id', { id: bookingId })
+          .execute();
+      } catch (updateErr) {
+        this.logger.error(
+          `Failed to update notification flags for booking ${bookingId}: ${
+            updateErr instanceof Error ? updateErr.message : String(updateErr)
+          }`,
+        );
+      }
+    } catch (outerErr) {
       this.logger.error(
-        `Failed to update notification flags for booking ${bookingId}: ${
-          updateErr instanceof Error ? updateErr.message : String(updateErr)
+        `Unexpected error firing notifications for booking ${bookingId}: ${
+          outerErr instanceof Error ? outerErr.message : String(outerErr)
         }`,
       );
     }
@@ -551,7 +559,15 @@ export class BookingsService {
     }
 
     if (notificationTasks.length > 0) {
-      void this.fireNotificationsAndUpdateFlags(savedBookingId, notificationTasks);
+      try {
+        await this.fireNotificationsAndUpdateFlags(savedBookingId, notificationTasks);
+      } catch (err) {
+        this.logger.error(
+          `Notification dispatch failed for booking ${savedBookingId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     return {
@@ -802,7 +818,15 @@ export class BookingsService {
     }
 
     if (notificationTasks.length > 0 && bookingAfter) {
-      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      try {
+        await this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      } catch (err) {
+        this.logger.error(
+          `Notification dispatch failed for booking ${bookingAfter.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     return this.findOne(id, user);
@@ -921,7 +945,15 @@ export class BookingsService {
       }
 
       if (notificationTasks.length > 0) {
-        void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+        try {
+          await this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+        } catch (err) {
+          this.logger.error(
+            `Notification dispatch failed for booking ${bookingAfter.id}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
       }
     }
 
@@ -1027,7 +1059,15 @@ export class BookingsService {
     }
 
     if (notificationTasks.length > 0 && bookingAfter) {
-      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      try {
+        await this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      } catch (err) {
+        this.logger.error(
+          `Notification dispatch failed for booking ${bookingAfter.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     return this.findOne(id, user);
@@ -1059,20 +1099,28 @@ export class BookingsService {
 
     const bookingAfter = await this.loadFullBooking(id);
     if (bookingAfter?.provider) {
-      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, [
-        {
-          context: 'booking decline',
-          payload: {
-            userId: bookingAfter.clientId,
-            type: 'booking_declined',
-            titleDe: 'Buchung abgelehnt',
-            titleEn: 'Booking Declined',
-            bodyDe: `${bookingAfter.provider.businessName} kann deinen Termin am ${bookingAfter.scheduledDate} leider nicht wahrnehmen`,
-            bodyEn: `${bookingAfter.provider.businessName} cannot take your appointment on ${bookingAfter.scheduledDate}`,
-            data: { screen: `/(client)/appointments/${bookingAfter.id}`, bookingId: bookingAfter.id },
+      try {
+        await this.fireNotificationsAndUpdateFlags(bookingAfter.id, [
+          {
+            context: 'booking decline',
+            payload: {
+              userId: bookingAfter.clientId,
+              type: 'booking_declined',
+              titleDe: 'Buchung abgelehnt',
+              titleEn: 'Booking Declined',
+              bodyDe: `${bookingAfter.provider.businessName} kann deinen Termin am ${bookingAfter.scheduledDate} leider nicht wahrnehmen`,
+              bodyEn: `${bookingAfter.provider.businessName} cannot take your appointment on ${bookingAfter.scheduledDate}`,
+              data: { screen: `/(client)/appointments/${bookingAfter.id}`, bookingId: bookingAfter.id },
+            },
           },
-        },
-      ]);
+        ]);
+      } catch (err) {
+        this.logger.error(
+          `Notification dispatch failed for booking ${bookingAfter.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     return this.findOne(id, user);
@@ -1158,7 +1206,15 @@ export class BookingsService {
     }
 
     if (notificationTasks.length > 0 && bookingAfter) {
-      void this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      try {
+        await this.fireNotificationsAndUpdateFlags(bookingAfter.id, notificationTasks);
+      } catch (err) {
+        this.logger.error(
+          `Notification dispatch failed for booking ${bookingAfter.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
     }
 
     return this.findOne(id, user);

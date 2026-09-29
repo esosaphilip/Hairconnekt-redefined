@@ -215,18 +215,7 @@ export async function truncateAllTables(dataSource: DataSource): Promise<void> {
 
     if (tables.length > 0) {
       const tableNames = tables.map((t) => `"${t.tablename}"`).join(', ');
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await queryRunner.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE`);
-          break;
-        } catch (err: any) {
-          if (attempt < 3 && (err?.code === '40P01' || err?.message?.includes('deadlock'))) {
-            await new Promise((r) => setTimeout(r, 100));
-            continue;
-          }
-          throw err;
-        }
-      }
+      await queryRunner.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE`);
     }
   } finally {
     await queryRunner.release();
