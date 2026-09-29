@@ -116,15 +116,13 @@ describe('T08: Booking Creation and Conflicts', () => {
       .expect(409);
   }));
 
-  // KNOWN GAP: Backend validateBookingSlot does NOT check if scheduledDate is in the past, accepting yesterday's date
-  it.failing('[KNOWN GAP] rejects booking with yesterday date', runTest(async () => {
+  it('rejects booking with yesterday date', runTest(async () => {
     const { token: clientToken } = await createTestClient(ctx.dataSource);
     const { provider, services } = await createTestProvider(ctx.dataSource);
 
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     // Attempt to book with yesterday's date: expected to fail with HTTP 400 Bad Request
-    // Real behaviour: server currently accepts the booking and returns HTTP 201 Created
     await request(ctx.app.getHttpServer())
       .post('/api/v1/bookings')
       .set('Authorization', `Bearer ${clientToken}`)
@@ -136,7 +134,7 @@ describe('T08: Booking Creation and Conflicts', () => {
         isMobile: false,
       })
       .expect(400);
-  }, true));
+  }));
 
   it('rejects booking outside provider opening hours and on a closed day', runTest(async () => {
     const { token: clientToken } = await createTestClient(ctx.dataSource);

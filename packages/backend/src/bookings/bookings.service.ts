@@ -172,6 +172,11 @@ export class BookingsService {
     serviceDurationMin: number,
     bufferMin: number,
   ): Promise<void> {
+    const scheduledUtcMs = berlinWallClockToUtcMs(scheduledDate, scheduledTime);
+    if (scheduledUtcMs < Date.now()) {
+      throw new BadRequestException('Buchungen in der Vergangenheit sind nicht möglich.');
+    }
+
     const provider = await this.providerRepo.findOne({
       where: { id: providerId },
       select: ['id', 'isOnline', 'status', 'bufferMinutes'],
