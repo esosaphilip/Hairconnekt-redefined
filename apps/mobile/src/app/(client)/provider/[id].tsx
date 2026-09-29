@@ -34,6 +34,10 @@ type ProviderReviewItem = {
   comment?: string | null;
   createdAt?: string | null;
   clientName?: string | null;
+  serviceName?: string | null;
+  providerResponse?: string | null;
+  respondedAt?: string | null;
+  response?: string | null;
 };
 
 type ProviderProfileData = {
@@ -439,7 +443,18 @@ export default function ProviderProfile() {
                       </View>
                       <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : ''}</Text>
                     </View>
+                    {item.serviceName && (
+                      <View style={styles.serviceChip}>
+                        <Text style={styles.serviceChipText}>• {item.serviceName}</Text>
+                      </View>
+                    )}
                     <Text style={styles.reviewComment}>{item.comment}</Text>
+                    {(item.providerResponse || item.response) && (
+                      <View style={styles.responseBox}>
+                        <Text style={styles.responseLabel}>{t('myReviewsResponse')}</Text>
+                        <Text style={styles.responseText}>{item.providerResponse || item.response}</Text>
+                      </View>
+                    )}
                   </View>
                 )}
                 ListEmptyComponent={<Text style={styles.emptyText}>{t('profileNoReviews')}</Text>}
@@ -567,6 +582,18 @@ const styles = StyleSheet.create({
   reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: spacing.l },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, alignSelf: 'flex-start', marginBottom: spacing.sm },
+  serviceChipText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
+  responseBox: {
+    backgroundColor: colors.coralTintAlt,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+    borderWidth: spacing.unit,
+    borderColor: colors.coral,
+  },
+  responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.textPrimary, marginBottom: spacing.xxs },
+  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: spacing.l },
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 

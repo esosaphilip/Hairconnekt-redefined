@@ -284,7 +284,18 @@ export default function ProfilePreviewScreen() {
                     </View>
                     <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE') : ''}</Text>
                   </View>
+                  {rev.serviceName && (
+                    <View style={styles.serviceChip}>
+                      <Text style={styles.serviceChipText}>• {rev.serviceName}</Text>
+                    </View>
+                  )}
                   <Text style={styles.reviewComment}>{rev.comment}</Text>
+                  {(rev.providerResponse || rev.response) && (
+                    <View style={styles.responseBox}>
+                      <Text style={styles.responseLabel}>{t('myReviewsResponse')}</Text>
+                      <Text style={styles.responseText}>{rev.providerResponse || rev.response}</Text>
+                    </View>
+                  )}
                 </View>
               ))}
               {reviews.length === 0 && <Text style={styles.emptyText}>{t('profileNoReviews')}</Text>}
@@ -382,6 +393,18 @@ const styles = StyleSheet.create({
   reviewerName: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.textPrimary, marginBottom: spacing.xxxs },
   reviewDate: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   reviewComment: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: lineHeights.sm },
+  serviceChip: { backgroundColor: colors.surface, paddingHorizontal: spacing.s, paddingVertical: spacing.xxs, borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs, alignSelf: 'flex-start', marginBottom: spacing.sm },
+  serviceChipText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textSecondary },
+  responseBox: {
+    backgroundColor: colors.coralTintAlt,
+    borderRadius: borderRadius.sm + borderRadius.xs + spacing.xxxs,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+    borderWidth: spacing.unit,
+    borderColor: colors.coral,
+  },
+  responseLabel: { fontFamily: fonts.bodyBold, fontSize: fontSizes.xs, color: colors.textPrimary, marginBottom: spacing.xxs },
+  responseText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: spacing.l },
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 
