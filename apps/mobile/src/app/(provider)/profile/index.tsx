@@ -8,6 +8,7 @@ import { tokenStorage } from '../../../utils/token-storage';
 import { AuthService } from '../../../services/authService';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatReviewCount } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 
 type PickedImageAsset = {
@@ -32,7 +33,7 @@ const inferFileName = (uri: string, fallback: string): string => {
 
 export default function ProviderProfileHubScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [provider, setProvider] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,7 +206,7 @@ export default function ProviderProfileHubScreen() {
 
           {Number.isFinite(avgRating) && avgRating > 0 && (
             <Text style={styles.ratingText}>
-              ⭐ {avgRating.toFixed(1)} ({Number.isFinite(totalReviews) ? totalReviews : 0} {t('providerReviewsCount')})
+              ⭐ {avgRating.toFixed(1)} ({formatReviewCount(Number.isFinite(totalReviews) ? totalReviews : 0, lang)})
             </Text>
           )}
 

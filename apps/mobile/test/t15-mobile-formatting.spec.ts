@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { formatAmount, formatRating, formatBookingTime, calculatePayout, AppLanguage } from '../src/utils/format';
+import { formatAmount, formatRating, formatBookingTime, calculatePayout, formatReviewLabel, formatReviewCount, formatReviewDate, AppLanguage } from '../src/utils/format';
 
 function getAllSourceFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -157,4 +157,69 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(allViolations).toEqual([]);
     });
   });
+
+  describe('Review Count Pluralization & Labeling (BUG-027)', () => {
+    it('returns singular "Bewertung" or "review" for 1 review', () => {
+      expect(formatReviewLabel(1, 'de')).toBe('Bewertung');
+      expect(formatReviewLabel(1, 'en')).toBe('review');
+      expect(formatReviewCount(1, 'de')).toBe('1 Bewertung');
+      expect(formatReviewCount(1, 'en')).toBe('1 review');
+    });
+
+    it('returns plural "Bewertungen" or "reviews" for 0 reviews', () => {
+      expect(formatReviewLabel(0, 'de')).toBe('Bewertungen');
+      expect(formatReviewLabel(0, 'en')).toBe('reviews');
+      expect(formatReviewCount(0, 'de')).toBe('0 Bewertungen');
+      expect(formatReviewCount(0, 'en')).toBe('0 reviews');
+    });
+
+    it('returns plural "Bewertungen" or "reviews" for multiple reviews', () => {
+      expect(formatReviewLabel(2, 'de')).toBe('Bewertungen');
+      expect(formatReviewLabel(2, 'en')).toBe('reviews');
+      expect(formatReviewCount(5, 'de')).toBe('5 Bewertungen');
+      expect(formatReviewCount(5, 'en')).toBe('5 reviews');
+      expect(formatReviewCount(12, 'de')).toBe('12 Bewertungen');
+      expect(formatReviewCount(12, 'en')).toBe('12 reviews');
+    });
+
+    it('handles numeric string inputs and non-numeric inputs gracefully', () => {
+      expect(formatReviewCount('1', 'de')).toBe('1 Bewertung');
+      expect(formatReviewCount('1', 'en')).toBe('1 review');
+      expect(formatReviewCount('3', 'de')).toBe('3 Bewertungen');
+      expect(formatReviewCount(null, 'de')).toBe('0 Bewertungen');
+      expect(formatReviewCount(undefined, 'en')).toBe('0 reviews');
+      expect(formatReviewCount(NaN, 'de')).toBe('0 Bewertungen');
+      expect(formatReviewCount(-4, 'en')).toBe('0 reviews');
+    });
+  });
+
+  describe('Review Date Formatting (BUG-027)', () => {
+    it('formats ISO date strings in German using long-form month', () => {
+      const formatted = formatReviewDate('2026-09-28T12:00:00Z', 'de');
+      expect(formatted).toContain('28.');
+      expect(formatted).toContain('September');
+      expect(formatted).toContain('2026');
+    });
+
+    it('formats ISO date strings in English using long-form month', () => {
+      const formatted = formatReviewDate('2026-09-28T12:00:00Z', 'en');
+      expect(formatted).toContain('September');
+      expect(formatted).toContain('28');
+      expect(formatted).toContain('2026');
+    });
+
+    it('accepts Date objects and numeric timestamps', () => {
+      const d = new Date('2026-09-28T12:00:00Z');
+      expect(formatReviewDate(d, 'de')).toBe(formatReviewDate('2026-09-28T12:00:00Z', 'de'));
+      expect(formatReviewDate(d.getTime(), 'en')).toBe(formatReviewDate('2026-09-28T12:00:00Z', 'en'));
+    });
+
+    it('returns empty string for null, undefined, empty, or invalid date values', () => {
+      expect(formatReviewDate(null, 'de')).toBe('');
+      expect(formatReviewDate(undefined, 'en')).toBe('');
+      expect(formatReviewDate('', 'de')).toBe('');
+      expect(formatReviewDate('invalid-date', 'en')).toBe('');
+    });
+  });
 });
+

@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, 
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
-import { formatRating } from '@/utils/format';
+import { formatRating, formatReviewCount, formatReviewDate } from '@/utils/format';
 const { width } = Dimensions.get('window');
 
 const safeDistance = (val: any): string => {
@@ -167,7 +167,7 @@ export default function ProfilePreviewScreen() {
           <Text style={styles.businessName}>{provider.businessName || t('providerGeneric')}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
-            <Text style={styles.statsText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
+            <Text style={styles.statsText}>{avgRating} ({formatReviewCount(provider.totalReviews || 0, lang)})</Text>
           </View>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
@@ -215,7 +215,7 @@ export default function ProfilePreviewScreen() {
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
-                <Text style={styles.infoText}>{avgRating} ({provider.totalReviews || 0} {t('cardReviews')})</Text>
+                <Text style={styles.infoText}>{avgRating} ({formatReviewCount(provider.totalReviews || 0, lang)})</Text>
               </View>
               <View style={styles.infoRow}>
                 <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
@@ -269,7 +269,7 @@ export default function ProfilePreviewScreen() {
                 <View style={styles.overallStars}>
                   {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={fontSizes.md} color={s <= Math.round(safeNumber(provider.avgRating)) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
-                <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('cardReviews')}</Text>
+                <Text style={styles.totalReviewsText}>{t('reviewBased')} {formatReviewCount(totalReviews, lang)}</Text>
               </View>
 
               {(Array.isArray(reviews) ? reviews : []).map((rev, idx) => (
@@ -282,7 +282,7 @@ export default function ProfilePreviewScreen() {
                       <Text style={styles.reviewerName}>{rev.clientName || t('clientNameDefault')}</Text>
                       <View style={{flexDirection: 'row'}}>{[...Array(rev.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={fontSizes.xxs} color={colors.gold} />)}</View>
                     </View>
-                    <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'de-DE') : ''}</Text>
+                    <Text style={styles.reviewDate}>{formatReviewDate(rev.createdAt, lang)}</Text>
                   </View>
                   {rev.serviceName && (
                     <View style={styles.serviceChip}>

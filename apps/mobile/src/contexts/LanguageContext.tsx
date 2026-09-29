@@ -368,6 +368,8 @@ export const TRANSLATIONS = {
   cardFrom: { de: 'ab', en: 'from' },
   cardAvailableToday: { de: 'Heute verfügbar', en: 'Available today' },
   cardReviews: { de: 'Bewertungen', en: 'reviews' },
+  reviewSingular: { de: 'Bewertung', en: 'review' },
+  reviewPlural: { de: 'Bewertungen', en: 'reviews' },
   cardPriceOnRequest: { de: 'Preis auf Anfrage', en: 'Price on request' },
 
   profileTabOverview: { de: 'Überblick', en: 'Overview' },

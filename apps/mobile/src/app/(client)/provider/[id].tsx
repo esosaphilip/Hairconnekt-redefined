@@ -8,7 +8,7 @@ import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount, formatRating } from '@/utils/format';
+import { formatAmount, formatRating, formatReviewCount, formatReviewDate } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
 import { tokenStorage } from '@/utils/token-storage';
@@ -302,7 +302,7 @@ export default function ProviderProfile() {
           <Text style={styles.businessName}>{provider.businessName}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
-            <Text style={styles.statsText}>{avgRating} ({totalReviews} {t('profileTabReviews')})</Text>
+            <Text style={styles.statsText}>{avgRating} ({formatReviewCount(totalReviews, lang)})</Text>
           </View>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
@@ -347,7 +347,7 @@ export default function ProviderProfile() {
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
-                <Text style={styles.infoText}>{avgRating} ({totalReviews} {t('profileTabReviews')})</Text>
+                <Text style={styles.infoText}>{avgRating} ({formatReviewCount(totalReviews, lang)})</Text>
               </View>
               <View style={styles.infoRow}>
                 <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
@@ -424,7 +424,7 @@ export default function ProviderProfile() {
                 <View style={styles.overallStars}>
                   {[1,2,3,4,5].map(s => <FontAwesome5 key={s} name="star" solid size={fontSizes.md} color={s <= Math.round(parseFloat(avgRating) || 0) ? colors.gold : colors.border} style={{marginHorizontal: spacing.xxxs}} />)}
                 </View>
-                <Text style={styles.totalReviewsText}>{t('reviewBased')} {totalReviews} {t('profileTabReviews')}</Text>
+                <Text style={styles.totalReviewsText}>{t('reviewBased')} {formatReviewCount(totalReviews, lang)}</Text>
               </View>
 
               <FlatList
@@ -441,7 +441,7 @@ export default function ProviderProfile() {
                         <Text style={styles.reviewerName}>{item.clientName || t('clientNameDefault')}</Text>
                         <View style={{flexDirection: 'row'}}>{[...Array(item.rating || 5)].map((_, i) => <FontAwesome5 key={i} name="star" solid size={fontSizes.xxs} color={colors.gold} />)}</View>
                       </View>
-                      <Text style={styles.reviewDate}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : ''}</Text>
+                      <Text style={styles.reviewDate}>{formatReviewDate(item.createdAt, lang)}</Text>
                     </View>
                     {item.serviceName && (
                       <View style={styles.serviceChip}>

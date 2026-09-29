@@ -7,6 +7,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatReviewCount, formatReviewDate } from '@/utils/format';
 import { debugError, debugLog } from '@/utils/logger';
 
 interface ReviewSummary {
@@ -158,10 +159,7 @@ export default function ReviewsScreen() {
     }
   };
 
-  const formatDate = (isoString: string) => {
-    const d = new Date(isoString);
-    return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
-  };
+  const formatDate = (isoString: string) => formatReviewDate(isoString, lang);
 
   const renderHeader = () => (
     <>
@@ -193,7 +191,7 @@ export default function ReviewsScreen() {
               ))}
             </View>
             <Text style={styles.totalReviewsText}>
-              {t('providerReviewsBased')} {summary.totalReviews} {t('providerReviewsCount')}
+              {t('providerReviewsBased')} {formatReviewCount(summary.totalReviews, lang)}
             </Text>
           </View>
           

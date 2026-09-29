@@ -6,6 +6,7 @@ import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatReviewDate } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 
 
@@ -64,10 +65,7 @@ export default function ClientReviewsScreen() {
     );
   };
 
-  const formatDate = (isoString: string) => {
-    const d = new Date(isoString);
-    return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-  };
+  const formatDate = (isoString: string) => formatReviewDate(isoString, lang);
 
   const renderItem = ({ item }: { item: Review }) => (
     <View style={styles.card}>

@@ -69,3 +69,33 @@ export function calculatePayout(
   const fee = Number(platformFeeAmount) || 0;
   return Math.max(0, total - fee);
 }
+
+export function formatReviewLabel(count: unknown, language: AppLanguage): string {
+  const n = typeof count === 'number' ? count : Number(count);
+  const safe = Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  if (language === 'en') {
+    return safe === 1 ? 'review' : 'reviews';
+  }
+  return safe === 1 ? 'Bewertung' : 'Bewertungen';
+}
+
+export function formatReviewCount(count: unknown, language: AppLanguage): string {
+  const n = typeof count === 'number' ? count : Number(count);
+  const safe = Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  return `${safe} ${formatReviewLabel(safe, language)}`;
+}
+
+export function formatReviewDate(
+  dateValue: string | number | Date | null | undefined,
+  language: AppLanguage,
+): string {
+  if (dateValue === null || dateValue === undefined || dateValue === '') return '';
+  const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (isNaN(d.getTime())) return '';
+  const locale = language === 'en' ? 'en-US' : 'de-DE';
+  try {
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
