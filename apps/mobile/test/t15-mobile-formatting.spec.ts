@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { formatAmount, AppLanguage } from '../src/utils/format';
+import { formatAmount, formatRating, AppLanguage } from '../src/utils/format';
 
 function getAllSourceFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -64,6 +64,33 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(formatAmount(null, 'de')).toBe('0,00');
       expect(formatAmount(undefined, 'en')).toBe('0.00');
       expect(formatAmount('invalid', 'de')).toBe('0,00');
+    });
+  });
+
+  describe('Provider Rating Formatter (formatRating - BUG-026)', () => {
+    it('formats string decimal ratings like "5.00" as real numeric rating ("5.0"), not "NEW"', () => {
+      expect(formatRating('5.00')).toBe('5.0');
+      expect(formatRating('4.80')).toBe('4.8');
+      expect(formatRating('4.5')).toBe('4.5');
+    });
+
+    it('formats number ratings properly', () => {
+      expect(formatRating(5)).toBe('5.0');
+      expect(formatRating(4.75)).toBe('4.8');
+    });
+
+    it('returns fallback label "NEW" for 0, empty, or unrated providers', () => {
+      expect(formatRating(0)).toBe('NEW');
+      expect(formatRating('0')).toBe('NEW');
+      expect(formatRating('0.00')).toBe('NEW');
+      expect(formatRating(null)).toBe('NEW');
+      expect(formatRating(undefined)).toBe('NEW');
+      expect(formatRating('invalid')).toBe('NEW');
+    });
+
+    it('supports custom fallback labels (e.g. Neu)', () => {
+      expect(formatRating('0.00', 'Neu')).toBe('Neu');
+      expect(formatRating(null, 'Neu')).toBe('Neu');
     });
   });
 

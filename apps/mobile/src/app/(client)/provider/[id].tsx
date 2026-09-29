@@ -8,7 +8,7 @@ import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatRating } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
 import { tokenStorage } from '@/utils/token-storage';
@@ -41,12 +41,12 @@ type ProviderProfileData = {
   businessName?: string | null;
   avatarUrl?: string | null;
   city?: string | null;
-  avgRating?: number | null;
-  totalReviews?: number | null;
-  distanceKm?: number | null;
+  avgRating?: number | string | null;
+  totalReviews?: number | string | null;
+  distanceKm?: number | string | null;
   specialisationTags?: string[] | null;
   specializations?: string[] | null;
-  startingPrice?: number | null;
+  startingPrice?: number | string | null;
   bio?: string | null;
   responseTime?: string | null;
   cancellationPolicy?: string | null;
@@ -178,9 +178,11 @@ export default function ProviderProfile() {
   }
 
   // Derived properties safely extracted
-  const avgRating = (typeof provider.avgRating === 'number' && !isNaN(provider.avgRating)) ? provider.avgRating.toFixed(1) : t('newLabel');
-  const distance = (typeof provider.distanceKm === 'number' && !isNaN(provider.distanceKm)) ? `${provider.distanceKm.toFixed(1)} km` : '';
-  const totalReviews = (typeof provider.totalReviews === 'number' && !isNaN(provider.totalReviews)) ? provider.totalReviews : 0;
+  const avgRating = formatRating(provider.avgRating, t('newLabel'));
+  const distanceKmNum = Number(provider.distanceKm);
+  const distance = Number.isFinite(distanceKmNum) ? `${distanceKmNum.toFixed(1)} km` : '';
+  const totalReviewsNum = Number(provider.totalReviews);
+  const totalReviews = Number.isFinite(totalReviewsNum) ? totalReviewsNum : 0;
   const specialisationTags = Array.isArray(provider.specialisationTags) ? provider.specialisationTags : Array.isArray(provider.specializations) ? provider.specializations : [];
   const minPrice = services.length > 0 ? Math.min(...services.map((s) => Number(s.price))) : (provider.startingPrice || 0);
 

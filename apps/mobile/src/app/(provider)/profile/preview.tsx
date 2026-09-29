@@ -6,13 +6,18 @@ import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, 
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
+import { formatRating } from '@/utils/format';
 const { width } = Dimensions.get('window');
 
-const safeDistance = (val: any): string =>
-  typeof val === 'number' && !isNaN(val) ? `${val.toFixed(1)} km` : '';
+const safeDistance = (val: any): string => {
+  const n = Number(val);
+  return Number.isFinite(n) ? `${n.toFixed(1)} km` : '';
+};
 
-const safeNumber = (val: any): number =>
-  typeof val === 'number' && !isNaN(val) ? val : 0;
+const safeNumber = (val: any): number => {
+  const n = Number(val);
+  return Number.isFinite(n) ? n : 0;
+};
 
 export default function ProfilePreviewScreen() {
   const router = useRouter();
@@ -96,10 +101,7 @@ export default function ProfilePreviewScreen() {
   }
 
   // Derived properties safely extracted
-  const avgRating =
-    typeof provider.avgRating === 'number' && !Number.isNaN(provider.avgRating)
-      ? provider.avgRating.toFixed(1)
-      : t('newLabel');
+  const avgRating = formatRating(provider.avgRating, t('newLabel'));
   const distance = safeDistance(provider.distanceKm);
   const totalReviews = safeNumber(provider.totalReviews);
   const specialisationTags = Array.isArray(provider.specialisationTags)

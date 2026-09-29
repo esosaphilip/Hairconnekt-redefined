@@ -21,3 +21,8 @@ export function formatAmount(value: unknown, language: AppLanguage): string {
     return language === 'en' ? fixed : fixed.replace('.', ',');
   }
 }
+
+export function formatRating(value: unknown, fallback: string = 'NEW'): string {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n.toFixed(1) : fallback;
+}
