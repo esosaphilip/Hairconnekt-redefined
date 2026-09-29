@@ -478,7 +478,7 @@ export default function ProviderProfile() {
               if (recipientId) openChat(recipientId);
             }}
           >
-            <Text style={styles.messageBtnText}>{t('profileMessage')}</Text>
+            <Text style={styles.messageBtnText} numberOfLines={1}>{t('profileMessage')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.bookBtn}
@@ -492,7 +492,7 @@ export default function ProviderProfile() {
               router.push({ pathname: '/(client)/booking/services', params: { providerId: id } } as any);
             }}
           >
-            <Text style={styles.bookBtnText}>{t('profileBookNow')}</Text>
+            <Text style={styles.bookBtnText} numberOfLines={1}>{t('profileBookNow')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -597,13 +597,13 @@ const styles = StyleSheet.create({
 
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xl },
 
-  stickyFooter: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs },
-  footerPriceBlock: { marginRight: spacing.lg },
+  stickyFooter: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderTopWidth: spacing.unit, borderTopColor: colors.border, paddingBottom: spacing.lg + spacing.xxs + spacing.xxxs },
+  footerPriceBlock: { marginRight: spacing.sm },
   footerPriceLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.textTertiary },
   footerPriceValue: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.primary },
-  footerButtons: { flex: 1, flexDirection: 'row', gap: spacing.sm },
-  messageBtn: { flex: 1, borderWidth: spacing.unit, borderColor: colors.primary, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight },
+  footerButtons: { flex: 1, flexDirection: 'row', gap: spacing.xs },
+  messageBtn: { flex: 1, borderWidth: spacing.unit, borderColor: colors.primary, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight, paddingHorizontal: spacing.xs },
   messageBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary },
-  bookBtn: { flex: 1.5, backgroundColor: colors.coral, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight },
+  bookBtn: { flex: 1.8, backgroundColor: colors.coral, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', height: layout.inputHeight, paddingHorizontal: spacing.xs },
   bookBtnText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.surface }
 });

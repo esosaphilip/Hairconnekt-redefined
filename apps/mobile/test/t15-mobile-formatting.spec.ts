@@ -258,5 +258,35 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(formatReviewDate('invalid-date', 'en')).toBe('');
     });
   });
+
+  describe('Provider Profile Book Button & Action Bar Layout (BUG-031)', () => {
+    const providerProfilePath = path.resolve(__dirname, '../src/app/(client)/provider/[id].tsx');
+    const content = fs.readFileSync(providerProfilePath, 'utf-8');
+
+    it('ensures bookBtnText and messageBtnText set numberOfLines={1} to prevent multi-line wrapping', () => {
+      expect(content).toMatch(/<Text\s+style=\{styles\.bookBtnText\}\s+numberOfLines=\{1\}>/);
+      expect(content).toMatch(/<Text\s+style=\{styles\.messageBtnText\}\s+numberOfLines=\{1\}>/);
+    });
+
+    it('allocates adequate flex proportion to bookBtn (flex: 1.8)', () => {
+      expect(content).toMatch(/bookBtn:\s*\{[^}]*flex:\s*1\.8/);
+    });
+
+    it('reduces stickyFooter and price block margins to preserve horizontal width on compact devices', () => {
+      expect(content).toMatch(/stickyFooter:\s*\{[^}]*paddingHorizontal:\s*spacing\.md/);
+      expect(content).toMatch(/footerPriceBlock:\s*\{[^}]*marginRight:\s*spacing\.sm/);
+    });
+  });
+
+  describe('Search Filter Chip Pill Border Radius (BUG-032)', () => {
+    const searchPath = path.resolve(__dirname, '../src/app/(client)/search.tsx');
+    const content = fs.readFileSync(searchPath, 'utf-8');
+
+    it('uses borderRadius.pill instead of borderRadius.full to prevent folded pill distortion', () => {
+      expect(content).toMatch(/chip:\s*\{[^}]*borderRadius:\s*borderRadius\.pill/);
+      expect(content).not.toMatch(/chip:\s*\{[^}]*borderRadius:\s*borderRadius\.full/);
+    });
+  });
 });
+
 
