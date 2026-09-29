@@ -33,7 +33,6 @@ const baseConfig: ExpoConfig = {
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.POST_NOTIFICATIONS',
-      'android.permission.READ_MEDIA_IMAGES',
     ],
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
