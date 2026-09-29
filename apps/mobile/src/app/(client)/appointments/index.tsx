@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
-import { formatAmount } from '../../../utils/format';
+import { formatAmount, formatBookingTime } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
@@ -169,7 +169,7 @@ export default function AppointmentsList() {
 
         {/* ROW 3: Date & Time */}
         <Text style={styles.dateTimeText}>
-          {formatDate(item.scheduledDate)}, {item.scheduledTime}{t('timeSuffix')}
+          {formatDate(item.scheduledDate)}, {formatBookingTime(item.scheduledTime, lang)}{t('timeSuffix')}
         </Text>
 
         {/* ROW 4: Action Buttons */}

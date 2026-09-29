@@ -7,7 +7,7 @@ import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatBookingTime } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 import { apiJson, getApiMessage } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
@@ -312,7 +312,7 @@ export default function ProviderCalendarScreen() {
               >
                 <View style={styles.bookingCardInner}>
                   <View style={styles.bookingHeaderRow}>
-                    <Text style={styles.bookingTime}>{booking.scheduledTime || '—'}</Text>
+                    <Text style={styles.bookingTime}>{formatBookingTime(booking.scheduledTime, lang) || '—'}</Text>
                     <View style={[
                       styles.statusBadge, 
                       booking.status === 'CONFIRMED' ? styles.statusConfirmed : styles.statusPending

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
-import { formatAmount } from '../../../utils/format';
+import { formatAmount, formatBookingTime } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
@@ -353,7 +353,7 @@ export default function ProviderAppointmentDetailScreen() {
               <Feather name="clock" size={14} color={colors.textSecondary} /> {t('time')}
             </Text>
             <Text style={styles.infoValue}>
-              {booking.scheduledTime}
+              {formatBookingTime(booking.scheduledTime, lang)}
               {lang === 'de' ? ' ' + t('timeSuffix') : ''}
             </Text>
           </View>

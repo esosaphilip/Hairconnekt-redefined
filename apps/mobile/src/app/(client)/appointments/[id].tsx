@@ -6,7 +6,7 @@ import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
 import { bookingStatus } from '../../../utils/booking-status';
-import { formatAmount } from '../../../utils/format';
+import { formatAmount, formatBookingTime } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError, debugLog } from '@/utils/logger';
 import { apiJson, getApiMessage } from '@/services/apiClient';
@@ -257,7 +257,7 @@ export default function AppointmentDetails() {
               <Text style={styles.infoValue}>{formatDate(booking.scheduledDate)}</Text>
               <Text style={styles.infoValueDecorator}> • </Text>
               <Feather name="clock" size={fontSizes.sm} color={colors.textPrimary} style={styles.mr} />
-              <Text style={styles.infoValue}>{booking.scheduledTime}</Text>
+              <Text style={styles.infoValue}>{formatBookingTime(booking.scheduledTime, lang)}</Text>
             </View>
           </View>
           

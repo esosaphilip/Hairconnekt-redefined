@@ -26,3 +26,37 @@ export function formatRating(value: unknown, fallback: string = 'NEW'): string {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n.toFixed(1) : fallback;
 }
+
+export function formatBookingTime(
+  time: string | null | undefined,
+  language: AppLanguage,
+): string {
+  if (!time || typeof time !== 'string') return '';
+  const parts = time.trim().split(':');
+  if (parts.length < 2) return '';
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return '';
+  }
+
+  const locale = language === 'en' ? 'en-US' : 'de-DE';
+  const d = new Date(2000, 0, 1, hours, minutes);
+
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      hour: language === 'en' ? 'numeric' : '2-digit',
+      minute: '2-digit',
+      hour12: language === 'en',
+    })
+      .format(d)
+      .replace(/\u202f/g, ' ');
+  } catch {
+    if (language === 'en') {
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const h12 = hours % 12 || 12;
+      return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+    }
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+}

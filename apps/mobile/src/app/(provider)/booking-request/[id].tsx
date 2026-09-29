@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatBookingTime } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
@@ -22,6 +22,7 @@ type BookingParticipant = {
 type BookingServiceItem = {
   id: string;
   name: string;
+  durationMin?: number;
 };
 
 type BookingAddress = {
@@ -198,10 +199,7 @@ export default function BookingRequestScreen() {
     month: '2-digit',
     year: 'numeric',
   });
-  const timeStr = d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const timeStr = formatBookingTime(booking.scheduledTime, lang);
   
   const getStatusBadge = () => {
     const s = bookingStatus(booking.status);
@@ -294,7 +292,16 @@ export default function BookingRequestScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('appointmentsDuration')}</Text>
-            <Text style={styles.detailValue}>{booking.totalMinutes ? booking.totalMinutes / 60 : 0} {t('appointmentsHours')}</Text>
+            <Text style={styles.detailValue}>
+              {(() => {
+                const totalMinutes = (booking.services || []).reduce((sum, s) => sum + (s.durationMin || 0), 0);
+                const h = Math.floor(totalMinutes / 60);
+                const m = totalMinutes % 60;
+                if (h > 0 && m > 0) return `${h} ${t('appointmentsHours')} ${m} ${t('appointmentsMinutes')}`;
+                if (h > 0) return `${h} ${t('appointmentsHours')}`;
+                return `${m} ${t('appointmentsMinutes')}`;
+              })()}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>

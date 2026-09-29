@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { formatAmount, formatRating, AppLanguage } from '../src/utils/format';
+import { formatAmount, formatRating, formatBookingTime, AppLanguage } from '../src/utils/format';
 
 function getAllSourceFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -95,14 +95,32 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
   });
 
   describe('Appointment Time Formatter Future Contract', () => {
-    it.todo('after BUG-021 fix: test formatBookingTime');
+    it('formats 24-hour time strings correctly for German (24h) and English (12h)', () => {
+      expect(formatBookingTime('16:30:00', 'de')).toBe('16:30');
+      expect(formatBookingTime('16:30:00', 'en')).toBe('4:30 PM');
+      expect(formatBookingTime('09:05:00', 'de')).toBe('09:05');
+      expect(formatBookingTime('09:05:00', 'en')).toBe('9:05 AM');
+    });
+
+    it('formats HH:MM strings without seconds', () => {
+      expect(formatBookingTime('14:00', 'de')).toBe('14:00');
+      expect(formatBookingTime('14:00', 'en')).toBe('2:00 PM');
+    });
+
+    it('returns empty string safely for falsy, invalid or unparseable input', () => {
+      expect(formatBookingTime(null, 'de')).toBe('');
+      expect(formatBookingTime(undefined, 'en')).toBe('');
+      expect(formatBookingTime('', 'de')).toBe('');
+      expect(formatBookingTime('invalid', 'en')).toBe('');
+      expect(formatBookingTime('25:00', 'de')).toBe('');
+    });
   });
 
   describe('Static Source Scan for BUG-021 (scheduledDate passed to time formatters)', () => {
     // KNOWN BUG-021: In apps/mobile/src/app/(provider)/booking-request/[id].tsx, scheduledDate is parsed
     // with new Date(booking.scheduledDate) and formatted via d.toLocaleTimeString(), which displays the
     // timezone offset of midnight UTC rather than the actual scheduled appointment time.
-    it.failing('[KNOWN BUG-021] static source scan: no file under apps/mobile/src passes scheduledDate into time formatters', () => {
+    it('[KNOWN BUG-021] static source scan: no file under apps/mobile/src passes scheduledDate into time formatters', () => {
       const srcDir = path.resolve(__dirname, '../src');
       const sourceFiles = getAllSourceFiles(srcDir);
       const allViolations: string[] = [];

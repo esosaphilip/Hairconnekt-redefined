@@ -7,6 +7,7 @@ import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApiError, apiJson } from '@/services/apiClient';
+import { formatBookingTime } from '@/utils/format';
 
 type BookingProviderInfo = {
   id: string;
@@ -347,7 +348,7 @@ export default function RescheduleAppointment() {
               <Text style={styles.currentBookingDot}> • </Text>
               <Feather name="clock" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs + spacing.xxxs }} />
               <Text style={styles.currentBookingText}>
-                {booking?.scheduledTime}
+                {formatBookingTime(booking?.scheduledTime, lang)}
                 {timeSuffix}
               </Text>
             </View>

@@ -7,7 +7,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { bookingStatus, bookingStatusLabel } from '../../utils/booking-status';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatBookingTime } from '@/utils/format';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
 
@@ -322,7 +322,7 @@ export default function ProviderDashboardScreen() {
             >
               <View style={styles.bookingHeader}>
                 <Text style={styles.bookingTime}>
-                  {booking.scheduledTime || '—'}
+                  {formatBookingTime(booking.scheduledTime, lang) || '—'}
                 </Text>
                 <View style={[
                   styles.statusBadge, 
