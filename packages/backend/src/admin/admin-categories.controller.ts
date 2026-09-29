@@ -53,7 +53,7 @@ export class AdminCategoriesController {
       description: body.description?.trim(),
       iconName: body.iconName?.trim(),
       sortOrder: body.sortOrder ?? 0,
-      isActive: true,
+      isActive: body.isActive ?? true,
     });
     let saved: ServiceCategory;
     try {
