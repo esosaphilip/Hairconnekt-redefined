@@ -246,8 +246,8 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
     expect(bulkDeleteRes.body).toBeDefined();
   }));
 
-  // KNOWN BUG-019: category create rejected when sending isActive field
-  it.failing('[KNOWN BUG-019] admin category create accepts isActive field without 400 rejection', runTest(async () => {
+  // BUG-019 (FIXED): category create accepts isActive field without 400 rejection
+  it('admin category create accepts isActive field without 400 rejection', runTest(async () => {
     const { adminToken } = await loginAsAdmin();
 
     // Admin form sends isActive: true or false upon creation
@@ -259,20 +259,19 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
         description: 'Twists and locs',
         iconName: 'twists',
         sortOrder: 20,
-        isActive: true, // BUG-019: CreateCategoryDto does not declare isActive, triggering ValidationPipe forbidNonWhitelisted 400
+        isActive: true,
       });
 
     expect(res.status).toBe(201);
     expect(res.body.isActive).toBe(true);
-  }, true));
+  }));
 
-  // KNOWN BUG-019: category created with isActive: false must not appear in GET services/categories
-  it.failing('[KNOWN BUG-019] category created with isActive false must not appear in GET services/categories', runTest(async () => {
+  // BUG-019 (FIXED): category created with isActive: false must not appear in GET services/categories
+  it('category created with isActive false must not appear in GET services/categories', runTest(async () => {
     const { adminToken } = await loginAsAdmin();
     const uniqueCatName = `Hidden Inactive Cat ${Date.now()}`;
 
     // Admin attempts to create category directly with isActive: false
-    // BUG-019: CreateCategoryDto rejects isActive with 400
     const catCreateRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/admin/categories')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -295,5 +294,5 @@ describe('T06: Admin Approval and Admin Payload Contract', () => {
 
     const catList = Array.isArray(publicCatsRes.body) ? publicCatsRes.body : publicCatsRes.body.data || [];
     expect(catList.some((c: any) => c.name === uniqueCatName)).toBe(false);
-  }, true));
+  }));
 });
