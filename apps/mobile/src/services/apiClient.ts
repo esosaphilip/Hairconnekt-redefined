@@ -34,6 +34,9 @@ type RefreshResponse = {
 let refreshInFlight: Promise<string> | null = null;
 
 const joinUrl = (base: string, path: string): string => {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
   const b = base.replace(/\/+$/, '');
   const p = path.startsWith('/') ? path : `/${path}`;
   return `${b}${p}`;

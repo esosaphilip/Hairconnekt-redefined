@@ -97,7 +97,7 @@ export default function ProviderCalendarScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiJson<void>(`${API}/providers/me/blocks/${blockId}`, {
+              await apiJson<void>(`/providers/me/blocks/${blockId}`, {
                 method: 'DELETE',
                 auth: true,
               });

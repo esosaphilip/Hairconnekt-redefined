@@ -59,7 +59,7 @@ export default function BlockTimeScreen() {
   const loadExistingBlocks = async () => {
     try {
       setLoadingBlocks(true);
-      const res = await apiJson<any>(`${API}/providers/me/blocks`, { auth: true });
+      const res = await apiJson<any>('/providers/me/blocks', { auth: true });
       const data = Array.isArray(res) ? res : (res?.data ?? []);
       setBlocks(
         data.sort((a: BlockItem, b: BlockItem) => (a.startDate < b.startDate ? -1 : 1)),
@@ -83,7 +83,7 @@ export default function BlockTimeScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiJson<void>(`${API}/providers/me/blocks/${blockId}`, {
+              await apiJson<void>(`/providers/me/blocks/${blockId}`, {
                 method: 'DELETE',
                 auth: true,
               });

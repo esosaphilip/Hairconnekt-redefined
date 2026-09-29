@@ -50,7 +50,7 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
     });
 
     // KNOWN BUG-020: joinUrl does not detect absolute URLs, prepending base URL to already-absolute URLs
-    it.failing('[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL', async () => {
+    it('[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL', async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
         status: 200,
