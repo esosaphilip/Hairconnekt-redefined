@@ -9,6 +9,7 @@ import {
   RegistrationForm,
   DEFAULTS,
 } from '../src/contexts/RegistrationContext';
+import { tokenStorage } from '../src/utils/token-storage';
 import { mockAsyncStorage } from './setup';
 
 describe('T14: Mobile Business Logic & API Client Contracts', () => {
@@ -239,6 +240,39 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
 
       // Assert that provider-verify-email initializes countdown conditionally based on isCodeJustSent
       expect(content).toContain('isCodeJustSent ? 120 : 0');
+    });
+  });
+
+  describe('Provider Cancel Appointment Contract (Step 5)', () => {
+    it('calls PATCH /bookings/:id/cancel with valid reason, optional notes, and auth', async () => {
+      await tokenStorage.save('mock-jwt-token', 'mock-refresh-token', 'provider');
+
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ success: true }),
+      });
+      global.fetch = mockFetch;
+
+      await apiJson('/bookings/test-booking-uuid/cancel', {
+        auth: true,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'Krank',
+          notes: 'Provider is sick',
+        }),
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [calledUrl, calledInit] = mockFetch.mock.calls[0];
+      expect(calledUrl).toBe('https://api.test.hairconnekt.de/api/v1/bookings/test-booking-uuid/cancel');
+      expect(calledInit.method).toBe('PATCH');
+      expect(calledInit.headers.Authorization).toBe('Bearer mock-jwt-token');
+      expect(JSON.parse(calledInit.body)).toEqual({
+        reason: 'Krank',
+        notes: 'Provider is sick',
+      });
     });
   });
 });

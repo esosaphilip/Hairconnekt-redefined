@@ -1,5 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+  Alert,
+  Modal,
+  TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -11,6 +27,17 @@ import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
 import { openPhoneCall } from '@/utils/phone-call';
+
+type BackendCancelReason = 'Krank' | 'Notfall' | 'Sonstiges';
+
+const PROVIDER_CANCEL_REASONS: {
+  labelKey: 'cancelReasonSick' | 'cancelReasonEmergency' | 'cancelReasonMisc';
+  apiValue: BackendCancelReason;
+}[] = [
+  { labelKey: 'cancelReasonSick', apiValue: 'Krank' },
+  { labelKey: 'cancelReasonEmergency', apiValue: 'Notfall' },
+  { labelKey: 'cancelReasonMisc', apiValue: 'Sonstiges' },
+];
 
 type BookingClient = {
   id: string;
@@ -58,6 +85,10 @@ export default function ProviderAppointmentDetailScreen() {
   const [booking, setBooking] = useState<ProviderAppointment | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState<BackendCancelReason>('Krank');
+  const [cancelNotes, setCancelNotes] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
   const [now, setNow] = useState<Date>(new Date());
 
   useFocusEffect(
@@ -213,6 +244,55 @@ export default function ProviderAppointmentDetailScreen() {
         },
       ],
     );
+  };
+
+  const isShortNotice = useCallback((): boolean => {
+    if (!booking?.scheduledDate || !booking?.scheduledTime) return false;
+    const [year, month, day] = booking.scheduledDate.split('-').map(Number);
+    const [hours, minutes] = booking.scheduledTime.split(':').map(Number);
+    const apptDate = new Date(year, month - 1, day, hours, minutes);
+    const diffHours = (apptDate.getTime() - Date.now()) / (1000 * 60 * 60);
+    return diffHours < 24 && diffHours > 0;
+  }, [booking]);
+
+  const confirmCancel = (reason: BackendCancelReason, notes?: string) => {
+    const warning = isShortNotice() ? `${t('cancelPolicyUrgent')}\n\n` : '';
+    Alert.alert(
+      t('cancelConfirmTitle'),
+      `${warning}${t('cancelConfirmBody')}`,
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('cancelConfirmBtn'),
+          style: 'destructive',
+          onPress: () => performCancel(reason, notes),
+        },
+      ],
+    );
+  };
+
+  const performCancel = async (reason: BackendCancelReason, notes?: string) => {
+    try {
+      setIsCancelling(true);
+      await apiJson<unknown>(`/bookings/${bookingId}/cancel`, {
+        auth: true,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          notes: notes?.trim() || undefined,
+        }),
+      });
+      setShowCancelModal(false);
+      setCancelNotes('');
+      fetchBookingDetails();
+    } catch (error) {
+      debugError('Provider appointment cancel failed', error);
+      Alert.alert(t('error'), getErrorMessage(error, t('errorBookingCannotCancel') || t('errorUnknown')));
+      fetchBookingDetails();
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -425,6 +505,18 @@ export default function ProviderAppointmentDetailScreen() {
             variant="filled"
             disabled={!canStartAppointment(booking)}
           />
+          <View style={{ height: spacing.sm }} />
+          <TouchableOpacity
+            style={styles.declineButton}
+            onPress={() => setShowCancelModal(true)}
+            disabled={isCancelling}
+          >
+            {isCancelling ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.declineButtonText}>{t('cancelTitle')}</Text>
+            )}
+          </TouchableOpacity>
         </View>
       )}
       
@@ -438,6 +530,90 @@ export default function ProviderAppointmentDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        visible={showCancelModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCancelModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              style={styles.cancelBottomSheet}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+              <Text style={styles.modalTitle}>{t('cancelTitle')}</Text>
+
+              {isShortNotice() && (
+                <View style={styles.warningBanner}>
+                  <Text style={styles.warningBannerText}>
+                    ⚠️ {t('cancelPolicyUrgent')}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={styles.modalSectionLabel}>{t('cancelReason')}</Text>
+              <View style={styles.presetReasonsRow}>
+                {PROVIDER_CANCEL_REASONS.map((r) => (
+                  <TouchableOpacity
+                    key={r.apiValue}
+                    style={[
+                      styles.reasonChip,
+                      cancelReason === r.apiValue && styles.reasonChipActive,
+                    ]}
+                    onPress={() => setCancelReason(r.apiValue)}
+                  >
+                    <Text
+                      style={[
+                        styles.reasonChipText,
+                        cancelReason === r.apiValue && styles.reasonChipTextActive,
+                      ]}
+                    >
+                      {t(r.labelKey)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionLabel}>{t('cancelNotes')}</Text>
+              <TextInput
+                style={styles.cancelNotesInput}
+                value={cancelNotes}
+                onChangeText={setCancelNotes}
+                placeholder={t('cancelNotesPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                numberOfLines={3}
+              />
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => setShowCancelModal(false)}
+                  disabled={isCancelling}
+                >
+                  <Text style={styles.modalCancelBtnText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalSubmitBtn,
+                    (!cancelReason || isCancelling) && styles.modalSubmitBtnDisabled,
+                  ]}
+                  disabled={!cancelReason || isCancelling}
+                  onPress={() => confirmCancel(cancelReason, cancelNotes)}
+                >
+                  {isCancelling ? (
+                    <ActivityIndicator color={colors.background} />
+                  ) : (
+                    <Text style={styles.modalSubmitBtnText}>{t('cancelConfirmBtn')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -517,5 +693,116 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: fontSizes.md,
     color: colors.error,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  cancelBottomSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    padding: spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xxxl : spacing.xl,
+  },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    color: colors.primary,
+    marginBottom: spacing.md,
+  },
+  warningBanner: {
+    backgroundColor: colors.warningBg,
+    borderColor: colors.warningBorder,
+    borderWidth: spacing.unit,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  warningBannerText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.xs,
+    color: colors.warningIcon,
+    lineHeight: 18,
+  },
+  modalSectionLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  presetReasonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  reasonChip: {
+    borderWidth: spacing.unit,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.pill,
+  },
+  reasonChipActive: {
+    borderColor: colors.coral,
+    backgroundColor: colors.coralLight,
+  },
+  reasonChipText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+  },
+  reasonChipTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.coral,
+  },
+  cancelNotesInput: {
+    borderWidth: spacing.unit,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    marginBottom: spacing.lg,
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
+    borderWidth: spacing.unit,
+    borderColor: colors.borderStrong,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+  },
+  modalSubmitBtn: {
+    flex: 1,
+    height: layout.buttonHeight,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSubmitBtnDisabled: {
+    backgroundColor: colors.borderStrong,
+  },
+  modalSubmitBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.background,
   },
 });
