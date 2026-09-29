@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatRating } from '@/utils/format';
 
 export interface ProviderProps {
   id: string;
   businessName: string;
   avatarUrl: string | null;
-  avgRating?: number;
+  avgRating?: number | string | null;
   totalReviews: number;
   distanceKm: number | null;
   startingPrice: number;
@@ -26,6 +26,7 @@ interface Props {
 
 export function ProviderCard({ provider, onPress, onFavourite }: Props) {
   const { t, lang } = useLanguage();
+  const avgRating = formatRating(provider.avgRating, t('newLabel'));
   const tags =
     provider.specialisationTags && provider.specialisationTags.length > 0
       ? provider.specialisationTags
@@ -55,7 +56,7 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
           <Text style={styles.name} numberOfLines={1}>{provider.businessName}</Text>
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={12} color={colors.gold} />
-            <Text style={styles.ratingText}>{(provider.avgRating || 0).toFixed(1)} ({provider.totalReviews || 0})</Text>
+            <Text style={styles.ratingText}>{avgRating} ({provider.totalReviews || 0})</Text>
             {provider.distanceKm !== null && provider.distanceKm !== undefined && (
               <Text style={styles.distanceText}> • {provider.distanceKm.toFixed(1)} km</Text>
             )}

@@ -5,7 +5,7 @@ import { Feather, FontAwesome } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { useFavourites } from '../../contexts/FavouritesContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatAmount } from '@/utils/format';
+import { formatAmount, formatRating } from '@/utils/format';
 import { apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
 
@@ -15,7 +15,7 @@ type ProviderSummaryDto = {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
-  avgRating: number;
+  avgRating?: number | string | null;
   totalReviews: number;
   startingPrice: number;
   city: string;
@@ -128,7 +128,7 @@ export default function FavouritesScreen() {
           
           <View style={styles.ratingRow}>
             <FontAwesome name="star" size={fontSizes.xs} color={colors.gold} />
-            <Text style={styles.ratingText}>{item.avgRating.toFixed(1)}</Text>
+            <Text style={styles.ratingText}>{formatRating(item.avgRating, t('newLabel'))}</Text>
             <Text style={styles.reviewCount}>({item.totalReviews})</Text>
           </View>
           

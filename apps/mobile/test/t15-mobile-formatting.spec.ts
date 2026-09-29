@@ -94,6 +94,43 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
     });
   });
 
+  describe('ProviderCard and Favourites Decimal String Rating (BUG-029)', () => {
+    it('proves raw (avgRating || 0).toFixed(1) and avgRating.toFixed(1) throw TypeError when avgRating is string', () => {
+      const stringRating: any = '5.00';
+      // Raw expression from unpatched ProviderCard
+      expect(() => {
+        (stringRating || 0).toFixed(1);
+      }).toThrow(TypeError);
+
+      // Raw expression from unpatched favourites
+      expect(() => {
+        stringRating.toFixed(1);
+      }).toThrow(TypeError);
+    });
+
+    it('formats string decimal ratings safely using formatRating without throwing', () => {
+      const providerItem = { avgRating: '5.00', totalReviews: 4 };
+      const formatted = formatRating(providerItem.avgRating, 'NEU');
+      expect(formatted).toBe('5.0');
+
+      const favouriteItem = { avgRating: '4.80', totalReviews: 12 };
+      expect(formatRating(favouriteItem.avgRating, 'NEU')).toBe('4.8');
+    });
+
+    it('static check: ProviderCard.tsx and favourites.tsx do not call .toFixed directly on avgRating', () => {
+      const providerCardFile = path.resolve(__dirname, '../src/components/ProviderCard.tsx');
+      const favouritesFile = path.resolve(__dirname, '../src/app/(client)/favourites.tsx');
+
+      const cardContent = fs.readFileSync(providerCardFile, 'utf-8');
+      const favContent = fs.readFileSync(favouritesFile, 'utf-8');
+
+      expect(cardContent).not.toMatch(/avgRating.*\.toFixed/);
+      expect(favContent).not.toMatch(/avgRating.*\.toFixed/);
+      expect(cardContent).toContain('formatRating(');
+      expect(favContent).toContain('formatRating(');
+    });
+  });
+
   describe('Appointment Time Formatter Future Contract', () => {
     it('formats 24-hour time strings correctly for German (24h) and English (12h)', () => {
       expect(formatBookingTime('16:30:00', 'de')).toBe('16:30');
