@@ -13,8 +13,8 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | Bug ID | Test Suite | Test Name | Status |
 | :--- | :--- | :--- | :--- |
 | **BUG-019** | `packages/backend/test/t06-admin-contract.spec.ts` | `admin category create accepts isActive field without 400 rejection` | `RESOLVED` (Active `it`) |
-| **BUG-020** | `apps/mobile/test/t14-mobile-logic.spec.ts` | `[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL` | `it.failing` (Pending mobile fix) |
-| **BUG-021** | `apps/mobile/test/t15-mobile-formatting.spec.ts` | `[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset` | `it.failing` (Pending mobile fix) |
+| **BUG-020** | `apps/mobile/test/t14-mobile-logic.spec.ts` | `[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL` | `RESOLVED` (Active `it`) |
+| **BUG-021** | `apps/mobile/test/t15-mobile-formatting.spec.ts` | `[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset` | `RESOLVED` (Active `it`) |
 | **BUG-023** | `packages/backend/test/t11-berlin-time.spec.ts` | `appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)` | `RESOLVED` (Active `it`) |
 | **BUG-024** | `packages/backend/test/t10-cancellation-stats.spec.ts` | `cancelled bookings are not counted in provider today appointments stat` | `RESOLVED` (Active `it`) |
 | **BUG-028** | `packages/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
@@ -31,8 +31,9 @@ Because HairConnekt follows a strict **zero production code change** rule during
 
 ---
 
-### BUG-020: `joinUrl` Prepends Base URL to Absolute URLs
+### BUG-020: `joinUrl` Prepends Base URL to Absolute URLs [RESOLVED]
 
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t14-mobile-logic.spec.ts`)
 - **Location**: `apps/mobile/test/t14-mobile-logic.spec.ts`
 - **Symptom**: When an absolute URL (e.g. `https://s3.eu-central-1.amazonaws.com/...` or an external resource) is fetched via `apiFetch(url)` or `apiJson(url)`, `joinUrl` prepends `API` (`EXPO_PUBLIC_API_URL`), resulting in malformed URLs like `https://api.hairconnekt.de/api/v1/https://s3...`.
 - **Root Cause**: `joinUrl` in `apps/mobile/src/services/apiClient.ts` only checks `path.startsWith('/')` without verifying whether `path` is already an absolute HTTP/HTTPS URL:
@@ -43,8 +44,8 @@ Because HairConnekt follows a strict **zero production code change** rule during
     return `${b}${p}`;
   };
   ```
-- **Fix Required**:
-  Update `joinUrl` to return `path` immediately if it matches `^https?://`:
+- **Resolution**:
+  Updated `joinUrl` to return `path` immediately if it matches `^https?://`:
   ```typescript
   const joinUrl = (base: string, path: string): string => {
     if (/^https?:\/\//i.test(path)) return path;
@@ -53,20 +54,13 @@ Because HairConnekt follows a strict **zero production code change** rule during
     return `${b}${p}`;
   };
   ```
-- **How to Activate Test**:
-  In `apps/mobile/test/t14-mobile-logic.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL', ...
-  ```
+  Flipped test from `it.failing` to active `it`.
 
 ---
 
-### BUG-021: Provider Booking Request Screen Formats Midnight Offset Instead of `scheduledTime`
+### BUG-021: Provider Booking Request Screen Formats Midnight Offset Instead of `scheduledTime` [RESOLVED]
 
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t15-mobile-formatting.spec.ts`)
 - **Location**: `apps/mobile/test/t15-mobile-formatting.spec.ts`
 - **Symptom**: In the provider booking request details screen, the appointment time displayed to the provider does not reflect `booking.scheduledTime` (e.g. `14:00`). Instead, it displays `02:00` (in CEST) or `00:00` (in UTC).
 - **Root Cause**: In `apps/mobile/src/app/(provider)/booking-request/[id].tsx` (lines 195–204), time formatting is performed via:
@@ -78,20 +72,8 @@ Because HairConnekt follows a strict **zero production code change** rule during
   });
   ```
   `booking.scheduledDate` is an ISO date string without time (`"2026-09-28"`). Passing it to `new Date()` constructs midnight UTC, completely ignoring `booking.scheduledTime`.
-- **Fix Required**:
-  Format `booking.scheduledTime` directly using the helper or combine date and time:
-  ```typescript
-  const timeStr = booking.scheduledTime || '—';
-  ```
-- **How to Activate Test**:
-  In `apps/mobile/test/t15-mobile-formatting.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset', ...
-  ```
+- **Resolution**:
+  Introduced `formatBookingTime(time, language)` in `apps/mobile/src/utils/format.ts` and updated `booking-request/[id].tsx` as well as all screens displaying appointment times. Static scan test and unit tests flipped from `it.failing` to active `it`.
 
 ---
 
