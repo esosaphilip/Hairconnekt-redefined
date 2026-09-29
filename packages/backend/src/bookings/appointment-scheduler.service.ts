@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking, BookingStatus, CancelledBy } from '../entities/booking.entity';
+import { getBerlinToday, getBerlinNowMinutes } from '../common/utils/berlin-time.util';
 
 @Injectable()
 export class AppointmentSchedulerService {
@@ -17,9 +18,10 @@ export class AppointmentSchedulerService {
   async autoStartConfirmedAppointments(): Promise<void> {
     try {
       const now = new Date();
-      const todayDate = now.toISOString().split('T')[0];
-      const currentHour = now.getHours().toString().padStart(2, '0');
-      const currentMinute = now.getMinutes().toString().padStart(2, '0');
+      const todayDate = getBerlinToday(now);
+      const nowMins = getBerlinNowMinutes(now);
+      const currentHour = Math.floor(nowMins / 60).toString().padStart(2, '0');
+      const currentMinute = (nowMins % 60).toString().padStart(2, '0');
       const currentTime = `${currentHour}:${currentMinute}`;
 
       const bookingsToStart = await this.bookingRepo
@@ -54,9 +56,10 @@ export class AppointmentSchedulerService {
     try {
       const now = new Date();
       const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-      const graceDateStr = thirtyMinutesAgo.toISOString().split('T')[0];
-      const graceHour = thirtyMinutesAgo.getHours().toString().padStart(2, '0');
-      const graceMin = thirtyMinutesAgo.getMinutes().toString().padStart(2, '0');
+      const graceDateStr = getBerlinToday(thirtyMinutesAgo);
+      const graceMins = getBerlinNowMinutes(thirtyMinutesAgo);
+      const graceHour = Math.floor(graceMins / 60).toString().padStart(2, '0');
+      const graceMin = (graceMins % 60).toString().padStart(2, '0');
       const graceTime = `${graceHour}:${graceMin}`;
 
       const overduePending = await this.bookingRepo

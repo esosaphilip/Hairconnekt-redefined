@@ -20,6 +20,7 @@ import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccessService } from '../authorization/access.service';
+import { berlinWallClockToUtcMs, getBerlinToday } from '../common/utils/berlin-time.util';
 
 type NotificationPayload = Parameters<NotificationsService['sendToUser']>[0];
 
@@ -588,7 +589,7 @@ export class BookingsService {
     }
 
     if (todayOnly) {
-      where.scheduledDate = new Date().toISOString().split('T')[0];
+      where.scheduledDate = getBerlinToday();
     } else if (month) {
       if (!/^\d{4}-\d{2}$/.test(month)) {
         throw new BadRequestException('Monat muss im JJJJ-MM-Format sein, z.B. 2026-09.');
@@ -1079,18 +1080,9 @@ export class BookingsService {
     }
 
     if (preCheck.scheduledDate && preCheck.scheduledTime) {
-      const [yearStr, monthStr, dayStr] = preCheck.scheduledDate.split('-');
-      const [hourStr, minuteStr] = preCheck.scheduledTime.split(':');
-      const scheduledDateObj = new Date(
-        Number(yearStr),
-        Number(monthStr) - 1,
-        Number(dayStr),
-        Number(hourStr),
-        Number(minuteStr),
-      );
-      const now = new Date();
-      const earliestStartMs = scheduledDateObj.getTime() - 30 * 60 * 1000;
-      if (now.getTime() < earliestStartMs) {
+      const scheduledUtcMs = berlinWallClockToUtcMs(preCheck.scheduledDate, preCheck.scheduledTime);
+      const earliestStartMs = scheduledUtcMs - 30 * 60 * 1000;
+      if (Date.now() < earliestStartMs) {
         throw new BadRequestException(
           'Der Termin kann erst 30 Minuten vor der geplanten Zeit gestartet werden.',
         );

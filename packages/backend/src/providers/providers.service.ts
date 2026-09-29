@@ -15,6 +15,7 @@ import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { Review } from '../entities/review.entity';
 import { RegisterProviderDto } from './dto/register-provider.dto';
 import { GeocodingService } from '../common/geocoding/geocoding.service';
+import { getBerlinToday, getBerlinNowMinutes } from '../common/utils/berlin-time.util';
 
 @Injectable()
 export class ProvidersService {
@@ -513,7 +514,7 @@ export class ProvidersService {
   // --- Stats ---
   async getMyStats(userId: string) {
     const provider = await this.getMe(userId);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getBerlinToday();
     const todayBookings = await this.bookingRepo.count({
       where: { providerId: provider.id, scheduledDate: today }
     });
@@ -742,17 +743,12 @@ export class ProvidersService {
 
     const dateParam = dateStr;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const requestedDate = new Date(dateParam);
-    requestedDate.setHours(0, 0, 0, 0);
-
-    if (requestedDate < today) {
+    const todayBerlin = getBerlinToday();
+    if (dateParam < todayBerlin) {
       return { date: dateParam, providerId, slots: [] };
     }
 
-    const isToday = requestedDate.getTime() === today.getTime();
+    const isToday = dateParam === todayBerlin;
 
     const provider = await this.providerRepo.findOne({
       where: { id: providerId }
@@ -840,8 +836,7 @@ export class ProvidersService {
         this.intervalsOverlap(slotStart, slotStart + slotDuration, range.start, range.end),
       );
 
-    const now = new Date();
-    const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
+    const nowMinutes = isToday ? getBerlinNowMinutes() : -1;
 
     const slots = allSlotMinutes.map((slotMinute) => {
       const hours = Math.floor(slotMinute / 60).toString().padStart(2, '0');
