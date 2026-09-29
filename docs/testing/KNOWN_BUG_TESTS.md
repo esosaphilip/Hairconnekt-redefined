@@ -12,35 +12,22 @@ Because HairConnekt follows a strict **zero production code change** rule during
 
 | Bug ID | Test Suite | Test Name | Status |
 | :--- | :--- | :--- | :--- |
-| **BUG-019** | `packages/backend/test/t06-admin-contract.spec.ts` | `[KNOWN BUG-019] admin category create accepts isActive field without 400 rejection` | `it.failing` |
-| **BUG-020** | `apps/mobile/test/t14-mobile-logic.spec.ts` | `[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL` | `it.failing` |
-| **BUG-021** | `apps/mobile/test/t15-mobile-formatting.spec.ts` | `[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset` | `it.failing` |
-| **BUG-023** | `packages/backend/test/t11-berlin-time.spec.ts` | `[KNOWN BUG-023] appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)` | `it.failing` |
-| **BUG-024** | `packages/backend/test/t10-cancellation-stats.spec.ts` | `[KNOWN BUG-024] cancelled bookings are not counted in provider today appointments stat` | `it.failing` |
+| **BUG-019** | `packages/backend/test/t06-admin-contract.spec.ts` | `admin category create accepts isActive field without 400 rejection` | `RESOLVED` (Active `it`) |
+| **BUG-020** | `apps/mobile/test/t14-mobile-logic.spec.ts` | `[KNOWN BUG-020] joinUrl passes absolute URLs through without prepending base URL` | `it.failing` (Pending mobile fix) |
+| **BUG-021** | `apps/mobile/test/t15-mobile-formatting.spec.ts` | `[KNOWN BUG-021] booking-request screen formats scheduledTime instead of scheduledDate midnight offset` | `it.failing` (Pending mobile fix) |
+| **BUG-023** | `packages/backend/test/t11-berlin-time.spec.ts` | `appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)` | `RESOLVED` (Active `it`) |
+| **BUG-024** | `packages/backend/test/t10-cancellation-stats.spec.ts` | `cancelled bookings are not counted in provider today appointments stat` | `RESOLVED` (Active `it`) |
+| **BUG-028** | `packages/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
 
 ---
 
-### BUG-019: Category Create DTO Rejects `isActive` Flag
+### BUG-019: Category Create DTO Rejects `isActive` Flag [RESOLVED]
 
+- **Status**: **RESOLVED** (`it` test active in `packages/backend/test/t06-admin-contract.spec.ts`)
 - **Location**: `packages/backend/test/t06-admin-contract.spec.ts`
 - **Symptom**: When the admin dashboard creates a service category and passes `isActive: true` (or `false`), NestJS `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true` rejects the payload with HTTP 400: `property isActive should not exist`.
-- **Root Cause**: `CreateCategoryDto` in `packages/backend/src/categories/dto/create-category.dto.ts` omits `@IsBoolean() @IsOptional() isActive?: boolean;`.
-- **Fix Required**:
-  Add `isActive?: boolean` to `CreateCategoryDto`:
-  ```typescript
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-  ```
-- **How to Activate Test**:
-  In `packages/backend/test/t06-admin-contract.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-019] admin category create accepts isActive field without 400 rejection', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-019] admin category create accepts isActive field without 400 rejection', ...
-  ```
+- **Root Cause**: `CreateCategoryDto` in `packages/backend/src/categories/dto/create-category.dto.ts` omitted `@IsBoolean() @IsOptional() isActive?: boolean;`.
+- **Resolution**: Merged `bug-019-category-isactive` branch into `ci-safety-net`, adding `isActive?: boolean` to `CreateCategoryDto`. Both category creation tests flipped from `it.failing` to `it`.
 
 ---
 
@@ -108,52 +95,34 @@ Because HairConnekt follows a strict **zero production code change** rule during
 
 ---
 
-### BUG-023: Appointment Start Window Rejects Berlin Wall-Clock Time
+### BUG-023: Appointment Start Window Rejects Berlin Wall-Clock Time [RESOLVED]
 
+- **Status**: **RESOLVED** (`it` tests active in `packages/backend/test/t11-berlin-time.spec.ts`)
 - **Location**: `packages/backend/test/t11-berlin-time.spec.ts`
 - **Symptom**: An appointment scheduled for `09:00` Berlin time cannot be started at `09:29` Berlin time. The backend returns HTTP 400 stating that it is too early to start the booking.
-- **Root Cause**: In `packages/backend/src/bookings/bookings.service.ts` (`startBooking` method), the server constructs local appointment time via `new Date(year, month - 1, day, hour, minute)`. Because the server runs in UTC, `09:00` wall-clock time is interpreted as `09:00 UTC` (which corresponds to `11:00 CEST`). At `07:29 UTC` (`09:29 CEST`), the server calculates the earliest allowed start (30 min before `09:00 UTC` = `08:30 UTC`), rejecting `07:29 UTC` as 61 minutes too early.
-- **Fix Required**:
-  Parse `scheduledDate` and `scheduledTime` using a timezone-aware helper (e.g. `luxon`, `date-fns-tz`, or temporal parsing configured for `Europe/Berlin`) to convert Berlin wall-clock time to its true UTC timestamp before comparing with `new Date()`.
-- **How to Activate Test**:
-  In `packages/backend/test/t11-berlin-time.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-023] appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-023] appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)', ...
-  ```
+- **Root Cause**: In `packages/backend/src/bookings/bookings.service.ts` (`startBooking` method), the server constructed local appointment time via naive `new Date(...)`. Because the server runs in UTC, `09:00` wall-clock time was interpreted as `09:00 UTC` (which corresponds to `11:00 CEST`). At `07:29 UTC` (`09:29 CEST`), the server calculated earliest allowed start as `08:30 UTC`, rejecting `07:29 UTC` as 61 minutes too early. Similar UTC assumptions existed in `AppointmentSchedulerService` cron jobs and `ProvidersService` slot calculation.
+- **Resolution**: Created `packages/backend/src/common/utils/berlin-time.util.ts` (`berlinWallClockToUtcMs`, `getBerlinToday`, `getBerlinNowMinutes`) with zero external dependencies using `Intl.DateTimeFormat`. Applied across `BookingsService`, `AppointmentSchedulerService`, and `ProvidersService`. All 6 tests in T11 and 10 unit tests in `berlin-time.spec.ts` activated and passing.
 
 ---
 
-### BUG-024: Cancelled Bookings Counted in Today's Appointments Stat
+### BUG-024: Real Dashboard Provider Stats [RESOLVED]
 
+- **Status**: **RESOLVED** (`it` tests active in `packages/backend/test/t10-cancellation-stats.spec.ts`)
 - **Location**: `packages/backend/test/t10-cancellation-stats.spec.ts`
-- **Symptom**: When a provider queries their dashboard stats (`GET /api/v1/providers/me/stats`), `todayAppointments` includes bookings with status `CANCELLED`.
-- **Root Cause**: In `packages/backend/src/providers/providers.service.ts` (`getMyStats` method), the repository count query filters by `providerId` and `scheduledDate: today`, but does not exclude `BookingStatus.CANCELLED`:
-  ```typescript
-  this.bookingRepo.count({
-    where: { providerId: provider.id, scheduledDate: today },
-  });
-  ```
-- **Fix Required**:
-  Add `status: Not(BookingStatus.CANCELLED)` or filter only active statuses (`CONFIRMED`, `IN_PROGRESS`, `COMPLETED`):
-  ```typescript
-  this.bookingRepo.count({
-    where: {
-      providerId: provider.id,
-      scheduledDate: today,
-      status: Not(BookingStatus.CANCELLED),
-    },
-  });
-  ```
-- **How to Activate Test**:
-  In `packages/backend/test/t10-cancellation-stats.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-024] cancelled bookings are not counted in provider today appointments stat', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-024] cancelled bookings are not counted in provider today appointments stat', ...
-  ```
+- **Symptom**: In provider dashboard stats (`GET /api/v1/providers/me/stats`), `todayAppointments` counted CANCELLED and NO_SHOW bookings, while `nextAppointmentTime` was hardcoded to `null` and `weeklyNewBookings` was hardcoded to `0`.
+- **Root Cause**: `getMyStats` in `packages/backend/src/providers/providers.service.ts` returned stub values and queried today bookings without status filtering.
+- **Resolution**: Implemented real stats calculation in `getMyStats`:
+  - `todayAppointments`: counts today's bookings excluding `CANCELLED` and `NO_SHOW`.
+  - `nextAppointmentTime`: queries earliest upcoming `CONFIRMED` booking for today (at or after current Berlin time) or future dates, formatted as `HH:mm`.
+  - `weeklyNewBookings`: counts bookings created in the last 7 days excluding `CANCELLED`.
+  - Added deadlock retry handling in test bootstrap. All 3 tests in T10 activated and passing.
+
+---
+
+### BUG-028: Bookings Allowed in the Past [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` test active in `packages/backend/test/t08-booking-conflicts.spec.ts`)
+- **Location**: `packages/backend/test/t08-booking-conflicts.spec.ts`
+- **Symptom**: `POST /api/v1/bookings` accepted appointments scheduled with past dates or times (e.g. yesterday).
+- **Root Cause**: `validateBookingSlot` in `packages/backend/src/bookings/bookings.service.ts` checked provider status, working hours, and time blocks, but omitted a check against the current timestamp.
+- **Resolution**: Added validation at the entry of `validateBookingSlot` using `berlinWallClockToUtcMs(scheduledDate, scheduledTime)`: if `scheduledUtcMs < Date.now()`, rejects with `BadRequestException('Buchungen in der Vergangenheit sind nicht möglich.')`. Protects both new bookings and reschedules. T08 yesterday test activated and passing.
