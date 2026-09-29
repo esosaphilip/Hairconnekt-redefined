@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { formatAmount, formatRating, formatBookingTime, AppLanguage } from '../src/utils/format';
+import { formatAmount, formatRating, formatBookingTime, calculatePayout, AppLanguage } from '../src/utils/format';
 
 function getAllSourceFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -113,6 +113,26 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(formatBookingTime('', 'de')).toBe('');
       expect(formatBookingTime('invalid', 'en')).toBe('');
       expect(formatBookingTime('25:00', 'de')).toBe('');
+    });
+  });
+
+  describe('Provider Payout Calculation (BUG-022)', () => {
+    it('calculates payout as totalPrice - platformFeeAmount (ignores raw providerPayout 0)', () => {
+      // 0 fee returns full price
+      expect(calculatePayout(100, 0)).toBe(100);
+      expect(calculatePayout('100.00', 0)).toBe(100);
+      expect(calculatePayout(100, null)).toBe(100);
+      expect(calculatePayout(100, undefined)).toBe(100);
+
+      // Real fee subtracted correctly
+      expect(calculatePayout(100, 10)).toBe(90);
+      expect(calculatePayout('65.50', '5.50')).toBe(60);
+    });
+
+    it('handles falsy or invalid values safely and clamps to 0 minimum', () => {
+      expect(calculatePayout(0, 0)).toBe(0);
+      expect(calculatePayout(null, null)).toBe(0);
+      expect(calculatePayout(50, 60)).toBe(0);
     });
   });
 

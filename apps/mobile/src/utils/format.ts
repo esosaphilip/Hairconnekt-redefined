@@ -60,3 +60,12 @@ export function formatBookingTime(
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 }
+
+export function calculatePayout(
+  totalPrice: number | string | null | undefined,
+  platformFeeAmount?: number | string | null | undefined,
+): number {
+  const total = Number(totalPrice) || 0;
+  const fee = Number(platformFeeAmount) || 0;
+  return Math.max(0, total - fee);
+}

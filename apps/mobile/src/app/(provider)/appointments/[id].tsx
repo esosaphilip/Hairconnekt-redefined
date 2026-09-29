@@ -21,7 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { bookingStatus, bookingStatusLabel } from '../../../utils/booking-status';
-import { formatAmount, formatBookingTime } from '../../../utils/format';
+import { formatAmount, formatBookingTime, calculatePayout } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
@@ -460,7 +460,7 @@ export default function ProviderAppointmentDetailScreen() {
             <Text style={[styles.infoLabel, styles.boldGreenText]}>
               <Feather name="briefcase" size={16} color={colors.green} /> {t('providerPayout')}
             </Text>
-            <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(booking.providerPayout ?? booking.totalPrice, lang)}</Text>
+            <Text style={[styles.infoValue, styles.boldGreenText]}>€{formatAmount(calculatePayout(booking.totalPrice, booking.platformFeeAmount), lang)}</Text>
           </View>
 
           <View style={styles.paymentMethodRow}>
