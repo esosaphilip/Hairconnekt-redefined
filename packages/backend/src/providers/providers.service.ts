@@ -515,13 +515,48 @@ export class ProvidersService {
   async getMyStats(userId: string) {
     const provider = await this.getMe(userId);
     const today = getBerlinToday();
-    const todayBookings = await this.bookingRepo.count({
-      where: { providerId: provider.id, scheduledDate: today }
+
+    const todayAppointments = await this.bookingRepo.count({
+      where: {
+        providerId: provider.id,
+        scheduledDate: today,
+        status: Not(In([BookingStatus.CANCELLED, BookingStatus.NO_SHOW])),
+      },
     });
+
+    const nowMins = getBerlinNowMinutes();
+    const currentHour = Math.floor(nowMins / 60).toString().padStart(2, '0');
+    const currentMin = (nowMins % 60).toString().padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMin}`;
+
+    const nextBooking = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .where('booking.providerId = :providerId', { providerId: provider.id })
+      .andWhere('booking.status = :status', { status: BookingStatus.CONFIRMED })
+      .andWhere(
+        '((booking.scheduledDate = :today AND booking.scheduledTime >= :currentTime) OR booking.scheduledDate > :today)',
+        { today, currentTime },
+      )
+      .orderBy('booking.scheduledDate', 'ASC')
+      .addOrderBy('booking.scheduledTime', 'ASC')
+      .getOne();
+
+    const nextAppointmentTime = nextBooking
+      ? nextBooking.scheduledTime.slice(0, 5)
+      : null;
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyNewBookings = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .where('booking.providerId = :providerId', { providerId: provider.id })
+      .andWhere('booking.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('booking.status != :cancelledStatus', { cancelledStatus: BookingStatus.CANCELLED })
+      .getCount();
+
     return {
-      todayAppointments: todayBookings,
-      nextAppointmentTime: null,
-      weeklyNewBookings: 0,
+      todayAppointments,
+      nextAppointmentTime,
+      weeklyNewBookings,
       avgRating: provider.avgRating ?? 0,
     };
   }

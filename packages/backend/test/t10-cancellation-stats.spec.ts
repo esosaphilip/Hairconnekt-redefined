@@ -2,6 +2,7 @@ import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
 import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
+import { freezeClock, unfreezeClock } from './test-time';
 
 describe('T10: Cancellation, Policy Windows and Stats', () => {
   let ctx: TestAppContext;
@@ -22,6 +23,10 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
     if (dbReady && ctx) {
       await truncateAllTables(ctx.dataSource);
     }
+  });
+
+  afterEach(() => {
+    unfreezeClock();
   });
 
   const runTest = (testFn: () => Promise<void>, isFailing = false) => {
@@ -82,8 +87,8 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
     expect(newBookingRes.body.booking?.status || newBookingRes.body.status).toBe('PENDING');
   }));
 
-  // KNOWN BUG-024: Cancelled booking is still counted in provider's "today's appointments" stat
-  it.failing('[KNOWN BUG-024] cancelled bookings are not counted in provider today appointments stat', runTest(async () => {
+  // BUG-024 (FIXED): Cancelled booking is still counted in provider's "today's appointments" stat
+  it('cancelled bookings are not counted in provider today appointments stat', runTest(async () => {
     const { user: client } = await createTestClient(ctx.dataSource);
     const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
 
@@ -105,13 +110,14 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
       .set('Authorization', `Bearer ${providerToken}`)
       .expect(200);
 
-    // BUG-024: todayAppointments should be 0 because the only booking for today is cancelled,
-    // but the backend does count({ where: { providerId, scheduledDate: today } }) without filtering status
+    // BUG-024: todayAppointments should be 0 because the only booking for today is cancelled
     expect(statsRes.body.todayAppointments).toBe(0);
-  }, true));
+  }));
 
-  // KNOWN BUG-024: provider next appointment stat ignores cancelled bookings and reflects the next active booking
-  it.failing('[KNOWN BUG-024] provider next appointment stat ignores cancelled bookings', runTest(async () => {
+  // BUG-024 (FIXED): provider next appointment stat ignores cancelled bookings and reflects the next active booking
+  it('provider next appointment stat ignores cancelled bookings', runTest(async () => {
+    freezeClock('2026-09-29T09:00:00Z'); // 11:00 Berlin time
+
     const { user: client } = await createTestClient(ctx.dataSource);
     const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
 
@@ -138,12 +144,11 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
     });
 
     // Fetch dashboard stats via GET /providers/me/stats: asserts nextAppointmentTime is '14:00' (ignoring cancelled 10:00 slot)
-    // BUG-024: Backend currently returns nextAppointmentTime: null without calculating the next active appointment
     const statsRes = await request(ctx.app.getHttpServer())
       .get('/api/v1/providers/me/stats')
       .set('Authorization', `Bearer ${providerToken}`)
       .expect(200);
 
     expect(statsRes.body.nextAppointmentTime).toBe('14:00');
-  }, true));
+  }));
 });
