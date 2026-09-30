@@ -288,6 +288,21 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(content).not.toMatch(/chip:\s*\{[^}]*borderRadius:\s*borderRadius\.full/);
     });
   });
+
+  describe('Provider Booking Request Screen Avatar Rendering (BUG-034)', () => {
+    const screenPath = path.resolve(__dirname, '../src/app/(provider)/booking-request/[id].tsx');
+    const content = fs.readFileSync(screenPath, 'utf-8');
+
+    it('renders customer avatar image when avatarUrl is present and falls back to initials', () => {
+      expect(content).toMatch(/import\s*\{[^}]*Image[^}]*\}\s*from\s*['"]react-native['"]/);
+      expect(content).toMatch(/booking\.client\?\.avatarUrl\s*\?\s*\(\s*<Image/);
+      expect(content).toMatch(/<Text\s+style=\{styles\.clientAvatarText\}>/);
+    });
+
+    it('includes avatarUrl in BookingParticipant type definition', () => {
+      expect(content).toMatch(/type\s+BookingParticipant\s*=\s*\{[^}]*avatarUrl\?:/);
+    });
+  });
 });
 
 

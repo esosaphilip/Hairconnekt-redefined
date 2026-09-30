@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
@@ -16,6 +16,7 @@ type BookingParticipant = {
   firstName: string;
   lastName: string;
   phone?: string;
+  avatarUrl?: string;
   totalBookings?: number;
 };
 
@@ -244,7 +245,13 @@ export default function BookingRequestScreen() {
           
           <View style={styles.clientProfileRow}>
             <View style={styles.clientAvatar}>
-              <Text style={styles.clientAvatarText}>{booking.client.firstName[0]}{booking.client.lastName[0]}</Text>
+              {booking.client?.avatarUrl ? (
+                <Image source={{ uri: booking.client.avatarUrl }} style={styles.clientAvatarImage} />
+              ) : (
+                <Text style={styles.clientAvatarText}>
+                  {booking.client.firstName?.[0] ?? ''}{booking.client.lastName?.[0] ?? ''}
+                </Text>
+              )}
             </View>
             <View style={styles.clientInfoCol}>
               <Text style={styles.clientName}>{booking.client.firstName} {booking.client.lastName[0]}.</Text>
@@ -417,6 +424,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  clientAvatarImage: {
+    width: layout.headerHeight,
+    height: layout.headerHeight,
+    borderRadius: layout.iconButton - spacing.unit,
   },
   clientAvatarText: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary },
   clientInfoCol: { flex: 1 },
