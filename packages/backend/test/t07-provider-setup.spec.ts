@@ -24,10 +24,13 @@ describe('T07: Provider Setup', () => {
     }
   });
 
-  const runTest = (testFn: () => Promise<void>) => {
+  const runTest = (testFn: () => Promise<void>, isFailing = false) => {
     return async () => {
       if (!dbReady) {
         console.warn('Skipping test: Database not available locally (runs in CI container)');
+        if (isFailing) {
+          throw new Error('Database not available locally');
+        }
         return;
       }
       await testFn();
@@ -176,4 +179,59 @@ describe('T07: Provider Setup', () => {
     // Asserts inactive category is not offered
     expect(catIds).not.toContain(inactiveCat.id);
   }));
+
+  // KNOWN BUG-036: editing service fails with "categoryId should not exist" because UpdateServiceDto omits categoryId
+  it.failing('[KNOWN BUG-036] provider can edit an existing service including its category', runTest(async () => {
+    const { provider, token: providerToken } = await createTestProvider(ctx.dataSource);
+
+    const catRepo = ctx.dataSource.getRepository(ServiceCategory);
+    let category1 = await catRepo.findOne({ where: { isActive: true } });
+    if (!category1) {
+      category1 = await catRepo.save(catRepo.create({ name: `Braids ${Date.now()}`, iconName: 'braids', isActive: true }));
+    }
+
+    const category2 = await catRepo.save(
+      catRepo.create({ name: `Category Edit ${Date.now()}`, iconName: 'locs', isActive: true }),
+    );
+
+    // 1. Create initial service
+    const createRes = await request(ctx.app.getHttpServer())
+      .post('/api/v1/providers/me/services')
+      .set('Authorization', `Bearer ${providerToken}`)
+      .send({
+        categoryId: category1.id,
+        name: 'Initial Service',
+        description: 'Initial description',
+        price: 80,
+        priceType: 'fixed',
+        durationMin: 60,
+      })
+      .expect(201);
+
+    const serviceId = createRes.body.id;
+    expect(serviceId).toBeDefined();
+
+    // 2. Edit service using mobile Edit Service screen payload (which includes categoryId)
+    // BUG-036: UpdateServiceDto does not declare categoryId, so ValidationPipe rejects with 400 "property categoryId should not exist"
+    const editPayload = {
+      name: 'Updated Service Name',
+      categoryId: category2.id,
+      description: 'Updated description',
+      durationMin: 90,
+      priceType: 'fixed',
+      price: 110,
+      isActive: true,
+    };
+
+    const editRes = await request(ctx.app.getHttpServer())
+      .patch(`/api/v1/providers/me/services/${serviceId}`)
+      .set('Authorization', `Bearer ${providerToken}`)
+      .send(editPayload)
+      .expect(200);
+
+    expect(editRes.body.name).toBe('Updated Service Name');
+    expect(editRes.body.categoryId).toBe(category2.id);
+    expect(editRes.body.durationMin).toBe(90);
+    expect(Number(editRes.body.price)).toBe(110);
+  }, true));
 });
