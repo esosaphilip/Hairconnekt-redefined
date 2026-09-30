@@ -396,4 +396,57 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       expect(content).toContain('bookingAddressSaveAsDefault');
     });
   });
+
+  describe('BUG-030: Screen Data Freshness & useFocusEffect', () => {
+    it('screen 1: (client)/provider/[id].tsx uses useFocusEffect with silent refresh', () => {
+      const filePath = path.resolve(__dirname, '../src/app/(client)/provider/[id].tsx');
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      expect(content).toMatch(/import.*useFocusEffect.*from 'expo-router'/);
+      expect(content).toContain('useFocusEffect(');
+      expect(content).toContain('isSilent = false');
+      expect(content).not.toMatch(/useEffect\(\s*\(\)\s*=>\s*\{\s*fetchData\(\);\s*\}\s*,\s*\[id\]\s*\)/);
+    });
+
+    it('screen 2: (client)/profile/reviews.tsx uses useFocusEffect with silent refresh', () => {
+      const filePath = path.resolve(__dirname, '../src/app/(client)/profile/reviews.tsx');
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      expect(content).toMatch(/import.*useFocusEffect.*from 'expo-router'/);
+      expect(content).toContain('useFocusEffect(');
+      expect(content).toContain('isSilent = false');
+      expect(content).not.toMatch(/useEffect\(\s*\(\)\s*=>\s*\{\s*loadReviews\(\);\s*\}\s*,\s*\[\]\s*\)/);
+    });
+
+    it('screen 3: (client)/search.tsx uses useFocusEffect with silent refresh', () => {
+      const filePath = path.resolve(__dirname, '../src/app/(client)/search.tsx');
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      expect(content).toMatch(/import.*useFocusEffect.*from 'expo-router'/);
+      expect(content).toContain('useFocusEffect(');
+      expect(content).toContain('isSilent = false');
+      expect(content).toContain('fetchProviders(1, true, undefined, true)');
+    });
+
+    it('screen 4: (client)/index.tsx refreshes provider listings on focus silently', () => {
+      const filePath = path.resolve(__dirname, '../src/app/(client)/index.tsx');
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      expect(content).toMatch(/import.*useFocusEffect.*from 'expo-router'/);
+      expect(content).toContain('useFocusEffect(');
+      expect(content).toContain('fetchProviders(discoveryLocation, true)');
+      expect(content).toContain('isSilent = false');
+    });
+
+    it('screen 5: (provider)/profile/preview.tsx uses useFocusEffect with silent refresh', () => {
+      const filePath = path.resolve(__dirname, '../src/app/(provider)/profile/preview.tsx');
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      expect(content).toMatch(/import.*useFocusEffect.*from 'expo-router'/);
+      expect(content).toContain('useFocusEffect(');
+      expect(content).toContain('isSilent = false');
+      expect(content).not.toMatch(/useEffect\(\s*\(\)\s*=>\s*\{\s*loadData\(\);\s*\}\s*,\s*\[\]\s*\)/);
+    });
+  });
 });
+
