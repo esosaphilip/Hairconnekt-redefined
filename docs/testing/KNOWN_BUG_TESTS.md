@@ -18,6 +18,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-023** | `packages/backend/test/t11-berlin-time.spec.ts` | `appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)` | `RESOLVED` (Active `it`) |
 | **BUG-024** | `packages/backend/test/t10-cancellation-stats.spec.ts` | `cancelled bookings are not counted in provider today appointments stat` | `RESOLVED` (Active `it`) |
 | **BUG-028** | `packages/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
+| **BUG-033** | `packages/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `packages/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
 
 ---
@@ -110,6 +111,30 @@ Because HairConnekt follows a strict **zero production code change** rule during
 - **Root Cause**: `validateBookingSlot` in `packages/backend/src/bookings/bookings.service.ts` checked provider status, working hours, and time blocks, but omitted a check against the current timestamp.
 - **Resolution**: Added validation at the entry of `validateBookingSlot` using `berlinWallClockToUtcMs(scheduledDate, scheduledTime)`: if `scheduledUtcMs < Date.now()`, rejects with `BadRequestException('Buchungen in der Vergangenheit sind nicht möglich.')`. Protects both new bookings and reschedules. T08 yesterday test activated and passing.
  
+---
+
+### BUG-033: Mobile Bookings Send No Address / Backend Ignores Address [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` tests active in `packages/backend/test/booking-address.spec.ts`, `packages/backend/test/t08-booking-conflicts.spec.ts`, and `apps/mobile/test/t14-mobile-logic.spec.ts`)
+- **Location**: `packages/backend/test/booking-address.spec.ts`, `packages/backend/test/t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts`
+- **Symptom**: When a client enabled "Mobiler Service" on the mobile booking details screen (`(client)/booking/details.tsx`), only `isMobile: true` was sent with no address selected or collected. In the backend, even if an `addressId` was provided in `CreateBookingDto`, `createBooking` in `BookingsService` completely ignored it, leaving the booking entity's snapshot columns (`addressStreet`, `addressHouseNumber`, `addressCity`, `addressPostalCode`) null. Providers receiving mobile booking requests had no address information.
+- **Root Cause**:
+  1. **Frontend**: The mobile booking screen had a toggle for mobile service without any address selection or address input form.
+  2. **DTO**: `CreateBookingDto.addressId` was optional with no conditional validation requiring it when `isMobile: true`.
+  3. **Backend Service**: `createBooking` did not inject or query the `Address` repository, never verified address ownership by the authenticated client, and never copied address fields to the booking entity.
+  4. **Entity Serialization**: Booking entities stored snapshot columns but did not expose or serialize a nested `address` object (`{ street, houseNumber, postalCode, city }`) expected by consumer screens such as `booking-request/[id].tsx`.
+- **Resolution**:
+  1. **Backend DTO**: Added conditional validation with `@ValidateIf((o) => o.isMobile === true)` and `@IsNotEmpty()` + `@IsUUID('4')` on `addressId` in `CreateBookingDto`. Non-mobile studio bookings continue to require no address.
+  2. **Backend Service**: Registered `Address` in `BookingsModule`. In `BookingsService.createBooking`, when `isMobile: true`, verified that `addressId` exists and belongs to the authenticated client (`address.userId === clientId`), then copied `street`, `houseNumber`, `city`, and `postalCode` onto the booking snapshot columns.
+  3. **Entity Serialization**: Added `@AfterLoad()`, `@AfterInsert()`, `@AfterUpdate()`, and custom `toJSON()` on `Booking` entity to ensure the nested `address` object is consistently populated and serialized across all endpoints (`res.json()`).
+  4. **Mobile Client**: In `apps/mobile/src/app/(client)/booking/details.tsx`, when mobile service is toggled on:
+     - Fetches saved addresses from `GET /users/me/addresses`.
+     - Displays the default/first saved address with options to pick another saved address or enter a new address.
+     - If entering a new address, displays a 4-field form (Straße, Hausnummer, PLZ, Stadt) matching `provider-register/step2.tsx` layout, plus a "Als Standardadresse speichern" switch.
+     - On submission with a new address, calls `POST /users/me/addresses` first to save the address, then uses the returned ID as `addressId` in `POST /bookings`.
+     - Validates and blocks submission with `"Bitte gib eine Adresse für den mobilen Service ein."` if no address is provided.
+  5. **Regression Tests**: Added unit tests for DTO and entity serialization in `booking-address.spec.ts`, integration tests in `t08-booking-conflicts.spec.ts`, and translation/contract tests in `t14-mobile-logic.spec.ts`.
+
 ---
 
 ### BUG-036: Service Edit Fails with "property categoryId should not exist" [RESOLVED]
