@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, shadows, borderRadius, layout } from '../../../theme';
 import { tokenStorage } from '../../../utils/token-storage';
@@ -29,14 +29,11 @@ export default function ClientReviewsScreen() {
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
 
-  useEffect(() => {
-    loadReviews();
-  }, []);
-
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
       const res = await fetch(`${API}/reviews/mine`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -48,12 +45,19 @@ export default function ClientReviewsScreen() {
       
       const data: any = await res.json();
       setReviews(data.data || []);
+      hasLoadedRef.current = true;
     } catch (error) {
       debugError('Client review history load failed', error);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadReviews(hasLoadedRef.current);
+    }, [loadReviews])
+  );
 
   const renderStars = (rating: number) => {
     return (
