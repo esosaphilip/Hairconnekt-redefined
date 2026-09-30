@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, SafeAreaView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
@@ -41,13 +41,11 @@ export default function ProfilePreviewScreen() {
     { key: 'reviews' as const, label: t('profileTabReviews') },
   ];
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const hasLoadedRef = useRef(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       setErrorVisible(false);
       setErrorStatus(undefined);
 
@@ -73,14 +71,21 @@ export default function ProfilePreviewScreen() {
 
       const revArr = revRes?.data ?? revRes ?? [];
       setReviews(Array.isArray(revArr) ? revArr : []);
+      hasLoadedRef.current = true;
     } catch (e: any) {
       setErrorStatus(e?.status ?? e?.response?.status);
       setErrorMessage(e?.message ?? t('errorUnknown'));
       setErrorVisible(true);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
-  };
+  }, [t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData(hasLoadedRef.current);
+    }, [loadData])
+  );
 
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl || portfolio[0].url : null;
 
@@ -95,7 +100,7 @@ export default function ProfilePreviewScreen() {
   if (!provider) {
     return (
       <View style={styles.loadingContainer}>
-        <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage || t('errorUnknown')} actionLabel={t('appointmentsRetry')} onAction={loadData} />
+        <GermanErrorBanner visible={errorVisible} statusCode={errorStatus} message={errorMessage || t('errorUnknown')} actionLabel={t('appointmentsRetry')} onAction={() => loadData(false)} />
       </View>
     );
   }
