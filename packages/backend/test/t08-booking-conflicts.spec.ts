@@ -259,4 +259,106 @@ describe('T08: Booking Creation and Conflicts', () => {
     expect(ids).not.toContain(pendingProvider.id);
     expect(ids).not.toContain(suspendedProvider.id);
   }));
+
+  describe('BUG-033: Mobile booking address requirements and snapshot', () => {
+    it('creates a mobile booking with a saved addressId, persisting snapshot and returning nested address object', runTest(async () => {
+      const { token: clientToken } = await createTestClient(ctx.dataSource);
+      const { provider, services } = await createTestProvider(ctx.dataSource);
+
+      // 1. Create a saved address for the client
+      const addressRes = await request(ctx.app.getHttpServer())
+        .post('/api/v1/users/me/addresses')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          street: 'Königsallee',
+          houseNumber: '42',
+          postalCode: '40212',
+          city: 'Düsseldorf',
+          isDefault: true,
+        })
+        .expect(201);
+
+      const addressId = addressRes.body.id;
+      expect(addressId).toBeDefined();
+
+      // 2. Book a mobile service with the addressId
+      const bookingRes = await request(ctx.app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          providerId: provider.id,
+          serviceIds: [services[0].id],
+          scheduledDate: '2026-11-25',
+          scheduledTime: '15:00',
+          isMobile: true,
+          addressId,
+        })
+        .expect(201);
+
+      const booking = bookingRes.body.booking || bookingRes.body;
+      expect(booking.isMobile).toBe(true);
+      expect(booking.address).toBeDefined();
+      expect(booking.address).toEqual({
+        street: 'Königsallee',
+        houseNumber: '42',
+        postalCode: '40212',
+        city: 'Düsseldorf',
+      });
+
+      // 3. Confirm GET /bookings/:id also returns the nested address
+      const getRes = await request(ctx.app.getHttpServer())
+        .get(`/api/v1/bookings/${booking.id}`)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      const fetchedBooking = getRes.body.booking || getRes.body;
+      expect(fetchedBooking.address).toEqual({
+        street: 'Königsallee',
+        houseNumber: '42',
+        postalCode: '40212',
+        city: 'Düsseldorf',
+      });
+    }));
+
+    it('rejects a mobile booking when addressId is omitted', runTest(async () => {
+      const { token: clientToken } = await createTestClient(ctx.dataSource);
+      const { provider, services } = await createTestProvider(ctx.dataSource);
+
+      const res = await request(ctx.app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          providerId: provider.id,
+          serviceIds: [services[0].id],
+          scheduledDate: '2026-11-26',
+          scheduledTime: '11:00',
+          isMobile: true,
+        })
+        .expect(400);
+
+      const message = Array.isArray(res.body.message) ? res.body.message.join(' ') : res.body.message;
+      expect(message).toMatch(/addressId/i);
+    }));
+
+    it('creates a non-mobile studio booking without an addressId normally', runTest(async () => {
+      const { token: clientToken } = await createTestClient(ctx.dataSource);
+      const { provider, services } = await createTestProvider(ctx.dataSource);
+
+      const res = await request(ctx.app.getHttpServer())
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          providerId: provider.id,
+          serviceIds: [services[0].id],
+          scheduledDate: '2026-11-27',
+          scheduledTime: '11:00',
+          isMobile: false,
+        })
+        .expect(201);
+
+      const booking = res.body.booking || res.body;
+      expect(booking.isMobile).toBe(false);
+      expect(booking.address).toBeNull();
+    }));
+  });
 });

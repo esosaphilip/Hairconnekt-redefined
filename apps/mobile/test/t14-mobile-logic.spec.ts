@@ -9,6 +9,7 @@ import {
   RegistrationForm,
   DEFAULTS,
 } from '../src/contexts/RegistrationContext';
+import { TRANSLATIONS } from '../src/contexts/LanguageContext';
 import { tokenStorage } from '../src/utils/token-storage';
 import { mockAsyncStorage } from './setup';
 
@@ -273,6 +274,126 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
         reason: 'Krank',
         notes: 'Provider is sick',
       });
+    });
+  });
+
+  describe('Mobile Booking Address Flow (BUG-033)', () => {
+    it('provides exact German and English translations for required address validation', () => {
+      expect(TRANSLATIONS.bookingAddressRequired.de).toBe(
+        'Bitte gib eine Adresse für den mobilen Service ein.',
+      );
+      expect(TRANSLATIONS.bookingAddressRequired.en).toBe(
+        'Please enter an address for the mobile service.',
+      );
+      expect(TRANSLATIONS.bookingAddressSaveAsDefault.de).toBe('Als Standardadresse speichern');
+      expect(TRANSLATIONS.bookingAddressSelectSaved.de).toBe('Gespeicherte Adresse');
+    });
+
+    it('creates a new address via POST /users/me/addresses when new address fields are submitted', async () => {
+      await tokenStorage.save('mock-client-jwt', 'mock-refresh-token', 'client');
+
+      const mockFetch = jest.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/users/me/addresses')) {
+          return {
+            ok: true,
+            status: 201,
+            text: async () => JSON.stringify({
+              id: 'addr-created-uuid-1234',
+              street: 'Königsallee',
+              houseNumber: '42',
+              postalCode: '40212',
+              city: 'Düsseldorf',
+              isDefault: true,
+            }),
+          };
+        }
+        if (url.includes('/bookings')) {
+          return {
+            ok: true,
+            status: 201,
+            text: async () => JSON.stringify({
+              booking: {
+                id: 'booking-uuid-5678',
+                isMobile: true,
+                address: {
+                  street: 'Königsallee',
+                  houseNumber: '42',
+                  postalCode: '40212',
+                  city: 'Düsseldorf',
+                },
+              },
+            }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({}),
+        };
+      });
+      global.fetch = mockFetch;
+
+      // 1. Simulate saving new address
+      const newAddressPayload = {
+        street: 'Königsallee',
+        houseNumber: '42',
+        postalCode: '40212',
+        city: 'Düsseldorf',
+        isDefault: true,
+      };
+
+      const createdAddress = await apiJson<any>('/users/me/addresses', {
+        auth: true,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAddressPayload),
+      });
+
+      expect(createdAddress.id).toBe('addr-created-uuid-1234');
+
+      // 2. Simulate creating booking using that addressId
+      const bookingPayload = {
+        providerId: 'provider-uuid-999',
+        serviceIds: ['service-uuid-111'],
+        scheduledDate: '2026-11-25',
+        scheduledTime: '15:00',
+        isMobile: true,
+        addressId: createdAddress.id,
+      };
+
+      const bookingRes = await apiJson<any>('/bookings', {
+        auth: true,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      expect(bookingRes.booking.id).toBe('booking-uuid-5678');
+      expect(bookingRes.booking.isMobile).toBe(true);
+      expect(bookingRes.booking.address.street).toBe('Königsallee');
+
+      // Verify the two network calls made
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      const [addrCallUrl, addrCallInit] = mockFetch.mock.calls[0];
+      expect(addrCallUrl).toBe('https://api.test.hairconnekt.de/api/v1/users/me/addresses');
+      expect(addrCallInit.method).toBe('POST');
+      expect(JSON.parse(addrCallInit.body)).toEqual(newAddressPayload);
+
+      const [bookCallUrl, bookCallInit] = mockFetch.mock.calls[1];
+      expect(bookCallUrl).toBe('https://api.test.hairconnekt.de/api/v1/bookings');
+      expect(bookCallInit.method).toBe('POST');
+      expect(JSON.parse(bookCallInit.body).addressId).toBe('addr-created-uuid-1234');
+    });
+
+    it('static audit: details.tsx requires address when isMobile is true and passes addressId', () => {
+      const detailsPath = path.resolve(__dirname, '../src/app/(client)/booking/details.tsx');
+      const content = fs.readFileSync(detailsPath, 'utf8');
+
+      // Asserts mobile screen handles addresses
+      expect(content).toContain('/users/me/addresses');
+      expect(content).toContain("t('bookingAddressRequired')");
+      expect(content).toContain('bookingData.addressId = resolvedAddressId');
+      expect(content).toContain('bookingAddressSaveAsDefault');
     });
   });
 });
