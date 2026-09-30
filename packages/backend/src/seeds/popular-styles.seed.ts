@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PopularStyle } from '../../entities/popular-style.entity';
+import { PopularStyle } from '../entities/popular-style.entity';
 
 @Injectable()
 export class PopularStylesSeedService implements OnModuleInit {

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PopularStyle } from '../entities/popular-style.entity';
-import { PopularStylesSeedService } from '../database/seeds/popular-styles.seed';
+import { PopularStylesSeedService } from '../seeds/popular-styles.seed';
 import {
   AdminPopularStylesController,
   PopularStylesController,
