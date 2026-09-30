@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
@@ -86,27 +86,22 @@ export default function ClientSearch() {
     setSortOption(initialSort);
   }, [initialSort]);
 
-  useEffect(() => {
-    if (activeCategory === 'Alle' || categoryMap.length > 0) {
-      setPage(1);
-      setHasMore(true);
-      setTotalResults(0);
-      setProviders([]);
-      fetchProviders(1, true, initialQuery);
-    }
-  }, [activeCategory, availableToday, sortOption, categoryMap, initialQuery, discoveryLocation]);
+  const hasLoadedRef = useRef(false);
+  const searchQueryRef = useRef(searchQuery);
+  searchQueryRef.current = searchQuery;
 
-  const fetchProviders = async (
+  const fetchProviders = useCallback(async (
     pageNumber: number,
     isInitial = false,
     queryOverride?: string,
+    isSilent = false,
   ) => {
     try {
-      if (isInitial) setIsLoading(true);
-      else setIsFetchingMore(true);
+      if (isInitial && !isSilent) setIsLoading(true);
+      else if (!isInitial) setIsFetchingMore(true);
       setErrorVisible(false);
       
-      const trimmedQuery = (queryOverride ?? searchQuery).trim();
+      const trimmedQuery = (queryOverride ?? searchQueryRef.current).trim();
       const searchParam = trimmedQuery ? `&search=${encodeURIComponent(trimmedQuery)}` : '';
       const categoryParam = activeCategory !== 'Alle'
         ? `&category=${encodeURIComponent(activeCategory)}`
@@ -131,15 +126,33 @@ export default function ClientSearch() {
       setHasMore(nextHasMore);
 
       setProviders(prev => pageNumber === 1 ? newData : [...prev, ...newData]);
+      hasLoadedRef.current = true;
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
       setErrorMessage(mapHttpError(status, err?.message, lang));
       setErrorVisible(true);
     } finally {
-      setIsLoading(false);
-      setIsFetchingMore(false);
+      if (isInitial && !isSilent) setIsLoading(false);
+      else if (!isInitial) setIsFetchingMore(false);
     }
-  };
+  }, [activeCategory, availableToday, sortOption, discoveryLocation, lang]);
+
+  useEffect(() => {
+    if (activeCategory === 'Alle' || categoryMap.length > 0) {
+      setPage(1);
+      setHasMore(true);
+      setTotalResults(0);
+      setProviders([]);
+      fetchProviders(1, true, initialQuery);
+    }
+  }, [activeCategory, availableToday, sortOption, categoryMap, initialQuery, discoveryLocation, fetchProviders]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedRef.current) return;
+      void fetchProviders(1, true, undefined, true);
+    }, [fetchProviders])
+  );
 
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
