@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.md, color: colors.textPrimary, height: '100%' },
   chipsScroll: { maxHeight: layout.inputHeight, flexGrow: 0, marginTop: spacing.xs, marginBottom: spacing.md },
   chipsContent: { paddingHorizontal: spacing.lg, alignItems: 'center' },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.pill, borderWidth: spacing.unit, borderColor: colors.borderStrong, backgroundColor: colors.surface, marginRight: spacing.sm },
+  chip: { height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.md, borderWidth: spacing.unit, borderColor: colors.borderStrong, backgroundColor: colors.surface, marginRight: spacing.sm },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textPrimary },
   chipTextActive: { color: colors.surface },

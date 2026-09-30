@@ -282,8 +282,9 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
     const searchPath = path.resolve(__dirname, '../src/app/(client)/search.tsx');
     const content = fs.readFileSync(searchPath, 'utf-8');
 
-    it('uses borderRadius.pill instead of borderRadius.full to prevent folded pill distortion', () => {
-      expect(content).toMatch(/chip:\s*\{[^}]*borderRadius:\s*borderRadius\.pill/);
+    it('uses explicit height: 36 and borderRadius: 18 (radius <= height/2) to prevent pinching on narrow chips', () => {
+      expect(content).toMatch(/chip:\s*\{[^}]*height:\s*36/);
+      expect(content).toMatch(/chip:\s*\{[^}]*borderRadius:\s*18/);
       expect(content).not.toMatch(/chip:\s*\{[^}]*borderRadius:\s*borderRadius\.full/);
     });
   });
