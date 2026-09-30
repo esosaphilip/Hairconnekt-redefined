@@ -772,6 +772,8 @@ export const TRANSLATIONS = {
   blockTimeReasonAppointment: { de: 'Persönlicher Termin', en: 'Personal Appointment' },
   blockTimeReasonBreak: { de: 'Pause', en: 'Break' },
   blockTimeReasonOther: { de: 'Sonstiges', en: 'Other' },
+  blockTimeExistingHeader: { de: 'Vorhandene Blockaden', en: 'Existing Blocked Times' },
+  blockTimeExistingEmpty: { de: 'Keine geplanten Blockaden vorhanden.', en: 'No scheduled blocked times.' },
 
   notificationsReadAll: { de: 'Alle lesen', en: 'Mark all read' },
   notificationsAgoMins: { de: 'vor {minutes} Min.', en: '{minutes} min ago' },

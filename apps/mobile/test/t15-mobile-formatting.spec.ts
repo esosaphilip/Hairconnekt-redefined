@@ -303,6 +303,23 @@ describe('T15: Mobile Currency Formatting & Time Static Audit', () => {
       expect(content).toMatch(/type\s+BookingParticipant\s*=\s*\{[^}]*avatarUrl\?:/);
     });
   });
+
+  describe('Block Time Translation Keys (BUG-035)', () => {
+    const langContextPath = path.resolve(__dirname, '../src/contexts/LanguageContext.tsx');
+    const langContent = fs.readFileSync(langContextPath, 'utf-8');
+    const blockTimePath = path.resolve(__dirname, '../src/app/(provider)/block-time.tsx');
+    const blockTimeContent = fs.readFileSync(blockTimePath, 'utf-8');
+
+    it('defines blockTimeExistingHeader and blockTimeExistingEmpty in LanguageContext with German and English translations', () => {
+      expect(langContent).toMatch(/blockTimeExistingHeader:\s*\{\s*de:\s*'Vorhandene Blockaden',\s*en:\s*'Existing Blocked Times'\s*\}/);
+      expect(langContent).toMatch(/blockTimeExistingEmpty:\s*\{\s*de:\s*'Keine geplanten Blockaden vorhanden\.',\s*en:\s*'No scheduled blocked times\.'\s*\}/);
+    });
+
+    it('uses translation keys in block-time screen so raw keys do not appear', () => {
+      expect(blockTimeContent).toContain("t('blockTimeExistingHeader')");
+      expect(blockTimeContent).toContain("t('blockTimeExistingEmpty')");
+    });
+  });
 });
 
 

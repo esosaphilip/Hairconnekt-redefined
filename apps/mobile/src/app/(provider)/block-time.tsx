@@ -356,12 +356,12 @@ export default function BlockTimeScreen() {
 
         {/* Existing Blocks Section */}
         <View style={styles.existingBlocksSection}>
-          <Text style={styles.sectionLabel}>{t('blockTimeExistingHeader') || 'Vorhandene Blockaden'}</Text>
+          <Text style={styles.sectionLabel}>{t('blockTimeExistingHeader')}</Text>
           {loadingBlocks ? (
             <View style={styles.blocksLoader}><ActivityIndicator color={colors.coral} /></View>
           ) : blocks.length === 0 ? (
             <Text style={styles.blocksEmptyText}>
-              {t('blockTimeExistingEmpty') || 'Keine geplanten Blockaden vorhanden.'}
+              {t('blockTimeExistingEmpty')}
             </Text>
           ) : (
             <View style={styles.blockList}>
