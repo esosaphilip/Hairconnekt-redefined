@@ -10,6 +10,7 @@ import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { TimeBlock } from '../entities/time-block.entity';
 import { User } from '../entities/user.entity';
+import { Address } from '../entities/address.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 
@@ -23,6 +24,7 @@ import { AuthorizationModule } from '../authorization/authorization.module';
       AvailabilitySchedule,
       TimeBlock,
       User,
+      Address,
     ]),
     NotificationsModule,
     AuthorizationModule,

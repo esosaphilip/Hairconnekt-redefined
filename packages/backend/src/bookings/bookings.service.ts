@@ -15,6 +15,7 @@ import { Provider } from '../entities/provider.entity';
 import { AvailabilitySchedule } from '../entities/availability-schedule.entity';
 import { TimeBlock } from '../entities/time-block.entity';
 import { UserRole } from '../entities/user.entity';
+import { Address } from '../entities/address.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -39,6 +40,8 @@ export class BookingsService {
     private readonly availabilityScheduleRepo: Repository<AvailabilitySchedule>,
     @InjectRepository(TimeBlock)
     private readonly timeBlockRepo: Repository<TimeBlock>,
+    @InjectRepository(Address)
+    private readonly addressRepo: Repository<Address>,
     private readonly notificationsService: NotificationsService,
     private readonly access: AccessService,
     @InjectDataSource() private readonly dataSource?: DataSource,
@@ -405,6 +408,31 @@ export class BookingsService {
 
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
 
+    let addressSnapshot: {
+      addressStreet: string;
+      addressHouseNumber: string;
+      addressCity: string;
+      addressPostalCode: string;
+    } | null = null;
+
+    if (isMobile) {
+      if (!dto.addressId) {
+        throw new BadRequestException('addressId ist erforderlich für mobile Buchungen.');
+      }
+      const address = await this.addressRepo.findOne({
+        where: { id: dto.addressId, userId: clientId },
+      });
+      if (!address) {
+        throw new NotFoundException('Adresse nicht gefunden.');
+      }
+      addressSnapshot = {
+        addressStreet: address.street,
+        addressHouseNumber: address.houseNumber,
+        addressCity: address.city,
+        addressPostalCode: address.postalCode,
+      };
+    }
+
     const useTransaction = !!this.dataSource;
     let savedBookingId: string;
     let notificationTasks: Array<{ context: string; payload: NotificationPayload }> = [];
@@ -462,6 +490,7 @@ export class BookingsService {
           paymentMethod: 'CASH',
           notificationsPending: false,
           notificationsError: null,
+          ...(addressSnapshot || {}),
         });
 
         const saved = await manager.getRepository(Booking).save(booking);
@@ -528,6 +557,7 @@ export class BookingsService {
           paymentMethod: 'CASH',
           notificationsPending: false,
           notificationsError: null,
+          ...(addressSnapshot || {}),
         });
 
         const saved = await nonTxManager.getRepository(Booking).save(booking);

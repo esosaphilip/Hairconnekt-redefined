@@ -1,6 +1,7 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   UpdateDateColumn, ManyToOne, JoinColumn, ManyToMany, JoinTable, Index,
+  AfterLoad, AfterInsert, AfterUpdate,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Provider } from './provider.entity';
@@ -118,4 +119,33 @@ export class Booking {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  address?: {
+    street: string;
+    houseNumber: string;
+    city: string;
+    postalCode: string;
+  } | null;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  populateAddress() {
+    if (this.addressStreet || this.addressHouseNumber || this.addressCity || this.addressPostalCode) {
+      this.address = {
+        street: this.addressStreet || '',
+        houseNumber: this.addressHouseNumber || '',
+        city: this.addressCity || '',
+        postalCode: this.addressPostalCode || '',
+      };
+    } else {
+      this.address = null;
+    }
+  }
+
+  toJSON() {
+    this.populateAddress();
+    return { ...this };
+  }
 }
+

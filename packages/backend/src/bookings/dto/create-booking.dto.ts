@@ -1,4 +1,4 @@
-import { IsUUID, IsArray, IsString, IsBoolean, IsOptional, Matches, MaxLength } from 'class-validator';
+import { IsUUID, IsArray, IsString, IsBoolean, IsOptional, Matches, MaxLength, ValidateIf, IsNotEmpty } from 'class-validator';
 
 export class CreateBookingDto {
   @IsUUID()
@@ -24,7 +24,9 @@ export class CreateBookingDto {
   @MaxLength(500)
   clientNotes?: string;
 
-  @IsOptional()
-  @IsUUID()
+  @ValidateIf((o: CreateBookingDto) => o.isMobile === true || (typeof o.addressId === 'string' && o.addressId.length > 0))
+  @IsNotEmpty({ message: 'addressId ist erforderlich für mobile Buchungen.' })
+  @IsUUID('4', { message: 'addressId muss eine gültige UUID sein.' })
   addressId?: string;
 }
+
