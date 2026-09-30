@@ -3,7 +3,7 @@ import * as path from 'path';
 
 describe('T13: Upload Field-Name Contract (static, no database)', () => {
   const rootDir = path.resolve(__dirname, '../../..');
-  const backendSrc = path.join(rootDir, 'packages/backend/src');
+  const backendSrc = path.join(rootDir, 'apps/backend/src');
   const mobileSrc = path.join(rootDir, 'apps/mobile/src');
   const adminSrc = path.join(rootDir, 'apps/admin/src');
 

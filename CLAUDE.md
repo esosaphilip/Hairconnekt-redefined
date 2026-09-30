@@ -11,7 +11,7 @@ One app, two modes (Client / Provider). Target: Google Play Store (Android first
 
 ## STACK
 - Frontend: React Native + Expo (TypeScript) · `apps/mobile/`
-- Backend:  NestJS + TypeORM + PostgreSQL · `packages/backend/`
+- Backend:  NestJS + TypeORM + PostgreSQL · `apps/backend/`
 - Storage:  Cloudflare R2 (all image uploads)
 - Auth:     JWT access tokens (15min) + refresh tokens (30d)
 - State:    React Context (auth) + React Query (server state)
@@ -27,9 +27,9 @@ One app, two modes (Client / Provider). Target: Google Play Store (Android first
 hairconnekt/
 ├── apps/
 │   ├── mobile/          ← Expo React Native app
-│   └── admin/           ← React/Vite admin dashboard (Phase 3)
+│   ├── admin/           ← React/Vite admin dashboard (Phase 3)
+│   └── backend/         ← NestJS API
 ├── packages/
-│   ├── backend/         ← NestJS API
 │   └── types/           ← Shared TypeScript interfaces
 └── DevDocs/             ← DOC 06–17
 ```
@@ -58,7 +58,7 @@ hairconnekt/
 
 ---
 
-## BACKEND STRUCTURE (packages/backend/src/)
+## BACKEND STRUCTURE (apps/backend/src/)
 ```
 ├── auth/                ← JWT, guards, decorators
 ├── users/               ← User entity + CRUD
@@ -218,13 +218,13 @@ Running `eas build:configure` from `$repo_root` (instead of from `apps/mobile/`)
 ## TESTING RULES & CI SAFETY-NET
 
 ### 1. Automated Test Suites
-- **Backend Tests**: `packages/backend/test/` (T01–T13 + Safety Guard). Run via `npm test` inside `packages/backend`.
+- **Backend Tests**: `apps/backend/test/` (T01–T13 + Safety Guard). Run via `npm test` inside `apps/backend`.
 - **Mobile Tests**: `apps/mobile/test/` (T14–T15). Run via `npm test` inside `apps/mobile`.
 - **Admin Build**: `apps/admin/`. Run via `npm run build` inside `apps/admin`.
 
 ### 2. Production Safety Invariant (R10 & R11)
 - Never connect to production databases or third-party APIs during testing.
-- `packages/backend/test/env-guard.ts` intercepts all test database connections and enforces that the host is strictly `localhost`, `127.0.0.1`, or `postgres`, and never contains `neon`.
+- `apps/backend/test/env-guard.ts` intercepts all test database connections and enforces that the host is strictly `localhost`, `127.0.0.1`, or `postgres`, and never contains `neon`.
 - All external services (Brevo email, Cloudflare R2 storage, Google Geocoding, Expo Push) MUST use in-memory test doubles (`FakeMailer`, `FakeR2Service`, `FakeGeocodingService`).
 
 ### 3. Zero Production Code Changes in Test Setup

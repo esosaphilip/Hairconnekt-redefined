@@ -15,8 +15,8 @@ This checklist tracks the concrete engineering work required to make HairConnekt
 
 - [x] Mobile: Add consistent network/offline UX (timeouts, retries, “try again”, and non-silent error handling).
 - [x] Mobile: Add a minimal smoke-test checklist for releases (manual steps + expected results). (See RELEASE_SMOKE_TEST_CHECKLIST.md)
-- [x] Backend: Add migration workflow (TypeORM migrations) and document how to apply in production. (See packages/backend/MIGRATIONS.md)
-- [x] Backend: Add basic integration tests for auth + bookings + chat endpoints. (See packages/backend/run_tests.sh)
+- [x] Backend: Add migration workflow (TypeORM migrations) and document how to apply in production. (See apps/backend/MIGRATIONS.md)
+- [x] Backend: Add basic integration tests for auth + bookings + chat endpoints. (See apps/backend/run_tests.sh)
 
 ## P2 (Nice-to-have)
 

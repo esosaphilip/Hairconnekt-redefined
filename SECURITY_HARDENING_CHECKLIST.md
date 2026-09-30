@@ -16,8 +16,8 @@ Current strict rating: `6.5 / 10`
 - [ ] Re-test admin login flow after hardening.
 
 Relevant code:
-- `packages/backend/src/auth/auth.controller.ts`
-- `packages/backend/src/auth/auth.service.ts`
+- `apps/backend/src/auth/auth.controller.ts`
+- `apps/backend/src/auth/auth.service.ts`
 - `apps/admin/src/pages/Login.tsx`
 
 ### CORS production fail-closed
@@ -31,9 +31,9 @@ Relevant code:
 - [ ] Verify admin session cookies are not readable from unintended origins.
 
 Relevant code:
-- `packages/backend/src/main.ts`
-- `packages/backend/src/auth/admin-session.ts`
-- `packages/backend/src/auth/admin-csrf.ts`
+- `apps/backend/src/main.ts`
+- `apps/backend/src/auth/admin-session.ts`
+- `apps/backend/src/auth/admin-csrf.ts`
 
 ### Secrets and production env hygiene
 - [ ] Confirm no real secrets exist in tracked files.
@@ -49,7 +49,7 @@ Relevant code:
 - [ ] Confirm `EXPO_PUBLIC_*` values contain no sensitive secrets.
 
 Relevant code:
-- `packages/backend/src/main.ts`
+- `apps/backend/src/main.ts`
 - `STORE_READINESS.md`
 
 ### Security verification before release
@@ -70,10 +70,10 @@ Relevant docs:
 - [ ] Confirm request IDs are visible in production logs and error reports.
 
 Relevant code:
-- `packages/backend/src/auth/auth.controller.ts`
-- `packages/backend/src/admin/admin-providers.controller.ts`
-- `packages/backend/src/admin/admin-users.controller.ts`
-- `packages/backend/src/common/filters/global-exception.filter.ts`
+- `apps/backend/src/auth/auth.controller.ts`
+- `apps/backend/src/admin/admin-providers.controller.ts`
+- `apps/backend/src/admin/admin-users.controller.ts`
+- `apps/backend/src/common/filters/global-exception.filter.ts`
 
 ### Cookie/session review
 - [ ] Verify admin session cookie flags in production:
@@ -84,9 +84,9 @@ Relevant code:
 - [ ] Confirm session lifetime is appropriate for admin usage.
 
 Relevant code:
-- `packages/backend/src/auth/admin-session.ts`
-- `packages/backend/src/auth/admin-csrf.ts`
-- `packages/backend/src/auth/auth.controller.ts`
+- `apps/backend/src/auth/admin-session.ts`
+- `apps/backend/src/auth/admin-csrf.ts`
+- `apps/backend/src/auth/auth.controller.ts`
 
 ### Upload and abuse protection review
 - [ ] Confirm upload size limits are appropriate for avatar, portfolio, chat, and ID documents.
@@ -94,11 +94,11 @@ Relevant code:
 - [ ] Review rate limits on auth and booking endpoints against expected production traffic.
 
 Relevant code:
-- `packages/backend/src/common/files/file-validation.ts`
-- `packages/backend/src/providers/providers.controller.ts`
-- `packages/backend/src/portfolio/portfolio.controller.ts`
-- `packages/backend/src/chat/chat.controller.ts`
-- `packages/backend/src/app.module.ts`
+- `apps/backend/src/common/files/file-validation.ts`
+- `apps/backend/src/providers/providers.controller.ts`
+- `apps/backend/src/portfolio/portfolio.controller.ts`
+- `apps/backend/src/chat/chat.controller.ts`
+- `apps/backend/src/app.module.ts`
 
 ## 3. Good Follow-Ups After Launch
 

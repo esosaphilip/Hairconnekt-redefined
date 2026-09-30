@@ -4,7 +4,7 @@ services:
     runtime: node
     branch: develop
     region: frankfurt
-    rootDir: packages/backend
+    rootDir: apps/backend
     buildCommand: npm ci && npm run build && npm run migration:run
     startCommand: npm run start
     healthCheckPath: /api/v1/health

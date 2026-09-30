@@ -7,7 +7,7 @@ All public list endpoints accept `page` (default 1) and `limit` (default 20).
 `\`limit\` darf maximal 50 betragen.`
 
 The enforcement lives in:
-- `packages/backend/src/common/pagination.ts` — shared `parsePagination(pageStr, limitStr)` helper for HTTP-layer controllers.
+- `apps/backend/src/common/pagination.ts` — shared `parsePagination(pageStr, limitStr)` helper for HTTP-layer controllers.
 - `applyServicePageSize(rawLimit, explicit?)` — for internal service callers that pass a numeric limit directly.
 
 The `MAX_PAGE_SIZE = 50` constant is the single source of truth.

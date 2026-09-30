@@ -7,4 +7,4 @@ build/
 *.log
 coverage/
 .idea/
-packages/backend/uploads/
+apps/backend/uploads/

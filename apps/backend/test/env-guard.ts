@@ -2,7 +2,7 @@
  * HARD PRODUCTION GUARD AND TEST ENVIRONMENT SETUP
  *
  * Enforces rule R10: Defines dummy values for EVERY environment variable the app reads,
- * preventing any real credentials from packages/backend/.env from ever leaking into tests.
+ * preventing any real credentials from apps/backend/.env from ever leaking into tests.
  *
  * Enforces rule R11: Validates database host and URL before any connection can be attempted.
  * Throws immediately if host is not localhost, 127.0.0.1, or postgres (CI container),

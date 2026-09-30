@@ -8,10 +8,10 @@ This repository contains automated regression tests and a GitHub Actions CI pipe
 
 ### Backend Tests (T01–T13 & Safety Guard)
 
-Backend tests reside in `packages/backend/test/` and run using Jest against an isolated test database.
+Backend tests reside in `apps/backend/test/` and run using Jest against an isolated test database.
 
 ```bash
-cd packages/backend
+cd apps/backend
 npm test
 ```
 
@@ -79,20 +79,20 @@ npm run build
 
 | Suite ID | File | Target Scope |
 | :--- | :--- | :--- |
-| **Guard** | `packages/backend/test/test-guard.spec.ts` | Enforces R11 host allowlist (`localhost`, `127.0.0.1`, `postgres`), blocks `neon` |
-| **T01** | `packages/backend/test/t01-client-auth.spec.ts` | Client registration, mailer OTP extraction, verification, password security, `/users/me` exclusion |
-| **T02** | `packages/backend/test/t02-password-reset.spec.ts` | Password reset OTP via mailer, `verify-otp`, `reset-password`, old password invalidation |
-| **T03** | `packages/backend/test/t03-auth-guards.spec.ts` | 401 on missing/malformed tokens, role guards (`Role.CLIENT`, `Role.PROVIDER`), refresh rotation |
-| **T04** | `packages/backend/test/t04-provider-onboarding.spec.ts` | Provider profile completion, avatar upload, ID document upload, portfolio, status `pending` |
-| **T05** | `packages/backend/test/t05-account-recovery.spec.ts` | Verified provider without profile recovery via password, fresh onboarding token generation |
-| **T06** | `packages/backend/test/t06-admin-contract.spec.ts` | Admin CSRF step, login, approve/reject/suspend transitions, category CRUD, [BUG-019] |
-| **T07** | `packages/backend/test/t07-provider-setup.spec.ts` | Service CRUD, 7-day availability schedule, online toggle, time blocks creation and deletion |
-| **T08** | `packages/backend/test/t08-booking-conflicts.spec.ts` | Provider search, booking creation (`HC-YYYYMMDD-NNNN`), pricing sum, double-booking 409 rejection |
-| **T09** | `packages/backend/test/t09-booking-lifecycle.spec.ts` | Booking status transitions (`PENDING` -> `CONFIRMED` -> `IN_PROGRESS` -> `COMPLETED`) |
-| **T10** | `packages/backend/test/t10-cancellation-stats.spec.ts` | Client cancellation, slot release, provider dashboard stats, [BUG-024] |
-| **T11** | `packages/backend/test/t11-berlin-time.spec.ts` | Berlin wall-clock vs UTC server, DST transition across 2026-10-25, [BUG-023] |
-| **T12** | `packages/backend/test/t12-reviews-ratings.spec.ts` | Client review creation after completion, duplicate review block, 1–5 range, provider rating recalculation |
-| **T13** | `packages/backend/test/t13-upload-contract.spec.ts` | Static contract matching mobile/admin `FormData` fields to backend `FileInterceptor` fields |
+| **Guard** | `apps/backend/test/test-guard.spec.ts` | Enforces R11 host allowlist (`localhost`, `127.0.0.1`, `postgres`), blocks `neon` |
+| **T01** | `apps/backend/test/t01-client-auth.spec.ts` | Client registration, mailer OTP extraction, verification, password security, `/users/me` exclusion |
+| **T02** | `apps/backend/test/t02-password-reset.spec.ts` | Password reset OTP via mailer, `verify-otp`, `reset-password`, old password invalidation |
+| **T03** | `apps/backend/test/t03-auth-guards.spec.ts` | 401 on missing/malformed tokens, role guards (`Role.CLIENT`, `Role.PROVIDER`), refresh rotation |
+| **T04** | `apps/backend/test/t04-provider-onboarding.spec.ts` | Provider profile completion, avatar upload, ID document upload, portfolio, status `pending` |
+| **T05** | `apps/backend/test/t05-account-recovery.spec.ts` | Verified provider without profile recovery via password, fresh onboarding token generation |
+| **T06** | `apps/backend/test/t06-admin-contract.spec.ts` | Admin CSRF step, login, approve/reject/suspend transitions, category CRUD, [BUG-019] |
+| **T07** | `apps/backend/test/t07-provider-setup.spec.ts` | Service CRUD, 7-day availability schedule, online toggle, time blocks creation and deletion |
+| **T08** | `apps/backend/test/t08-booking-conflicts.spec.ts` | Provider search, booking creation (`HC-YYYYMMDD-NNNN`), pricing sum, double-booking 409 rejection |
+| **T09** | `apps/backend/test/t09-booking-lifecycle.spec.ts` | Booking status transitions (`PENDING` -> `CONFIRMED` -> `IN_PROGRESS` -> `COMPLETED`) |
+| **T10** | `apps/backend/test/t10-cancellation-stats.spec.ts` | Client cancellation, slot release, provider dashboard stats, [BUG-024] |
+| **T11** | `apps/backend/test/t11-berlin-time.spec.ts` | Berlin wall-clock vs UTC server, DST transition across 2026-10-25, [BUG-023] |
+| **T12** | `apps/backend/test/t12-reviews-ratings.spec.ts` | Client review creation after completion, duplicate review block, 1–5 range, provider rating recalculation |
+| **T13** | `apps/backend/test/t13-upload-contract.spec.ts` | Static contract matching mobile/admin `FormData` fields to backend `FileInterceptor` fields |
 | **T14** | `apps/mobile/test/t14-mobile-logic.spec.ts` | `apiFetch` URL builder, [BUG-020], static URL audit, `mapHttpError` German mapping, draft storage (BUG-016), resend timer (BUG-014) |
 | **T15** | `apps/mobile/test/t15-mobile-formatting.spec.ts` | Time string formatters, currency formatting, [BUG-021] booking request screen time offset |
 
@@ -114,7 +114,7 @@ concurrency:
 1. **Backend**:
    - Spawns a `postgis/postgis:16-3.5` service container on port 5432.
    - Runs database migrations with `npm run migration:run:dev`.
-   - Runs all 14 test suites in `packages/backend` using safe dummy environment variables.
+   - Runs all 14 test suites in `apps/backend` using safe dummy environment variables.
 2. **Mobile**:
    - Runs `npm run type-check` (`tsc --noEmit`).
    - Runs Jest test suites T14 and T15.

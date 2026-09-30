@@ -22,7 +22,7 @@ The backend will refuse to start in `NODE_ENV=production` if any are missing:
 
 ## Render service config (backend)
 
-- Root directory: `packages/backend`
+- Root directory: `apps/backend`
 - Build command: `npm ci && npm run build`
 - Start command: `npm run start` (runs `node dist/main`)
 

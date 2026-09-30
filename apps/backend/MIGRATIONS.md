@@ -9,19 +9,19 @@ The backend runs with `synchronize: false`. Schema changes must be applied via T
 2) Generate a migration (creates a file under `src/migrations`):
 
 ```bash
-pnpm -C packages/backend migration:generate --name=AddSomething
+pnpm -C apps/backend migration:generate --name=AddSomething
 ```
 
 3) Run pending migrations (development / TS):
 
 ```bash
-pnpm -C packages/backend migration:run:dev
+pnpm -C apps/backend migration:run:dev
 ```
 
 4) Revert the last migration (development / TS):
 
 ```bash
-pnpm -C packages/backend migration:revert:dev
+pnpm -C apps/backend migration:revert:dev
 ```
 
 ## Production (Render)

@@ -478,7 +478,7 @@ type UpdatePopularStyleInput = Partial<CreatePopularStyleInput> & {
 
 ### 8.2 Backend Environment (for Admin features)
 
-**File:** `packages/backend/.env.example`
+**File:** `apps/backend/.env.example`
 
 | Variable | Description | Relevance to Admin |
 |----------|-------------|--------------------|
@@ -501,12 +501,12 @@ type UpdatePopularStyleInput = Partial<CreatePopularStyleInput> & {
 
 | Controller | File | Mount Path | Guards | Operations |
 |------------|------|------------|--------|------------|
-| `AdminUsersController` | [admin-users.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/admin/admin-users.controller.ts) | `admin/users` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `DELETE :id`, `POST bulk-delete` |
-| `AdminProvidersController` | [admin-providers.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/admin/admin-providers.controller.ts) | `admin/providers` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `GET :id`, `GET :id/id-document`, `PATCH :id/approve`, `PATCH :id/reject`, `PATCH :id/suspend`, `PATCH :id/status`, `DELETE :id`, `GET geocoding/report` |
-| `AdminCategoriesController` | [admin-categories.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/admin/admin-categories.controller.ts) | `admin/categories` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `POST create`, `PATCH :id`, `DELETE :id` |
-| `AdminStatsController` | [admin-stats.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/admin/admin-stats.controller.ts) | `admin/stats` | `JwtAuthGuard + AdminGuard` | `GET getStats` |
-| `AdminPopularStylesController` | [popular-styles.controller.ts:L42-L104](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/popular-styles/popular-styles.controller.ts#L42-L104) | `admin/popular-styles` | `JwtAuthGuard + AdminGuard` | `GET getAll`, `POST create`, `PATCH :id`, `DELETE :id`, `POST :id/image`, `DELETE :id/image`, `PATCH reorder` |
-| `AuthController` (admin routes) | [auth.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/packages/backend/src/auth/auth.controller.ts) | `auth/*` | Mixed (admin-login has throttle) | `POST admin-login`, `GET admin-csrf`, `GET admin-session`, `POST admin-logout` |
+| `AdminUsersController` | [admin-users.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/admin/admin-users.controller.ts) | `admin/users` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `DELETE :id`, `POST bulk-delete` |
+| `AdminProvidersController` | [admin-providers.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/admin/admin-providers.controller.ts) | `admin/providers` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `GET :id`, `GET :id/id-document`, `PATCH :id/approve`, `PATCH :id/reject`, `PATCH :id/suspend`, `PATCH :id/status`, `DELETE :id`, `GET geocoding/report` |
+| `AdminCategoriesController` | [admin-categories.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/admin/admin-categories.controller.ts) | `admin/categories` | `JwtAuthGuard + AdminGuard` | `GET findAll`, `POST create`, `PATCH :id`, `DELETE :id` |
+| `AdminStatsController` | [admin-stats.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/admin/admin-stats.controller.ts) | `admin/stats` | `JwtAuthGuard + AdminGuard` | `GET getStats` |
+| `AdminPopularStylesController` | [popular-styles.controller.ts:L42-L104](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/popular-styles/popular-styles.controller.ts#L42-L104) | `admin/popular-styles` | `JwtAuthGuard + AdminGuard` | `GET getAll`, `POST create`, `PATCH :id`, `DELETE :id`, `POST :id/image`, `DELETE :id/image`, `PATCH reorder` |
+| `AuthController` (admin routes) | [auth.controller.ts](file:///Users/eseosaedosomwan/Downloads/Hairconnekt%20redefined/apps/backend/src/auth/auth.controller.ts) | `auth/*` | Mixed (admin-login has throttle) | `POST admin-login`, `GET admin-csrf`, `GET admin-session`, `POST admin-logout` |
 
 ### 9.2 Key Dependencies Injected
 

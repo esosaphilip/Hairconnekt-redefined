@@ -13,7 +13,7 @@
   "references": [
     { "path": "./apps/mobile/tsconfig.json" },
     { "path": "./apps/admin/tsconfig.json" },
-    { "path": "./packages/backend/tsconfig.json" },
+    { "path": "./apps/backend/tsconfig.json" },
     { "path": "./packages/types/tsconfig.json" }
   ]
 }
