@@ -180,8 +180,8 @@ describe('T07: Provider Setup', () => {
     expect(catIds).not.toContain(inactiveCat.id);
   }));
 
-  // KNOWN BUG-036: editing service fails with "categoryId should not exist" because UpdateServiceDto omits categoryId
-  it.failing('[KNOWN BUG-036] provider can edit an existing service including its category', runTest(async () => {
+  // BUG-036 (FIXED): editing service accepts categoryId without 400 rejection
+  it('[KNOWN BUG-036] provider can edit an existing service including its category', runTest(async () => {
     const { provider, token: providerToken } = await createTestProvider(ctx.dataSource);
 
     const catRepo = ctx.dataSource.getRepository(ServiceCategory);
@@ -233,5 +233,5 @@ describe('T07: Provider Setup', () => {
     expect(editRes.body.categoryId).toBe(category2.id);
     expect(editRes.body.durationMin).toBe(90);
     expect(Number(editRes.body.price)).toBe(110);
-  }, true));
+  }));
 });

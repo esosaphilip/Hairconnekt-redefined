@@ -18,7 +18,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-023** | `packages/backend/test/t11-berlin-time.spec.ts` | `appointment at 09:00 Berlin can be started at SUMMER_NOW (09:29 Berlin)` | `RESOLVED` (Active `it`) |
 | **BUG-024** | `packages/backend/test/t10-cancellation-stats.spec.ts` | `cancelled bookings are not counted in provider today appointments stat` | `RESOLVED` (Active `it`) |
 | **BUG-028** | `packages/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
-| **BUG-036** | `packages/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `OPEN` (`it.failing`) |
+| **BUG-036** | `packages/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
 
 ---
 
@@ -112,9 +112,9 @@ Because HairConnekt follows a strict **zero production code change** rule during
  
 ---
 
-### BUG-036: Service Edit Fails with "property categoryId should not exist" [OPEN]
+### BUG-036: Service Edit Fails with "property categoryId should not exist" [RESOLVED]
 
-- **Status**: **OPEN** (`it.failing` test in `packages/backend/test/t07-provider-setup.spec.ts`)
+- **Status**: **RESOLVED** (`it` test active in `packages/backend/test/t07-provider-setup.spec.ts`)
 - **Location**: `packages/backend/test/t07-provider-setup.spec.ts`
 - **Symptom**: When a provider edits an existing service on the mobile Edit Service screen (`apps/mobile/src/app/(provider)/services/[id].tsx`), saving fails with HTTP 400 Bad Request: `property categoryId should not exist`.
 - **Root Cause**: The mobile edit form always submits `categoryId` in the save payload:
@@ -129,20 +129,5 @@ Because HairConnekt follows a strict **zero production code change** rule during
     isActive: form.isActive,
   };
   ```
-  However, `UpdateServiceDto` in `packages/backend/src/providers/dto/provider-endpoints.dto.ts` does not declare `categoryId?: string`. Because NestJS uses global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`, any request to `PATCH /api/v1/providers/me/services/:id` with `categoryId` in the body is rejected with HTTP 400 (`property categoryId should not exist`).
-- **Fix Required (Future Step)**:
-  Add `categoryId?: string` to `UpdateServiceDto` in `packages/backend/src/providers/dto/provider-endpoints.dto.ts`:
-  ```typescript
-  @IsUUID()
-  @IsOptional()
-  categoryId?: string;
-  ```
-- **How to Activate Test**:
-  Once the fix is applied, in `packages/backend/test/t07-provider-setup.spec.ts`, change:
-  ```typescript
-  it.failing('[KNOWN BUG-036] provider can edit an existing service including its category', ...
-  ```
-  to:
-  ```typescript
-  it('[KNOWN BUG-036] provider can edit an existing service including its category', ...
-  ```
+  However, `UpdateServiceDto` in `packages/backend/src/providers/dto/provider-endpoints.dto.ts` did not declare `categoryId?: string`. Because NestJS uses global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`, any request to `PATCH /api/v1/providers/me/services/:id` with `categoryId` in the body was rejected with HTTP 400 (`property categoryId should not exist`).
+- **Resolution**: Added `@IsUUID() @IsOptional() categoryId?: string;` to `UpdateServiceDto` in `packages/backend/src/providers/dto/provider-endpoints.dto.ts`. Flipped regression test in `t07-provider-setup.spec.ts` from `it.failing` to active `it`.
