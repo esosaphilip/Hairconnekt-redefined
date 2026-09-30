@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, TextInput, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -9,6 +9,16 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { tokenStorage } from '@/utils/token-storage';
+
+type SavedAddress = {
+  id: string;
+  label?: string | null;
+  street: string;
+  houseNumber: string;
+  postalCode: string;
+  city: string;
+  isDefault?: boolean;
+};
 
 type ProviderProfile = {
   businessName?: string | null;
@@ -101,6 +111,61 @@ export default function BookingDetails() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Mobile address state
+  const [hasLoadedAddresses, setHasLoadedAddresses] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [isEnteringNewAddress, setIsEnteringNewAddress] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+
+  // New address form fields
+  const [newStreet, setNewStreet] = useState('');
+  const [newHouseNumber, setNewHouseNumber] = useState('');
+  const [newPostalCode, setNewPostalCode] = useState('');
+  const [newCity, setNewCity] = useState('');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
+
+  const streetRef = useRef<TextInput>(null);
+  const houseNumberRef = useRef<TextInput>(null);
+  const postalCodeRef = useRef<TextInput>(null);
+  const cityRef = useRef<TextInput>(null);
+
+  const loadSavedAddresses = async () => {
+    try {
+      setIsLoadingAddresses(true);
+      const res: any = await apiJson('/users/me/addresses', { auth: true });
+      const list: SavedAddress[] = res?.data ?? res ?? [];
+      const validList = Array.isArray(list) ? list : [];
+      setSavedAddresses(validList);
+      setHasLoadedAddresses(true);
+      if (validList.length > 0) {
+        const defaultAddr = validList.find((a) => a.isDefault) || validList[0];
+        setSelectedAddressId(defaultAddr.id);
+        setIsEnteringNewAddress(false);
+      } else {
+        setIsEnteringNewAddress(true);
+      }
+    } catch {
+      setSavedAddresses([]);
+      setHasLoadedAddresses(true);
+      setIsEnteringNewAddress(true);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const handleToggleMobile = (value: boolean) => {
+    setIsMobile(value);
+    if (value && !hasLoadedAddresses) {
+      loadSavedAddresses();
+    }
+  };
+
+  const selectedAddress =
+    savedAddresses.find((a) => a.id === selectedAddressId) || savedAddresses[0];
+
   useEffect(() => {
     if (selectedServiceIdsValue) {
       const parsed = selectedServiceIdsValue
@@ -186,14 +251,80 @@ export default function BookingDetails() {
         return;
       }
 
-      const bookingData = {
+      let resolvedAddressId = selectedAddressId;
+
+      if (isMobile) {
+        if (isEnteringNewAddress || !resolvedAddressId) {
+          const s = newStreet.trim();
+          const hn = newHouseNumber.trim();
+          const pc = newPostalCode.trim();
+          const c = newCity.trim();
+
+          const errs: Record<string, string> = {};
+          if (!s) errs.street = t('addressesStreet');
+          if (!hn) errs.houseNumber = t('addressesHouseNumber');
+          if (!pc) errs.postalCode = t('addressesPostalCode');
+          if (!c) errs.city = t('addressesCity');
+
+          if (Object.keys(errs).length > 0) {
+            setAddressErrors(errs);
+            setErrorMessage(t('bookingAddressRequired'));
+            setErrorVisible(true);
+            setIsLoading(false);
+            return;
+          }
+
+          // Call existing POST /users/me/addresses
+          const created: any = await apiJson('/users/me/addresses', {
+            auth: true,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              street: s,
+              houseNumber: hn,
+              postalCode: pc,
+              city: c,
+              isDefault: saveAsDefault || savedAddresses.length === 0,
+            }),
+          });
+
+          resolvedAddressId = created?.data?.id ?? created?.id;
+          if (!resolvedAddressId) {
+            setErrorMessage(t('addressesSaveError'));
+            setErrorVisible(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        if (!resolvedAddressId) {
+          setErrorMessage(t('bookingAddressRequired'));
+          setErrorVisible(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const bookingData: {
+        providerId: string;
+        serviceIds: string[];
+        scheduledDate: string;
+        scheduledTime: string;
+        isMobile: boolean;
+        clientNotes?: string;
+        addressId?: string;
+      } = {
         providerId: providerIdValue,
         serviceIds: ids,
         scheduledDate: dateValue,
         scheduledTime: timeValue,
         isMobile,
-        clientNotes
+        clientNotes,
       };
+
+      if (isMobile && resolvedAddressId) {
+        bookingData.addressId = resolvedAddressId;
+      }
 
       const payload = await apiJson<BookingCreateResponse>('/bookings', {
         auth: true,
@@ -325,11 +456,201 @@ export default function BookingDetails() {
               </View>
               <Switch
                 value={isMobile}
-                onValueChange={setIsMobile}
+                onValueChange={handleToggleMobile}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={colors.surface}
               />
             </View>
+
+            {isMobile && (
+              <>
+                <View style={styles.divider} />
+
+                {isLoadingAddresses ? (
+                  <View style={styles.addressLoadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : !isEnteringNewAddress && selectedAddress ? (
+                  <View style={styles.addressContainer}>
+                    <View style={styles.addressCard}>
+                      <View style={styles.addressCardHeader}>
+                        <View style={styles.addressCardIcon}>
+                          <Feather name="map-pin" size={16} color={colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.addressCardTitleRow}>
+                            <Text style={styles.addressCardTitle}>
+                              {selectedAddress.label || t('bookingAddressSelectSaved')}
+                            </Text>
+                            {selectedAddress.isDefault && (
+                              <View style={styles.defaultBadge}>
+                                <Text style={styles.defaultBadgeText}>{t('addressesDefault')}</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.addressCardText}>
+                            {selectedAddress.street} {selectedAddress.houseNumber}
+                          </Text>
+                          <Text style={styles.addressCardText}>
+                            {selectedAddress.postalCode} {selectedAddress.city}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.addressActions}>
+                        {savedAddresses.length > 1 && (
+                          <TouchableOpacity
+                            style={styles.addressActionBtn}
+                            onPress={() => setShowAddressPicker(!showAddressPicker)}
+                          >
+                            <Text style={styles.addressActionBtnText}>
+                              {showAddressPicker ? t('close') : t('bookingAddressChooseOther')}
+                            </Text>
+                            <Feather name={showAddressPicker ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={styles.addressActionBtn}
+                          onPress={() => {
+                            setIsEnteringNewAddress(true);
+                            setShowAddressPicker(false);
+                          }}
+                        >
+                          <Text style={styles.addressActionBtnText}>{t('bookingAddressEnterNew')}</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {showAddressPicker && (
+                        <View style={styles.addressPickerDropdown}>
+                          {savedAddresses.map((addr) => (
+                            <TouchableOpacity
+                              key={addr.id}
+                              style={[
+                                styles.addressPickerOption,
+                                selectedAddressId === addr.id && styles.addressPickerOptionActive,
+                              ]}
+                              onPress={() => {
+                                setSelectedAddressId(addr.id);
+                                setShowAddressPicker(false);
+                              }}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.addressPickerOptionTitle}>
+                                  {addr.label ? `${addr.label}: ` : ''}{addr.street} {addr.houseNumber}, {addr.postalCode} {addr.city}
+                                </Text>
+                              </View>
+                              {selectedAddressId === addr.id && (
+                                <Feather name="check" size={16} color={colors.primary} />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.addressContainer}>
+                    {savedAddresses.length > 0 && (
+                      <TouchableOpacity
+                        style={styles.backToSavedBtn}
+                        onPress={() => {
+                          setIsEnteringNewAddress(false);
+                          setAddressErrors({});
+                        }}
+                      >
+                        <Feather name="arrow-left" size={14} color={colors.primary} style={{ marginRight: spacing.xs }} />
+                        <Text style={styles.backToSavedBtnText}>{t('bookingAddressUseSaved')}</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <View style={styles.addressFormRow}>
+                      <View style={[styles.addressFormCol, { flex: 2, marginRight: spacing.sm }]}>
+                        <Text style={styles.addressFieldLabel}>{t('addressesStreet')}</Text>
+                        <TextInput
+                          ref={streetRef}
+                          style={[styles.addressInput, addressErrors.street && styles.addressInputError]}
+                          value={newStreet}
+                          onChangeText={(val) => {
+                            setNewStreet(val);
+                            setAddressErrors((prev) => ({ ...prev, street: '' }));
+                          }}
+                          placeholder={t('addressesStreet')}
+                          placeholderTextColor={colors.textTertiary}
+                          returnKeyType="next"
+                          blurOnSubmit={false}
+                          onSubmitEditing={() => houseNumberRef.current?.focus()}
+                        />
+                      </View>
+                      <View style={[styles.addressFormCol, { flex: 1 }]}>
+                        <Text style={styles.addressFieldLabel}>{t('addressesHouseNumber')}</Text>
+                        <TextInput
+                          ref={houseNumberRef}
+                          style={[styles.addressInput, addressErrors.houseNumber && styles.addressInputError]}
+                          value={newHouseNumber}
+                          onChangeText={(val) => {
+                            setNewHouseNumber(val);
+                            setAddressErrors((prev) => ({ ...prev, houseNumber: '' }));
+                          }}
+                          placeholder="12a"
+                          placeholderTextColor={colors.textTertiary}
+                          returnKeyType="next"
+                          blurOnSubmit={false}
+                          onSubmitEditing={() => postalCodeRef.current?.focus()}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.addressFormRow}>
+                      <View style={[styles.addressFormCol, { flex: 1, marginRight: spacing.sm }]}>
+                        <Text style={styles.addressFieldLabel}>{t('addressesPostalCode')}</Text>
+                        <TextInput
+                          ref={postalCodeRef}
+                          style={[styles.addressInput, addressErrors.postalCode && styles.addressInputError]}
+                          value={newPostalCode}
+                          onChangeText={(val) => {
+                            setNewPostalCode(val);
+                            setAddressErrors((prev) => ({ ...prev, postalCode: '' }));
+                          }}
+                          placeholder="10115"
+                          placeholderTextColor={colors.textTertiary}
+                          keyboardType="number-pad"
+                          returnKeyType="next"
+                          blurOnSubmit={false}
+                          onSubmitEditing={() => cityRef.current?.focus()}
+                        />
+                      </View>
+                      <View style={[styles.addressFormCol, { flex: 2 }]}>
+                        <Text style={styles.addressFieldLabel}>{t('addressesCity')}</Text>
+                        <TextInput
+                          ref={cityRef}
+                          style={[styles.addressInput, addressErrors.city && styles.addressInputError]}
+                          value={newCity}
+                          onChangeText={(val) => {
+                            setNewCity(val);
+                            setAddressErrors((prev) => ({ ...prev, city: '' }));
+                          }}
+                          placeholder={t('addressesCity')}
+                          placeholderTextColor={colors.textTertiary}
+                          returnKeyType="done"
+                          blurOnSubmit={true}
+                          onSubmitEditing={() => Keyboard.dismiss()}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.saveDefaultRow}>
+                      <Text style={styles.saveDefaultText}>{t('bookingAddressSaveAsDefault')}</Text>
+                      <Switch
+                        value={saveAsDefault}
+                        onValueChange={setSaveAsDefault}
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                        thumbColor={colors.surface}
+                      />
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
           </View>
 
           <View style={styles.notesContainer}>
@@ -435,4 +756,148 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonText: { fontFamily: fonts.bodyBold, fontSize: fontSizes.md, color: colors.surface },
+  
+  addressLoadingContainer: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressContainer: {
+    marginTop: spacing.xs,
+  },
+  addressCard: {
+    backgroundColor: colors.surfaceCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: spacing.unit,
+    borderColor: colors.border,
+  },
+  addressCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  addressCardIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  addressCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xxxs,
+  },
+  addressCardTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    marginRight: spacing.xs,
+  },
+  defaultBadge: {
+    backgroundColor: colors.coralLight,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxxs,
+    borderRadius: borderRadius.sm,
+  },
+  defaultBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.xs,
+    color: colors.coral,
+  },
+  addressCardText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  addressActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+    paddingTop: spacing.xs,
+    borderTopWidth: spacing.unit,
+    borderTopColor: colors.border,
+  },
+  addressActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xxs,
+  },
+  addressActionBtnText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.xs,
+    color: colors.primary,
+    marginRight: spacing.xxs,
+  },
+  addressPickerDropdown: {
+    marginTop: spacing.sm,
+    borderTopWidth: spacing.unit,
+    borderTopColor: colors.border,
+    paddingTop: spacing.xs,
+  },
+  addressPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  addressPickerOptionActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  addressPickerOptionTitle: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colors.textPrimary,
+  },
+  backToSavedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  backToSavedBtnText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.xs,
+    color: colors.primary,
+  },
+  addressFormRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
+  addressFormCol: {},
+  addressFieldLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.xs,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+  },
+  addressInput: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+    borderWidth: spacing.unit,
+    borderColor: colors.borderStrong,
+    borderRadius: borderRadius.md,
+    height: layout.inputHeight,
+    paddingHorizontal: spacing.sm,
+  },
+  addressInputError: {
+    borderColor: colors.error,
+  },
+  saveDefaultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  saveDefaultText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+  },
 });
