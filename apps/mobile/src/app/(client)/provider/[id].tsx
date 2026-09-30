@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Dimensions, FlatList, SafeAreaView, Share } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
@@ -102,13 +102,12 @@ export default function ProviderProfile() {
     { key: 'reviews' as const, label: t('profileTabReviews') },
   ];
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  const providerRef = useRef<ProviderProfileData | null>(null);
+  providerRef.current = provider;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       setErrorVisible(false);
 
       const coords = await getDiscoveryCoordinates();
@@ -135,9 +134,15 @@ export default function ProviderProfile() {
       setErrorMessage(mapHttpError(status, error instanceof Error ? error.message : undefined, lang));
       setErrorVisible(true);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
-  };
+  }, [id, lang]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData(Boolean(providerRef.current && providerRef.current.id === id));
+    }, [fetchData, id])
+  );
 
   const coverImage = portfolio && portfolio.length > 0 ? portfolio[0].imageUrl : null;
   const providerId = id as string;
@@ -173,7 +178,7 @@ export default function ProviderProfile() {
         </View>
         <View style={styles.loadingContainer}>
           <GermanErrorBanner visible={errorVisible} message={errorMessage} />
-          <TouchableOpacity style={styles.retryFallbackButton} onPress={fetchData}>
+          <TouchableOpacity style={styles.retryFallbackButton} onPress={() => fetchData(false)}>
             <Text style={styles.retryFallbackText}>{t('appointmentsRetry')}</Text>
           </TouchableOpacity>
         </View>
