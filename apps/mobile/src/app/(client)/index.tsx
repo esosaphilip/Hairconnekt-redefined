@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -175,9 +175,11 @@ export default function ClientHome() {
     }
   };
 
-  const fetchProviders = async (coords?: DiscoveryCoordinates | null) => {
+  const hasLoadedProvidersRef = useRef(false);
+
+  const fetchProviders = useCallback(async (coords?: DiscoveryCoordinates | null, isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       setErrorVisible(false);
       
       const locationParams = coords
@@ -185,14 +187,15 @@ export default function ClientHome() {
         : '';
       const data = await apiJson<any>(`/providers?limit=20${locationParams}`);
       setProviders(data.data || data);
+      hasLoadedProvidersRef.current = true;
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
       setErrorMessage(mapHttpError(status, err?.message, lang));
       setErrorVisible(true);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
-  };
+  }, [lang]);
 
   const handleProviderPress = (id: string) => {
     router.push(`/(client)/provider/${id}` as any);
@@ -241,7 +244,10 @@ export default function ClientHome() {
   useFocusEffect(
     useCallback(() => {
       refreshUnreadNotifications();
-    }, []),
+      if (hasLoadedProvidersRef.current) {
+        void fetchProviders(discoveryLocation, true);
+      }
+    }, [discoveryLocation, fetchProviders]),
   );
 
   return (
