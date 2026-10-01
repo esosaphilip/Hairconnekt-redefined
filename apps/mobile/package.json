@@ -19,7 +19,7 @@
     "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-community/slider": "5.1.2",
     "@sentry/react-native": "~7.11.0",
-    "axios": "^1.16.1",
+    "axios": "^1.20.0",
     "expo": "~55.0.26",
     "expo-asset": "~55.0.17",
     "expo-constants": "~55.0.16",
