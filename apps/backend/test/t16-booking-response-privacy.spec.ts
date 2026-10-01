@@ -103,6 +103,44 @@ describe('T16: Booking Response Privacy & Allowed Field Serialization (BUG-045)'
     expect(provider.postalCode).toBeUndefined();
   }
 
+  it('deep key scanner reports a forbidden key nested three levels deep and inside arrays', () => {
+    // Case (a): Forbidden key nested inside provider.user (e.g. email)
+    const nestedInUser = {
+      id: 'booking-test-1',
+      provider: {
+        id: 'provider-test-1',
+        user: {
+          id: 'user-test-1',
+          email: 'sensitive-user@example.com',
+        },
+      },
+    };
+
+    expect(() => assertNoPrivateFields(nestedInUser)).toThrow(
+      'Private field leak detected: "provider.user.email" is present in response!',
+    );
+
+    // Case (b): Forbidden key inside an item of a data: [...] array (e.g. idDocumentUrl)
+    const nestedInArray = {
+      data: [
+        {
+          id: 'booking-test-2',
+          provider: {
+            id: 'provider-test-2',
+            idDocumentUrl: 'id-documents/leaked-id.jpg',
+          },
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 10,
+    };
+
+    expect(() => assertNoPrivateFields(nestedInArray)).toThrow(
+      'Private field leak detected: "data[0].provider.idDocumentUrl" is present in response!',
+    );
+  });
+
   it('deep scan verifies no private fields leak across all booking endpoints (POST, GET, PATCH)', runTest(async () => {
     // Freeze clock for appointment start window:
     // Berlin is CEST (UTC+2) in October, so 10:00 Berlin = 08:00 UTC.
