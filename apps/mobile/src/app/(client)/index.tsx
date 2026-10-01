@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { useFavourites } from '../../contexts/FavouritesContext';
-import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, setDiscoveryOverride } from '../../utils/discovery-location';
+import { DiscoveryCoordinates, getDiscoveryCoordinates, getDiscoveryOverride, setDiscoveryOverride, isLocationServicesDisabled } from '../../utils/discovery-location';
 import { NoBraidersNearby } from '../../components/NoBraidersNearby';
 import * as Location from 'expo-location';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -232,9 +232,12 @@ export default function ClientHome() {
       const list = Array.isArray(res?.data) ? res.data : [];
       setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
     } catch (error: any) {
-      const msg = error?.message ?? String(error ?? '');
-      const isGuestError = msg.includes('No authentication token') || msg.includes('authentication');
-      if (!isGuestError) {
+      const status = error?.status ?? error?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        error?.message?.includes('No authentication token');
+      if (!isAuthError) {
         Sentry.captureException(error);
       }
       setUnreadNotificationsCount(0);
@@ -469,6 +472,27 @@ export default function ClientHome() {
                   Keyboard.dismiss();
                   await setDiscoveryOverride(null);
                   const coords = await getDiscoveryCoordinates(true);
+                  const servicesOff =
+                    isLocationServicesDisabled() ||
+                    !(await Location.hasServicesEnabledAsync());
+
+                  if (servicesOff) {
+                    Alert.alert(
+                      t('locationServicesDisabledTitle'),
+                      t('locationServicesDisabled'),
+                      [
+                        { text: t('cancel'), style: 'cancel' },
+                        {
+                          text: t('openSettings'),
+                          onPress: () => {
+                            void Linking.openSettings();
+                          },
+                        },
+                      ],
+                    );
+                    return;
+                  }
+
                   setDiscoveryLocation(coords);
                   if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
                     let resolvedCity: string | null = null;

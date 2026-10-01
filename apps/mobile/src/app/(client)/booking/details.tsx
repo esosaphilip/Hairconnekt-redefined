@@ -347,8 +347,8 @@ export default function BookingDetails() {
       
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      const status = error instanceof ApiError ? error.status : undefined;
-      if (msg.includes('No authentication token') || status === 401) {
+      const status = error instanceof ApiError ? error.status : (error as any)?.status ?? (error as any)?.response?.status;
+      if (msg.includes('No authentication token') || status === 401 || status === 403) {
         const params = new URLSearchParams();
         if (providerIdValue) params.set('providerId', providerIdValue);
         if (selectedServiceIdsValue) params.set('selectedServiceIds', selectedServiceIdsValue);

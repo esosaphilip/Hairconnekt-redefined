@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { apiFetch, apiJson } from '../src/services/apiClient';
+import { apiFetch, apiJson, ApiError } from '../src/services/apiClient';
+import { isAuthError } from '../src/utils/auth-error';
 import { mapHttpError } from '../src/utils/error-messages';
 import {
   saveRegistrationDraft,
@@ -446,6 +447,88 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       expect(content).toContain('useFocusEffect(');
       expect(content).toContain('isSilent = false');
       expect(content).not.toMatch(/useEffect\(\s*\(\)\s*=>\s*\{\s*loadData\(\);\s*\}\s*,\s*\[\]\s*\)/);
+    });
+  });
+
+  describe('Auth Error Detection (Regression Guard: German 401 Handling)', () => {
+    it('correctly identifies a German "Nicht autorisiert" 401 response as an auth error', () => {
+      const germanError = new ApiError('Nicht autorisiert. Bitte melde dich erneut an.', 401, {
+        statusCode: 401,
+        message: 'Nicht autorisiert. Bitte melde dich erneut an.',
+      });
+
+      expect(isAuthError(germanError)).toBe(true);
+      const status = (germanError as any)?.status ?? (germanError as any)?.response?.status;
+      const inlineCheck = status === 401 || status === 403;
+      expect(inlineCheck).toBe(true);
+    });
+
+    it('correctly identifies an English "Unauthorized" 401 response as an auth error', () => {
+      const englishError = new ApiError('Unauthorized. Please sign in again.', 401, {
+        statusCode: 401,
+        message: 'Unauthorized',
+      });
+
+      expect(isAuthError(englishError)).toBe(true);
+      const status = (englishError as any)?.status ?? (englishError as any)?.response?.status;
+      expect(status === 401 || status === 403).toBe(true);
+    });
+
+    it('correctly identifies a 403 Forbidden response as an auth error', () => {
+      const forbiddenError = new ApiError('Zugriff verweigert.', 403, {
+        statusCode: 403,
+        message: 'Zugriff verweigert.',
+      });
+
+      expect(isAuthError(forbiddenError)).toBe(true);
+      const status = (forbiddenError as any)?.status ?? (forbiddenError as any)?.response?.status;
+      expect(status === 401 || status === 403).toBe(true);
+    });
+
+    it('correctly identifies client-side "No authentication token" as an auth error', () => {
+      const missingTokenError = new Error('No authentication token');
+      expect(isAuthError(missingTokenError)).toBe(true);
+    });
+
+    it('does not treat standard server errors or client errors as auth errors', () => {
+      const serverError = new ApiError('Serverfehler. Bitte versuche es später erneut.', 500, null);
+      expect(isAuthError(serverError)).toBe(false);
+
+      const badRequestError = new ApiError('Ungültige Eingabe.', 400, null);
+      expect(isAuthError(badRequestError)).toBe(false);
+
+      const notFoundError = new ApiError('Nicht gefunden.', 404, null);
+      expect(isAuthError(notFoundError)).toBe(false);
+    });
+
+    it('static audit: scans mobile codebase to confirm no call site uses broken English-only msg.includes("authentication") check', () => {
+      const mobileSrc = path.resolve(__dirname, '../src');
+      const files: string[] = [];
+
+      function scanDir(dir: string) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            scanDir(fullPath);
+          } else if (/\.(ts|tsx)$/.test(entry.name)) {
+            files.push(fullPath);
+          }
+        }
+      }
+
+      scanDir(mobileSrc);
+
+      const brokenAuthPattern = /\.includes\(\s*['"]authentication['"]\s*\)/i;
+      const violatingFiles: string[] = [];
+
+      for (const file of files) {
+        const content = fs.readFileSync(file, 'utf8');
+        if (brokenAuthPattern.test(content)) {
+          violatingFiles.push(file);
+        }
+      }
+
+      expect(violatingFiles).toEqual([]);
     });
   });
 });

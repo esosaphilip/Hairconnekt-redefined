@@ -41,12 +41,12 @@ export default function FavouritesScreen() {
       setFavourites(Array.isArray(payload) ? payload : []);
       setIsAuthenticated(true);
     } catch (err: any) {
-      const msg = err?.message ?? String(err ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication') ||
-        err?.status === 401;
-      if (isGuestError) {
+      const status = err?.status ?? err?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        err?.message?.includes('No authentication token');
+      if (isAuthError) {
         isGuest = true;
         setIsAuthenticated(false);
         if (!isRedirectingRef.current) {

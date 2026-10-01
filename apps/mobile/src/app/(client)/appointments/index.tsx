@@ -38,14 +38,15 @@ export default function AppointmentsList() {
       const payload = response?.data || response || [];
       setBookings(Array.isArray(payload) ? payload : []);
     } catch (err: any) {
-      const msg = err?.message ?? String(err ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication');
-      if (isGuestError) {
+      const status = err?.status ?? err?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        err?.message?.includes('No authentication token');
+      if (isAuthError) {
         setBookings([]);
       } else {
-        setErrorMessage(mapHttpError(err?.status ?? err?.response?.status, err?.message, lang));
+        setErrorMessage(mapHttpError(status, err?.message, lang));
         setErrorVisible(true);
         setBookings([]);
       }

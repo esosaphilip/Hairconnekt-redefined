@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, SafeAreaView, Keyboard, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../theme';
 import { ProviderCard, ProviderProps } from '../../components/ProviderCard';
 import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { useFavourites } from '../../contexts/FavouritesContext';
-import { DiscoveryCoordinates, getDiscoveryCoordinates } from '../../utils/discovery-location';
+import { DiscoveryCoordinates, getDiscoveryCoordinates, isLocationServicesDisabled } from '../../utils/discovery-location';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
 import { tokenStorage } from '@/utils/token-storage';
@@ -42,6 +43,8 @@ export default function ClientSearch() {
   
   const [errorMessage, setErrorMessage] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [errorActionLabel, setErrorActionLabel] = useState<string | undefined>();
+  const [errorAction, setErrorAction] = useState<(() => void) | undefined>();
 
   const [categoryMap, setCategoryMap] = useState<{ id: string; name: string }[]>([]);
   const [discoveryLocation, setDiscoveryLocation] = useState<DiscoveryCoordinates | null>(null);
@@ -100,6 +103,8 @@ export default function ClientSearch() {
       if (isInitial && !isSilent) setIsLoading(true);
       else if (!isInitial) setIsFetchingMore(true);
       setErrorVisible(false);
+      setErrorActionLabel(undefined);
+      setErrorAction(undefined);
       
       const trimmedQuery = (queryOverride ?? searchQueryRef.current).trim();
       const searchParam = trimmedQuery ? `&search=${encodeURIComponent(trimmedQuery)}` : '';
@@ -169,9 +174,21 @@ export default function ClientSearch() {
     if (nextSort === 'entfernung' && !discoveryLocation) {
       const coords = await loadDiscoveryLocation();
       if (!coords) {
-        setErrorMessage(
-          t('locationPermissionNeeded')
-        );
+        const servicesOff =
+          isLocationServicesDisabled() ||
+          !(await Location.hasServicesEnabledAsync());
+
+        if (servicesOff) {
+          setErrorMessage(t('locationServicesDisabled'));
+          setErrorActionLabel(t('openSettings'));
+          setErrorAction(() => () => {
+            void Linking.openSettings();
+          });
+        } else {
+          setErrorMessage(t('locationPermissionNeeded'));
+          setErrorActionLabel(undefined);
+          setErrorAction(undefined);
+        }
         setErrorVisible(true);
         return;
       }
@@ -332,7 +349,12 @@ export default function ClientSearch() {
             </View>
           </View>
 
-          <GermanErrorBanner visible={errorVisible} message={errorMessage} />
+          <GermanErrorBanner
+            visible={errorVisible}
+            message={errorMessage}
+            actionLabel={errorActionLabel}
+            onAction={errorAction}
+          />
 
           {isLoading ? (
             <ActivityIndicator size="large" color={colors.coral} style={styles.loader} />

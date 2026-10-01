@@ -12,7 +12,12 @@ type DiscoveryOverride = DiscoveryCoordinates & { city: string };
 let cachedCoordinates: DiscoveryCoordinates | null = null;
 let cachedOverride: DiscoveryOverride | null = null;
 let cachedPermissionDenied = false;
+let cachedServicesDisabled = false;
 let inflightRequest: Promise<DiscoveryCoordinates | null> | null = null;
+
+export function isLocationServicesDisabled(): boolean {
+  return cachedServicesDisabled;
+}
 
 async function loadOverride(): Promise<DiscoveryOverride | null> {
   if (cachedOverride) return cachedOverride;
@@ -69,6 +74,13 @@ async function resolveDiscoveryCoordinates(): Promise<DiscoveryCoordinates | nul
       };
     }
 
+    const servicesEnabled = await Location.hasServicesEnabledAsync();
+    if (!servicesEnabled) {
+      cachedServicesDisabled = true;
+      return null;
+    }
+    cachedServicesDisabled = false;
+
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
@@ -80,8 +92,14 @@ async function resolveDiscoveryCoordinates(): Promise<DiscoveryCoordinates | nul
 
     cachedPermissionDenied = false;
     return cachedCoordinates;
-  } catch (error) {
-    Sentry.captureException(error);
+  } catch (error: any) {
+    const message = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+    const isExpected =
+      message.includes('location permission is required') ||
+      message.includes('location services are enabled');
+    if (!isExpected) {
+      Sentry.captureException(error);
+    }
     return cachedCoordinates;
   } finally {
     inflightRequest = null;
@@ -101,7 +119,7 @@ export async function getDiscoveryCoordinates(
     return cachedCoordinates;
   }
 
-  if (!forceRefresh && cachedPermissionDenied) {
+  if (!forceRefresh && (cachedPermissionDenied || cachedServicesDisabled)) {
     return null;
   }
 
