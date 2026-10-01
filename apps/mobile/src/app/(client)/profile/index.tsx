@@ -32,12 +32,12 @@ export default function ClientProfileScreen() {
       userRef.current = fetchedUser;
       setUser(fetchedUser);
     } catch (err: any) {
-      const msg = err?.message ?? String(err ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication') ||
-        err?.status === 401;
-      if (isGuestError) {
+      const status = err?.status ?? err?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        err?.message?.includes('No authentication token');
+      if (isAuthError) {
         isGuest = true;
         userRef.current = null;
         setUser(null);

@@ -166,7 +166,7 @@ export const apiFetch = async (path: string, options: ApiRequestOptions = {}): P
   if (!auth) return run();
 
   const token = await tokenStorage.getAccessToken();
-  if (!token) throw new Error('No authentication token');
+  if (!token) throw new ApiError('No authentication token', 401, null);
 
   const method = String(init.method ?? 'GET').toUpperCase();
   const canRetry = method === 'GET';

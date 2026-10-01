@@ -83,8 +83,8 @@ export default function ClientBookingServices() {
       setSections(newSections);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      const status = error instanceof ApiError ? error.status : undefined;
-      if (msg.includes('No authentication token') || status === 401) {
+      const status = error instanceof ApiError ? error.status : (error as any)?.status ?? (error as any)?.response?.status;
+      if (msg.includes('No authentication token') || status === 401 || status === 403) {
         const destination = `/(client)/booking/services?providerId=${encodeURIComponent(providerIdValue)}`;
         router.replace(`/(auth)/login?returnTo=${encodeURIComponent(destination)}` as any);
         return;

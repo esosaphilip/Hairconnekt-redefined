@@ -186,6 +186,7 @@ export default function NotificationsScreen() {
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorStatus, setErrorStatus] = useState<number | undefined>();
   const [errorMessage, setErrorMessage] = useState('');
+  const [isAuthRequired, setIsAuthRequired] = useState(false);
 
   const BOOKING_TYPES = [
     'new_booking',
@@ -216,6 +217,7 @@ export default function NotificationsScreen() {
 
         setErrorVisible(false);
         setErrorStatus(undefined);
+        setIsAuthRequired(false);
 
         const response = await apiJson<NotificationListResponse>(
           `/notifications?page=${pageNum}&limit=20`,
@@ -229,18 +231,20 @@ export default function NotificationsScreen() {
         setHasMore(response.meta?.hasNextPage ?? false);
         setPage(pageNum);
       } catch (error: any) {
-        const msg = error?.message ?? String(error ?? '');
-        const isGuestError =
-          msg.includes('No authentication token') ||
-          msg.includes('authentication');
-        const status = error?.status ?? error?.response?.status ?? 500;
-        if (isGuestError) {
+        const status = error?.status ?? error?.response?.status;
+        const isAuthError =
+          status === 401 ||
+          status === 403 ||
+          error?.message?.includes('No authentication token');
+        if (isAuthError) {
+          setIsAuthRequired(true);
           setNotifications([]);
           setHasMore(false);
         } else {
+          const errorStatus = status ?? 500;
           debugLog('Error loading notifications', error);
-          setErrorStatus(status);
-          setErrorMessage(mapHttpError(status, error?.message, lang));
+          setErrorStatus(errorStatus);
+          setErrorMessage(mapHttpError(errorStatus, error?.message, lang));
           setErrorVisible(true);
         }
       } finally {
@@ -268,18 +272,19 @@ export default function NotificationsScreen() {
       );
       await apiFetch(`/notifications/${id}/read`, { auth: true, method: 'PATCH' });
     } catch (error: any) {
-      const msg = error?.message ?? String(error ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication');
-      if (isGuestError) {
+      const status = error?.status ?? error?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        error?.message?.includes('No authentication token');
+      if (isAuthError) {
         setNotifications(previous);
       } else {
-        const status = error?.status ?? error?.response?.status ?? 500;
+        const errorStatus = status ?? 500;
         debugLog('Error marking as read', error);
         setNotifications(previous);
-        setErrorStatus(status);
-        setErrorMessage(mapHttpError(status, error?.message, lang));
+        setErrorStatus(errorStatus);
+        setErrorMessage(mapHttpError(errorStatus, error?.message, lang));
         setErrorVisible(true);
       }
     }
@@ -292,18 +297,19 @@ export default function NotificationsScreen() {
       setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
       await apiFetch('/notifications/read-all', { auth: true, method: 'PATCH' });
     } catch (error: any) {
-      const msg = error?.message ?? String(error ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication');
-      if (isGuestError) {
+      const status = error?.status ?? error?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        error?.message?.includes('No authentication token');
+      if (isAuthError) {
         setNotifications(previous);
       } else {
-        const status = error?.status ?? error?.response?.status ?? 500;
+        const errorStatus = status ?? 500;
         debugLog('Error marking all as read', error);
         setNotifications(previous);
-        setErrorStatus(status);
-        setErrorMessage(mapHttpError(status, error?.message, lang));
+        setErrorStatus(errorStatus);
+        setErrorMessage(mapHttpError(errorStatus, error?.message, lang));
         setErrorVisible(true);
       }
     }
@@ -516,6 +522,23 @@ export default function NotificationsScreen() {
       {isLoading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.coral} />
+        </View>
+      ) : isAuthRequired ? (
+        <View style={styles.centerContainer}>
+          <Feather
+            name="lock"
+            size={64}
+            color={colors.iconDisabled}
+            style={{ marginBottom: spacing.md }}
+          />
+          <Text style={styles.emptyTitle}>{t('notificationsSignInTitle')}</Text>
+          <Text style={styles.emptySub}>{t('notificationsSignInSub')}</Text>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={() => router.push('/(auth)/login?returnTo=/(shared)/notifications' as any)}
+          >
+            <Text style={styles.signInButtonText}>{t('login')}</Text>
+          </TouchableOpacity>
         </View>
       ) : flattenedData.length === 0 ? (
         <View style={styles.centerContainer}>
@@ -784,5 +807,18 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  signInButton: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.coral,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  signInButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: fontSizes.md,
+    color: colors.background,
   },
 });

@@ -223,7 +223,7 @@ export default function ProviderProfile() {
       debugLog('openChat error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       const status = (err as any)?.status ?? (err as any)?.response?.status;
-      if (msg.includes('No authentication token') || status === 401) {
+      if (msg.includes('No authentication token') || status === 401 || status === 403) {
         router.push(`/(auth)/login?returnTo=/${encodeURIComponent(`(client)/provider/${id}`)}` as any);
       }
     }

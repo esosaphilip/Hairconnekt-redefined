@@ -552,6 +552,8 @@ export const TRANSLATIONS = {
   notificationsMarkAll: { de: 'Alle lesen', en: 'Mark all read' },
   notificationsEmpty: { de: 'Keine Benachrichtigungen', en: 'No notifications' },
   notificationsEmptySub: { de: 'Hier siehst du Updates zu deinen Buchungen', en: 'You will see updates about your bookings here' },
+  notificationsSignInTitle: { de: 'Bitte melde dich an', en: 'Please sign in' },
+  notificationsSignInSub: { de: 'Bitte melde dich an, um deine Benachrichtigungen zu sehen.', en: 'Please sign in to see your notifications.' },
   notificationsToday: { de: 'Heute', en: 'Today' },
   notificationsYesterday: { de: 'Gestern', en: 'Yesterday' },
   notificationsAll: { de: 'Alle', en: 'All' },

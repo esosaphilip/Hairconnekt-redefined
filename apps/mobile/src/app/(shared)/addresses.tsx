@@ -59,11 +59,12 @@ export default function AddressesScreen() {
       const list = data.data ?? data ?? [];
       setAddresses(Array.isArray(list) ? list : []);
     } catch (error: any) {
-      const msg = error?.message ?? String(error ?? '');
-      const isGuestError =
-        msg.includes('No authentication token') ||
-        msg.includes('authentication');
-      if (isGuestError) {
+      const status = error?.status ?? error?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        error?.message?.includes('No authentication token');
+      if (isAuthError) {
         setAddresses([]);
       } else {
         debugError('Address list load failed', error);

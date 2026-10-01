@@ -232,9 +232,12 @@ export default function ClientHome() {
       const list = Array.isArray(res?.data) ? res.data : [];
       setUnreadNotificationsCount(list.filter((n: any) => n && n.isRead === false).length);
     } catch (error: any) {
-      const msg = error?.message ?? String(error ?? '');
-      const isGuestError = msg.includes('No authentication token') || msg.includes('authentication');
-      if (!isGuestError) {
+      const status = error?.status ?? error?.response?.status;
+      const isAuthError =
+        status === 401 ||
+        status === 403 ||
+        error?.message?.includes('No authentication token');
+      if (!isAuthError) {
         Sentry.captureException(error);
       }
       setUnreadNotificationsCount(0);
