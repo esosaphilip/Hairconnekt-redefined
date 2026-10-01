@@ -122,6 +122,8 @@ export function initializeTestEnvironment(): void {
     CORS_ORIGIN: 'http://localhost:5173,http://localhost:3000',
     R2_BUCKET_NAME: 'test-bucket',
     R2_BUCKET: 'test-bucket',
+    R2_PRIVATE_BUCKET_NAME: 'test-private-bucket',
+    R2_PRIVATE_BUCKET: 'test-private-bucket',
     R2_PUBLIC_URL: 'https://r2-test.hairconnekt.de',
     R2_PUBLIC_BASE_URL: 'https://r2-test.hairconnekt.de',
     R2_ENDPOINT: 'https://dummy-account-id.r2.cloudflarestorage.com',
