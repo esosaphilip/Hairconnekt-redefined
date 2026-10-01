@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Patch, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Patch, Param, ParseUUIDPipe } from '@nestjs/common';
 import { type Request as ExpressRequest } from 'express';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -16,6 +16,13 @@ type AuthRequest = ExpressRequest & { user: { sub?: string; id?: string; role?: 
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
+
+  @Get('mine')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
+  async getMyReviews(@Request() req: AuthRequest) {
+    return this.reviewsService.getClientReviews(req.user);
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, RolesGuard)

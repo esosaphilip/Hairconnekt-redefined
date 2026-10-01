@@ -142,5 +142,28 @@ describe('T12: Reviews and Ratings', () => {
       .expect(201);
 
     expect(responseRes.body.response).toBeDefined();
+
+    // 9. Client with reviews gets them back correctly scoped to just their own
+    const clientReviewsRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/reviews/mine')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+
+    expect(clientReviewsRes.body.data).toBeDefined();
+    expect(clientReviewsRes.body.data.length).toBe(1);
+    expect(clientReviewsRes.body.data[0].id).toBe(reviewId);
+    expect(clientReviewsRes.body.data[0].rating).toBe(5);
+    expect(clientReviewsRes.body.data[0].comment).toBe('Exceptional braiding experience, highly recommend!');
+    expect(clientReviewsRes.body.data[0].response).toBe('Vielen Dank für deine tolle Bewertung! Bis zum nächsten Mal.');
+    expect(clientReviewsRes.body.data[0].provider.businessName).toBe(provider.businessName);
+
+    // 10. Client with no reviews gets an empty array, not an error
+    const otherClientReviewsRes = await request(ctx.app.getHttpServer())
+      .get('/api/v1/reviews/mine')
+      .set('Authorization', `Bearer ${otherClientToken}`)
+      .expect(200);
+
+    expect(otherClientReviewsRes.body.data).toBeDefined();
+    expect(otherClientReviewsRes.body.data).toEqual([]);
   }));
 });

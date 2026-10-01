@@ -26,6 +26,51 @@ export class ReviewsService {
     private readonly access: AccessService,
   ) {}
 
+  async getClientReviews(user: any) {
+    const actor = this.access.ensureAuthenticatedActor(user);
+    const clientId = actor.id;
+
+    const reviews = await this.reviewRepository.find({
+      where: { clientId },
+      relations: ['provider', 'provider.user', 'booking', 'booking.services'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      data: reviews.map((r) => {
+        const serviceName =
+          r.booking?.services?.map((s) => s.name).filter(Boolean).join(', ') ||
+          r.booking?.services?.[0]?.name ||
+          '';
+
+        return {
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt:
+            r.createdAt instanceof Date
+              ? r.createdAt.toISOString()
+              : r.createdAt
+                ? new Date(r.createdAt).toISOString()
+                : new Date().toISOString(),
+          serviceName,
+          provider: {
+            businessName: r.provider?.businessName || '',
+            avatarUrl: r.provider?.avatarUrl || r.provider?.user?.avatarUrl || undefined,
+          },
+          response: r.providerResponse ?? undefined,
+          providerResponse: r.providerResponse ?? null,
+          respondedAt: r.respondedAt
+            ? r.respondedAt instanceof Date
+              ? r.respondedAt.toISOString()
+              : new Date(r.respondedAt).toISOString()
+            : null,
+          bookingId: r.bookingId,
+        };
+      }),
+    };
+  }
+
   async createReview(user: any, dto: CreateReviewDto) {
     const actor = this.access.ensureAuthenticatedActor(user);
     await this.access.authorizeReview(actor, 'review:create', undefined, {
