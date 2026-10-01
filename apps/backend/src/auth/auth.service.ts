@@ -71,6 +71,7 @@ export class AuthService {
     onboardingToken: string;
     accessToken?: string;
     refreshToken?: string;
+    devVerificationCode?: string;
     user: { id: string; email: string; firstName: string; role: string };
   }> {
     const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
@@ -213,11 +214,18 @@ export class AuthService {
       expiresIn: '15m',
     });
 
+    const isDev =
+      (process.env.NODE_ENV ?? 'development') !== 'production' &&
+      process.env.OTP_DEV_MODE === 'true';
+
     return {
-      message: 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
+      message: isDev
+        ? `Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse. (DEV Code: ${verificationCode})`
+        : 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
       needsEmailVerification: true,
       emailDeliveryFailed,
       onboardingToken,
+      ...(isDev ? { devVerificationCode: verificationCode } : {}),
       user: {
         id: user.id,
         email: user.email,
@@ -533,7 +541,7 @@ export class AuthService {
 
   async resendEmailVerification(
     emailRaw: string,
-  ): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+  ): Promise<{ success: boolean; alreadyVerified?: boolean; devVerificationCode?: string }> {
     const email = String(emailRaw ?? '').toLowerCase();
     const user = await this.userRepo
       .createQueryBuilder('u')
@@ -580,7 +588,14 @@ export class AuthService {
       );
     });
 
-    return { success: true };
+    const isDev =
+      (process.env.NODE_ENV ?? 'development') !== 'production' &&
+      process.env.OTP_DEV_MODE === 'true';
+
+    return {
+      success: true,
+      ...(isDev ? { devVerificationCode: verificationCode } : {}),
+    };
   }
 
   // ─── PRIVATE HELPERS ───────────────────────────────────────────────────────

@@ -58,6 +58,7 @@ export class AuthController {
     onboardingToken: string;
     accessToken?: string;
     refreshToken?: string;
+    devVerificationCode?: string;
     user: { id: string; email: string; firstName: string; role: string };
   }> {
     return this.authService.register(dto);
@@ -274,7 +275,7 @@ export class AuthController {
   @UseGuards(IpThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60 * 60 } })
   @HttpCode(HttpStatus.OK)
-  resendVerification(@Body() dto: ResendVerificationDto): Promise<{ success: boolean; alreadyVerified?: boolean }> {
+  resendVerification(@Body() dto: ResendVerificationDto): Promise<{ success: boolean; alreadyVerified?: boolean; devVerificationCode?: string }> {
     return this.authService.resendEmailVerification(dto.email);
   }
 }
