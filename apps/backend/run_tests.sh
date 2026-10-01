@@ -86,6 +86,17 @@ expect_status() {
     echo "FAIL ($label): expected $status got $got" >&2
     exit 1
   fi
+  echo "PASS ($label)"
+}
+
+extract_otp() {
+  local json="$1"
+  local code
+  code="$(echo "$json" | jq -r '.devVerificationCode // empty')"
+  if [[ -z "$code" ]]; then
+    code="$(echo "$json" | jq -r '.message // ""' | sed -n 's/.*DEV Code: \([0-9]\{6\}\).*/\1/p')"
+  fi
+  echo "$code"
 }
 
 split_body_status() {
@@ -123,9 +134,20 @@ else
   status="$(echo "$raw" | tail -n 1)"
   body="$(echo "$raw" | sed '$d')"
   if [[ "$status" == "201" ]]; then
-    admin_token="$(echo "$body" | jq -r '.accessToken')"
-    admin_cookie_identifier="$admin_email"
-    admin_cookie_password="$PASSWORD"
+    expect_status 201 "$status" "admin register"
+    admin_code="$(extract_otp "$body")"
+    if [[ -n "$admin_code" ]]; then
+      echo "--- AUTH: verify admin email ---"
+      raw="$(request POST "/api/v1/auth/verify-email" "" "$(jq -n --arg email "$admin_email" --arg code "$admin_code" '{ email:$email, code:$code }')")"
+      vstatus="$(echo "$raw" | tail -n 1)"
+      vbody="$(echo "$raw" | sed '$d')"
+      expect_status 200 "$vstatus" "admin email verification"
+      admin_token="$(echo "$vbody" | jq -r '.accessToken')"
+      admin_cookie_identifier="$admin_email"
+      admin_cookie_password="$PASSWORD"
+    else
+      echo "SKIP: admin token not available (could not extract OTP code). Set ADMIN_PASSWORD or enable OTP_DEV_MODE."
+    fi
   else
     echo "SKIP: admin token not available (admin register failed with $status). Set ADMIN_PASSWORD to enable provider approval + booking create test."
   fi
@@ -138,8 +160,24 @@ raw="$(request POST "/api/v1/auth/register" "" "$(jq -n --arg email "$provider_e
 status="$(echo "$raw" | tail -n 1)"
 body="$(echo "$raw" | sed '$d')"
 expect_status 201 "$status" "provider register"
-provider_token="$(echo "$body" | jq -r '.accessToken')"
 provider_user_id="$(echo "$body" | jq -r '.user.id')"
+provider_code="$(extract_otp "$body")"
+if [[ -z "$provider_code" ]]; then
+  echo "FAIL (provider verify code): could not extract OTP code. Ensure OTP_DEV_MODE=true on server." >&2
+  exit 1
+fi
+
+echo "--- AUTH: verify provider email ---"
+raw="$(request POST "/api/v1/auth/verify-email" "" "$(jq -n --arg email "$provider_email" --arg code "$provider_code" '{ email:$email, code:$code }')")"
+status="$(echo "$raw" | tail -n 1)"
+expect_status 200 "$status" "provider email verification"
+
+echo "--- AUTH: provider login ---"
+raw="$(request POST "/api/v1/auth/login" "" "$(jq -n --arg id "$provider_email" --arg pw "$PASSWORD" '{ identifier:$id, password:$pw }')")"
+status="$(echo "$raw" | tail -n 1)"
+body="$(echo "$raw" | sed '$d')"
+expect_status 200 "$status" "provider login"
+provider_token="$(echo "$body" | jq -r '.accessToken')"
 
 echo "--- AUTH: register client ---"
 raw="$(request POST "/api/v1/auth/register" "" "$(jq -n --arg email "$client_email" --arg pw "$PASSWORD" '{
@@ -148,8 +186,24 @@ raw="$(request POST "/api/v1/auth/register" "" "$(jq -n --arg email "$client_ema
 status="$(echo "$raw" | tail -n 1)"
 body="$(echo "$raw" | sed '$d')"
 expect_status 201 "$status" "client register"
-client_token="$(echo "$body" | jq -r '.accessToken')"
 client_user_id="$(echo "$body" | jq -r '.user.id')"
+client_code="$(extract_otp "$body")"
+if [[ -z "$client_code" ]]; then
+  echo "FAIL (client verify code): could not extract OTP code. Ensure OTP_DEV_MODE=true on server." >&2
+  exit 1
+fi
+
+echo "--- AUTH: verify client email ---"
+raw="$(request POST "/api/v1/auth/verify-email" "" "$(jq -n --arg email "$client_email" --arg code "$client_code" '{ email:$email, code:$code }')")"
+status="$(echo "$raw" | tail -n 1)"
+expect_status 200 "$status" "client email verification"
+
+echo "--- AUTH: client login ---"
+raw="$(request POST "/api/v1/auth/login" "" "$(jq -n --arg id "$client_email" --arg pw "$PASSWORD" '{ identifier:$id, password:$pw }')")"
+status="$(echo "$raw" | tail -n 1)"
+body="$(echo "$raw" | sed '$d')"
+expect_status 200 "$status" "client login"
+client_token="$(echo "$body" | jq -r '.accessToken')"
 
 echo "--- SECURITY: unauthenticated admin list denied ---"
 raw="$(request GET "/api/v1/admin/providers" "" "")"

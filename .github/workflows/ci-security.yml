@@ -95,6 +95,7 @@ jobs:
           DATABASE_NAME: hairconnekt_test
           DATABASE_SSL: "false"
           NODE_ENV: test
+          OTP_DEV_MODE: "true"
           JWT_ACCESS_SECRET: integration-test-secret-access
           JWT_REFRESH_SECRET: integration-test-secret-refresh
           ADMIN_SESSION_SECRET: integration-test-admin-session
