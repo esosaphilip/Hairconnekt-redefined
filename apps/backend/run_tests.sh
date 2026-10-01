@@ -9,7 +9,7 @@ if [[ -z "$PASSWORD" ]]; then
   exit 1
 fi
 
-for bin in curl jq; do
+for bin in curl jq node; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "Missing required tool: $bin" >&2
     exit 1
@@ -251,7 +251,8 @@ raw="$(request POST "/api/v1/providers/me/services" "$provider_token" "$(jq -n -
 status="$(echo "$raw" | tail -n 1)"
 expect_status 400 "$status" "provider service extra field rejected"
 
-scheduled_date="$(date -u +%Y-%m-%d)"
+# Always book in the future (+7 days) so tests pass regardless of execution time of day
+scheduled_date="$(node -e 'const d = new Date(Date.now() + 7 * 86400000); console.log(d.toISOString().slice(0, 10))')"
 scheduled_time="12:00"
 
 if [[ -n "$admin_token" ]]; then
