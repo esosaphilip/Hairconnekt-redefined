@@ -715,12 +715,12 @@ export const TRANSLATIONS = {
   personalInfoPickImageError: { de: 'Fehler beim Auswählen des Bildes.', en: 'Error selecting the image.' },
 
   myReviewsTitle: { de: 'Meine Bewertungen', en: 'My Reviews' },
-  myReviewsEmpty: { de: 'Noch keine Bewertungen', en: 'No reviews yet' },
+  myReviewsEmpty: { de: 'Noch keine Bewertungen verfasst', en: 'No reviews written yet' },
   myReviewsEmptySub: {
-    de: 'Deine Bewertungen nach abgeschlossenen Terminen erscheinen hier',
-    en: 'Your reviews after completed appointments will appear here',
+    de: 'Nach einem abgeschlossenen Termin kannst du deinen Stylisten bewerten. Deine abgegebenen Bewertungen erscheinen hier.',
+    en: 'Once you complete an appointment, you can share your feedback and rate your stylist. Your submitted reviews will appear here.',
   },
-  myReviewsViewAppts: { de: 'Termine ansehen', en: 'View Appointments' },
+  myReviewsViewAppts: { de: 'Zu vergangenen Terminen', en: 'Go to Past Appointments' },
   myReviewsResponse: { de: 'Antwort des Anbieters:', en: 'Provider response:' },
   myReviewsUnknown: { de: 'Unbekannt', en: 'Unknown' },
 
