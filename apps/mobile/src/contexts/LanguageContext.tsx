@@ -285,6 +285,18 @@ export const TRANSLATIONS = {
     de: 'Standortzugriff wird benötigt, um Braider nach Entfernung zu sortieren.',
     en: 'Location access is required to sort braiders by distance.',
   },
+  locationServicesDisabled: {
+    de: 'Ortungsdienste sind auf deinem Gerät deaktiviert. Bitte aktiviere den Standort in deinen Geräteeinstellungen oder gib deinen Ort manuell ein.',
+    en: 'Location services are turned off on your device. Please enable location services in your device settings or enter your city manually.',
+  },
+  locationServicesDisabledTitle: {
+    de: 'Ortungsdienste deaktiviert',
+    en: 'Location Services Disabled',
+  },
+  openSettings: {
+    de: 'Einstellungen öffnen',
+    en: 'Open Settings',
+  },
   phoneMissingTitle: { de: 'Keine Telefonnummer', en: 'No phone number' },
   phoneMissingBody: { de: 'Der Kunde hat keine Telefonnummer hinterlegt.', en: 'The customer has no phone number on file.' },
   providerAppointmentDetailsTitle: { de: 'Termindetails', en: 'Appointment Details' },
