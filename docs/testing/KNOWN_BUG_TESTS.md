@@ -21,6 +21,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
 | **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization` | `RESOLVED` (Active `it`) |
+| **BUG-041 / BUG-042** | `apps/backend/test/t18-booking-location.spec.ts` | `T18: Booking Location Privacy & Default Address Rules` | `RESOLVED` (Active `it`) |
 
 ---
 
@@ -178,3 +179,24 @@ Because HairConnekt follows a strict **zero production code change** rule during
   2. Applied `toBookingResponse` across `createBooking`, `findOne`, and `findAll` (and all actions returning `this.findOne`).
   3. Added comprehensive test suite `apps/backend/test/t16-booking-response-privacy.spec.ts` verifying recursive absence of sensitive fields, address rule enforcement, and preservation of required fields.
 
+---
+
+### BUG-041 & BUG-042: Mobile Booking Address Privacy & Default Address Rules [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` test active in `apps/backend/test/t18-booking-location.spec.ts`)
+- **Location**: `apps/backend/src/bookings/booking-response.mapper.ts`, `apps/backend/src/users/users.service.ts`
+- **Symptom**:
+  1. For mobile bookings (`isMobile = true`), providers received the client's full address (including street and house number) at all statuses, including `PENDING`, leaking the client's exact home location before appointment acceptance. Additionally, raw snapshot columns `addressStreet`, `addressHouseNumber`, `addressCity`, `addressPostalCode` leaked at the top level.
+  2. In `UsersService`, creating a user's first address did not mark it as default; deleting a default address left remaining addresses without a default; and unsetting the default on the only default address left a user with zero default addresses.
+- **Root Cause**: Missing address privacy rules for mobile bookings in `toBookingResponse`, and lack of default address lifecycle management in `UsersService`.
+- **Resolution**:
+  1. Updated `toBookingResponse` in `apps/backend/src/bookings/booking-response.mapper.ts`:
+     - Omitted top-level raw snapshot columns `addressStreet`, `addressHouseNumber`, `addressCity`, `addressPostalCode` for all callers.
+     - When caller is client who owns the booking: `address` is unchanged (full street address).
+     - When caller is provider: full `address` is returned only when status is `CONFIRMED`, `IN_PROGRESS`, or `COMPLETED`. For `PENDING`, `CANCELLED`, etc., `street` and `houseNumber` are masked as `null`, while `postalCode` and `city` are preserved.
+     - For studio bookings: `address` is `null` for both roles.
+  2. Updated `UsersService` in `apps/backend/src/users/users.service.ts`:
+     - `createAddress`: automatically sets `isDefault: true` if the user has no existing addresses.
+     - `deleteAddress`: executed inside a database transaction; if the deleted address was default and other addresses remain, promotes the oldest remaining address (by `createdAt`) to `isDefault: true`.
+     - `updateAddress`: ignores requests to set `isDefault: false` on the user's only default address while other addresses exist.
+  3. Added regression test suite `apps/backend/test/t18-booking-location.spec.ts` (7 passing tests).
