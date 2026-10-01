@@ -20,6 +20,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-028** | `apps/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
+| **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization` | `RESOLVED` (Active `it`) |
 
 ---
 
@@ -156,3 +157,24 @@ Because HairConnekt follows a strict **zero production code change** rule during
   ```
   However, `UpdateServiceDto` in `apps/backend/src/providers/dto/provider-endpoints.dto.ts` did not declare `categoryId?: string`. Because NestJS uses global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`, any request to `PATCH /api/v1/providers/me/services/:id` with `categoryId` in the body was rejected with HTTP 400 (`property categoryId should not exist`).
 - **Resolution**: Added `@IsUUID() @IsOptional() categoryId?: string;` to `UpdateServiceDto` in `apps/backend/src/providers/dto/provider-endpoints.dto.ts`. Flipped regression test in `t07-provider-setup.spec.ts` from `it.failing` to active `it`.
+
+---
+
+### BUG-045: Booking Responses Leak Sensitive Nested Entity Fields [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` test active in `apps/backend/test/t16-booking-response-privacy.spec.ts`)
+- **Location**: `apps/backend/src/bookings/booking-response.mapper.ts`, `apps/backend/src/bookings/bookings.service.ts`
+- **Symptom**: `GET /bookings`, `GET /bookings/:id`, `POST /bookings`, and booking transition actions (`accept`, `decline`, `start`, `complete`, `reschedule`, `cancel`) returned full unmapped `Booking` entities with relations `provider`, `provider.user`, and `client`. Because `Booking.toJSON()` returned `{ ...this }` and no response serializer was registered, sensitive provider and user fields leaked in responses:
+  - Provider: `idDocumentUrl` (critical ID document link), `street`, `houseNumber`, `postalCode`, `lat`, `lng`, `status`, `bufferMinutes`, `portfolioMarketingConsent`, `portfolioMarketingConsentAt`, internal timestamps.
+  - User (`provider.user` and `client`): `email`, `birthDate`, `gender`, `googleId`, `expoPushToken`, verification flags, timestamps.
+- **Root Cause**: Absence of response filtering or allowlist mapping when returning booking entities across all booking controller/service methods.
+- **Resolution (Step 1)**:
+  1. Created explicit allowlist mapper `toBookingResponse(booking, actor)` in `apps/backend/src/bookings/booking-response.mapper.ts`:
+     - Top-level booking fields and `services` preserved.
+     - `provider`: strictly allowlisted to `id`, `userId`, `businessName`, `providerType`, `bio`, `city`, `avatarUrl`, `avgRating`, `totalReviews`, `cancellationPolicy`, `languages`, `serviceRadius`, `experienceYears`, `isOnline`.
+     - `provider.user`: allowlisted to `id`, `firstName`, `lastName`, `avatarUrl`, `phone`.
+     - `client`: allowlisted to `id`, `firstName`, `lastName`, `avatarUrl`, `phone`.
+     - **Address Rule**: Provider street address (`street`, `houseNumber`, `postalCode`) is included ONLY when the caller is the client of that booking AND the booking status is `CONFIRMED`, `IN_PROGRESS`, or `COMPLETED`. In all other cases (e.g., `PENDING`, `CANCELLED`, or provider querying), the street address fields are omitted. `provider.city` is always included. `lat` and `lng` are never returned in booking responses.
+  2. Applied `toBookingResponse` across `createBooking`, `findOne`, and `findAll` (and all actions returning `this.findOne`).
+  3. Added comprehensive test suite `apps/backend/test/t16-booking-response-privacy.spec.ts` verifying recursive absence of sensitive fields, address rule enforcement, and preservation of required fields.
+

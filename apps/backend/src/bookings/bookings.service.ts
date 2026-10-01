@@ -22,6 +22,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccessService } from '../authorization/access.service';
 import { berlinWallClockToUtcMs, getBerlinToday } from '../common/utils/berlin-time.util';
+import { toBookingResponse } from './booking-response.mapper';
 
 type NotificationPayload = Parameters<NotificationsService['sendToUser']>[0];
 
@@ -461,7 +462,7 @@ export class BookingsService {
           const full = await this.loadFullBooking(idempotentBooking.id);
           return {
             message: 'Booking created successfully',
-            booking: full ?? idempotentBooking,
+            booking: toBookingResponse((full ?? idempotentBooking) as Booking, actor),
           };
         }
 
@@ -528,7 +529,7 @@ export class BookingsService {
           const full = await this.loadFullBooking(idempotentBooking.id);
           return {
             message: 'Booking created successfully',
-            booking: full ?? idempotentBooking,
+            booking: toBookingResponse((full ?? idempotentBooking) as Booking, actor),
           };
         }
 
@@ -602,7 +603,7 @@ export class BookingsService {
 
     return {
       message: 'Booking created successfully',
-      booking: fullBooking,
+      booking: toBookingResponse(fullBooking!, actor),
     };
   }
 
@@ -619,7 +620,7 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    return booking;
+    return toBookingResponse(booking, actor);
   }
 
   async findAll(user: any, statusStr: string, page: number, limit: number, todayOnly = false, month?: string) {
@@ -688,7 +689,12 @@ export class BookingsService {
       take: limit,
     });
 
-    return { data, total, page, limit };
+    return {
+      data: data.map((b) => toBookingResponse(b, actor)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async rescheduleBooking(id: string, user: any, dto: RescheduleBookingDto) {
