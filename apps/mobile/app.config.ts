@@ -22,6 +22,7 @@ const baseConfig: ExpoConfig = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'HairConnekt benötigt deinen Standort, um Braider in deiner Nähe anzuzeigen.',
+      LSApplicationQueriesSchemes: ['comgooglemaps'],
     },
   },
   android: {
