@@ -21,6 +21,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
 | **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts`, `apps/backend/test/t17-private-id-storage.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization; T17: Private ID Document Storage & Migration` | `RESOLVED` (Active `it`) |
+| **BUG-050** | `apps/backend/test/t19-admin-id-document-corp.spec.ts` | `Admin provider ID document Cross-Origin-Resource-Policy same-site on 302 success, same-origin on errors and sibling routes` | `RESOLVED` (Active `it`) |
 
 ---
 
@@ -189,3 +190,21 @@ Because HairConnekt follows a strict **zero production code change** rule during
      - Preserved public file methods (`uploadFile`, `uploadFileWithKey`, `deleteFile`, `deleteByKey`) targeting `this.bucket`.
   3. Created migration script `apps/backend/scripts/migrate-id-documents-to-private-bucket.ts` supporting `--dry-run`, `--copy`, and `--purge-source` with strict prefix isolation, size/ETag verification, and safe pagination.
   4. Added comprehensive test suite `apps/backend/test/t17-private-id-storage.spec.ts` (14 passing tests) verifying bucket validation, upload separation, dual-read fallback, startup checks, and migration logic.
+
+---
+
+### BUG-050: Admin Provider ID Document Blocked by Helmet Cross-Origin-Resource-Policy [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` tests active in `apps/backend/test/t19-admin-id-document-corp.spec.ts`)
+- **Location**: `apps/backend/src/admin/admin-providers.controller.ts` (`getIdDocument` handler)
+- **Symptom**: Admin panel (`admin.hairconnekt.de`) → Provider details dialog → "AUSWEISDOKUMENT" section rendered the API endpoint URL (`https://api.hairconnekt.de/api/v1/admin/providers/<id>/id-document`) as an `<img src>`. Chrome DevTools reported the request as `(blocked:CORP not "same-origin")` with 0 bytes, so the image never appeared. The admin panel's avatar and popular-style images continued to load normally because they came directly from the public R2 host, not the API origin.
+- **Root Cause**: `app.use(helmet())` with default options (Helmet 8.1.0) sets `Cross-Origin-Resource-Policy: same-origin` on every response, including the 302 redirect emitted by `getIdDocument`. `admin.hairconnekt.de` and `api.hairconnekt.de` are two different origins, so the browser refused to hand the API-origin response to the admin-origin document as a subresource image load. No `Domain=.hairconnekt.de` cookie scope or SameSite mismatch was the blocker; the CORP header enforcement happened before any auth cookie logic.
+- **Resolution**:
+  1. In `apps/backend/src/admin/admin-providers.controller.ts`, immediately before the success-path `return res.redirect(signedUrl)` inside `getIdDocument`, added `res.setHeader('Cross-Origin-Resource-Policy', 'same-site')`. Because this line runs **after** the 401/403 guard chain and **after** the 404 `idDocumentUrl` presence check, only the 302 success response is relaxed; all error paths (401, 403, 404) still throw before reaching it and retain Helmet's strict `same-origin` default. All other routes in the API also keep `same-origin` because no other handler overwrites the header.
+  2. `same-site` permits subresource reads from any origin within the same registrable domain (both subdomains under `hairconnekt.de`) while still blocking every foreign origin (`*.com`, `*.net`, attacker sites). Combined with the unchanged guard chain, this is the narrowest correct relaxation.
+  3. Added regression suite `apps/backend/test/t19-admin-id-document-corp.spec.ts` (5 active tests) verifying:
+     - 302 success has CORP `same-site` and non-empty Location.
+     - Sibling `GET /admin/providers/:id` details endpoint still has CORP `same-origin`.
+     - Unauthenticated 401 has CORP `same-origin` and no Location.
+     - Admin 404 for a provider with no ID document has CORP `same-origin` and no Location.
+     - Authenticated non-admin (client role) is 403 rejected with no Location.

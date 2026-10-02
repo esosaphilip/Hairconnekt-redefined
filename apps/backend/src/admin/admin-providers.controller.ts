@@ -206,6 +206,16 @@ export class AdminProvidersController {
         expiresInSeconds: 60,
       },
     });
+    // The admin panel on the sibling subdomain (admin.hairconnekt.de) loads
+    // this endpoint as an <img src> to render the provider ID document inline.
+    // The default helmet() middleware sets Cross-Origin-Resource-Policy:
+    // same-origin on every response, which causes Chrome to block the
+    // cross-origin 302 to the API (api.hairconnekt.de). Relaxing the policy
+    // to same-site on this single success path limits the response to any
+    // origin within hairconnekt.de while every other route keeps the stricter
+    // helmet default. Error paths (401 / 403 / 404) throw before reaching
+    // this line and therefore retain helmet's same-origin.
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
     return res.redirect(signedUrl);
   }
 
