@@ -157,11 +157,17 @@ export function formatDisplayLinesMobile(
 
   for (const l of placeLines) lines.push(l);
 
-  if (statusNormalised === 'PENDING' && viewerRole === 'provider' && !displayStatusAllowed) {
-    lines.push(options.tNote ?? 'Exact address shown after accepting');
+  if (viewerRole === 'provider' && !displayStatusAllowed) {
+    if (statusNormalised === 'PENDING') {
+      if (hasAny) {
+        lines.push(options.tNote ?? 'Exact address shown after accepting');
+      } else {
+        lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
+      }
+    } else if (!hasAny) {
+      lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
+    }
   } else if (viewerRole === 'provider' && displayStatusAllowed && !hasAny) {
-    lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
-  } else if (viewerRole === 'provider' && !displayStatusAllowed && statusNormalised !== 'PENDING' && !hasAny) {
     lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
   } else if (viewerRole === 'client' && !hasAny) {
     lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
