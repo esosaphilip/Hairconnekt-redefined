@@ -10,6 +10,7 @@ import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
 import { openPhoneCall } from '@/utils/phone-call';
+import { getBookingLocation } from '@/utils/bookingLocation';
 
 type BookingParticipant = {
   id: string;
@@ -29,12 +30,13 @@ type BookingServiceItem = {
 type BookingAddress = {
   street?: string;
   houseNumber?: string;
+  postalCode?: string | null;
   city?: string;
 };
 
 type BookingDetail = {
   id: string;
-  status: string;
+  status?: string;
   scheduledDate: string;
   scheduledTime: string;
   totalMinutes?: number;
@@ -255,12 +257,16 @@ export default function BookingRequestScreen() {
             </View>
             <View style={styles.clientInfoCol}>
               <Text style={styles.clientName}>{booking.client.firstName} {booking.client.lastName[0]}.</Text>
-              {booking.isMobile && booking.address && (
-                <View style={styles.locationRow}>
-                  <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
-                  <Text style={styles.locationText}>{booking.address.city}</Text>
-                </View>
-              )}
+              <View style={styles.locationRow}>
+                <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
+                <Text style={styles.locationText}>
+                  {getBookingLocation(booking, 'provider', {
+                    tNote: t('bookingLocationAfterAccepting'),
+                    tNotProvided: t('bookingLocationNoAddress'),
+                    tAtYourStudio: t('bookingLocationAtProviderStudio'),
+                  }).displayLines[0]}
+                </Text>
+              </View>
               <Text style={styles.bookingsCount}>{t('bookingRequestPrevious')}: {booking.client.totalBookings || 0}</Text>
             </View>
           </View>
@@ -313,11 +319,30 @@ export default function BookingRequestScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('bookingRequestLocation')}</Text>
-            <Text style={styles.detailValue}>
-              {booking.isMobile && booking.address 
-                ? `${booking.address.street} ${booking.address.houseNumber}, ${booking.address.city}`
-                : t('bookingRequestStudio')}
-            </Text>
+            {(() => {
+              const loc = getBookingLocation(booking, 'provider', {
+                tNote: t('bookingLocationAfterAccepting'),
+                tNotProvided: t('bookingLocationNoAddress'),
+                tAtYourStudio: t('bookingLocationAtProviderStudio'),
+              });
+              return (
+                <View style={{ flex: 2, alignItems: 'flex-end' }}>
+                  {loc.displayLines.map((line, i) => (
+                    <Text
+                      key={i}
+                      style={{
+                        fontFamily: fonts.bodyMedium,
+                        fontSize: fontSizes.sm,
+                        color: colors.textPrimary,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {line}
+                    </Text>
+                  ))}
+                </View>
+              );
+            })()}
           </View>
 
           <View style={styles.divider} />

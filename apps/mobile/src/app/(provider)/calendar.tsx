@@ -11,6 +11,7 @@ import { formatAmount, formatBookingTime } from '@/utils/format';
 import { debugError } from '@/utils/logger';
 import { apiJson, getApiMessage } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
+import { getBookingLocation } from '@/utils/bookingLocation';
 
 interface BookingItem {
   id: string;
@@ -296,7 +297,13 @@ export default function ProviderCalendarScreen() {
               </View>
             ))}
 
-            {dayBookings.map(booking => (
+            {dayBookings.map(booking => {
+              const bookLoc = getBookingLocation(booking, 'provider', {
+                tNote: t('bookingLocationAfterAccepting'),
+                tNotProvided: t('bookingLocationNoAddress'),
+                tAtYourStudio: t('bookingLocationAtProviderStudio'),
+              });
+              return (
               <TouchableOpacity 
                 key={booking.id} 
                 style={styles.bookingCard}
@@ -332,9 +339,16 @@ export default function ProviderCalendarScreen() {
                     </View>
                     <Text style={styles.bookingPrice}>€{formatAmount(booking.totalPrice, lang)}</Text>
                   </View>
+                  {bookLoc.displayLines[0] && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm }}>
+                      <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs }} />
+                      <Text style={styles.bookingClient} numberOfLines={1}>{bookLoc.displayLines[0]}</Text>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </>
         )}
       </ScrollView>

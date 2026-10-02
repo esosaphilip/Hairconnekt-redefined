@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Image, SafeAreaView, Linking, Platform, ActionSheetIOS, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -10,6 +10,8 @@ import { formatAmount, formatBookingTime } from '../../../utils/format';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
+import { getBookingLocation } from '../../../utils/bookingLocation';
+import { openDirections } from '../../../utils/openDirections';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
@@ -96,10 +98,6 @@ export default function AppointmentsList() {
     }
   };
 
-  const openMaps = (address: string) => {
-    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
-  };
-
   const openChat = async (providerUserId: string) => {
     if (!providerUserId) return;
     try {
@@ -131,7 +129,8 @@ export default function AppointmentsList() {
     const user = provider.user || {};
     const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
     const avatarUri = user.avatarUrl as string | undefined;
-    const address = item.address ? `${item.address.street || ''} ${item.address.houseNumber || ''}, ${item.address.city || ''}`.trim() : (user.city as string | undefined);
+    const loc = getBookingLocation(item, 'client', { tNote: t('bookingLocationAfterAccepting'), tNotProvided: t('bookingLocationNoAddress'), tAtYourAddress: t('bookingLocationMobileAtClient') });
+    const address = loc.displayLines.join(', ');
     
     const serviceNames = item.services && item.services.length > 0
       ? item.services.map((s: any) => s.name).join(', ')
@@ -175,8 +174,30 @@ export default function AppointmentsList() {
 
         {/* ROW 4: Action Buttons */}
         <View style={styles.actionsRow}>
-          {!!address && (
-            <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(address)}>
+          {loc.routeAddress !== null && (
+            <TouchableOpacity style={styles.actionButton} onPress={() => openDirections(loc.routeAddress as string, {
+              platform: Platform.OS,
+              canOpenURL: Linking.canOpenURL.bind(Linking),
+              openURL: Linking.openURL.bind(Linking),
+              showActionSheet: (opts) => new Promise<number>((resolve) => {
+                ActionSheetIOS.showActionSheetWithOptions(
+                  {
+                    options: opts.options,
+                    cancelButtonIndex: opts.cancelButtonIndex,
+                    title: opts.title,
+                  },
+                  (index) => resolve(index)
+                );
+              }),
+              alert: Alert.alert,
+              strings: {
+                appleMaps: t('directionsAppleMaps'),
+                googleMaps: t('directionsGoogleMaps'),
+                cancel: t('directionsCancel'),
+                errorTitle: t('directionsErrorTitle'),
+                errorMessage: t('directionsErrorBody'),
+              },
+            })}>
               <Feather name="map-pin" size={fontSizes.md} color={colors.primary} style={styles.actionIcon} />
               <Text style={styles.actionButtonText}>{t('appointmentsRoute')}</Text>
             </TouchableOpacity>
