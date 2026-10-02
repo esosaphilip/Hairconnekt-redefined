@@ -68,19 +68,23 @@ export const fakeMailer = new FakeMailer();
 export class FakeR2Service {
   private readonly logger = new Logger(FakeR2Service.name);
   public readonly publicUrl = 'https://r2-test.hairconnekt.de';
-  public uploadedFiles: Array<{ key: string; mimeType: string; isPrivate: boolean }> = [];
+  public readonly bucket: string = process.env.R2_BUCKET_NAME || 'test-bucket';
+  public readonly privateBucket: string = process.env.R2_PRIVATE_BUCKET_NAME || 'test-private-bucket';
+  public uploadedFiles: Array<{ key: string; mimeType: string; isPrivate: boolean; bucket: string }> = [];
+  public deletedFiles: Array<{ key: string; bucket: string }> = [];
+  public signedUrlRequests: Array<{ key: string; bucket: string; expiresInSeconds: number }> = [];
 
   async uploadFile(buffer: Buffer, mimeType: string, folder: string): Promise<string> {
     const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
     const key = `${folder}/${uuidv4()}.${ext}`;
-    this.uploadedFiles.push({ key, mimeType, isPrivate: false });
+    this.uploadedFiles.push({ key, mimeType, isPrivate: false, bucket: this.bucket });
     return this.getPublicUrlForKey(key);
   }
 
   async uploadPrivateFile(buffer: Buffer, mimeType: string, folder: string): Promise<string> {
     const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
     const key = `${folder}/${uuidv4()}.${ext}`;
-    this.uploadedFiles.push({ key, mimeType, isPrivate: true });
+    this.uploadedFiles.push({ key, mimeType, isPrivate: true, bucket: this.privateBucket });
     return key;
   }
 
@@ -89,7 +93,7 @@ export class FakeR2Service {
   }
 
   async uploadFileWithKey(buffer: Buffer, mimeType: string, key: string): Promise<string> {
-    this.uploadedFiles.push({ key, mimeType, isPrivate: false });
+    this.uploadedFiles.push({ key, mimeType, isPrivate: false, bucket: this.bucket });
     return this.getPublicUrlForKey(key);
   }
 
@@ -103,6 +107,7 @@ export class FakeR2Service {
 
   async createSignedReadUrl(storedKey: string, expiresInSeconds = 60): Promise<string> {
     const key = this.normalizeStoredKey(storedKey);
+    this.signedUrlRequests.push({ key, bucket: this.privateBucket, expiresInSeconds });
     return `${this.publicUrl}/signed/${key}?expiresIn=${expiresInSeconds}`;
   }
 
@@ -112,11 +117,19 @@ export class FakeR2Service {
   }
 
   async deleteByKey(key: string): Promise<void> {
-    this.uploadedFiles = this.uploadedFiles.filter((f) => f.key !== key);
+    this.uploadedFiles = this.uploadedFiles.filter((f) => !(f.key === key && f.bucket === this.bucket));
+    this.deletedFiles.push({ key, bucket: this.bucket });
+  }
+
+  async deletePrivateByKey(key: string): Promise<void> {
+    this.uploadedFiles = this.uploadedFiles.filter((f) => !(f.key === key && f.bucket === this.privateBucket));
+    this.deletedFiles.push({ key, bucket: this.privateBucket });
   }
 
   clear(): void {
     this.uploadedFiles = [];
+    this.deletedFiles = [];
+    this.signedUrlRequests = [];
   }
 }
 
