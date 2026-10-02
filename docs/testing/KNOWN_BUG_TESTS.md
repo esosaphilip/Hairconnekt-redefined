@@ -20,8 +20,11 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-028** | `apps/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
+| **BUG-040 / BUG-041 / BUG-042 / BUG-044** | `apps/backend/test/t18-booking-location.spec.ts`, `apps/mobile/test/t20-mobile-address-location.spec.ts` | T18 backend + T20 mobile: Mobile screens display correct booking location per role & status privacy rules, saved-address badge live count, booking-address-field refactor | `RESOLVED` (Active `it`) |
+| **BUG-043** | `apps/mobile/test/t20-mobile-address-location.spec.ts` | T20 mobile only: Maps chooser on Route button press — iOS action sheet when GM installed else Apple Maps direct; Android geo intent; web fallback; no unhandled rejections | `RESOLVED` (Active `it`) |
 | **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts`, `apps/backend/test/t17-private-id-storage.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization; T17: Private ID Document Storage & Migration` | `RESOLVED` (Active `it`) |
 | **BUG-041 / BUG-042** | `apps/backend/test/t18-booking-location.spec.ts` | `T18: Booking Location Privacy & Default Address Rules` | `RESOLVED` (Active `it`) |
+| **BUG-048** | `apps/mobile/test/t20-mobile-address-location.spec.ts` | T20 mobile only: Client profile addresses menu badge uses live server count from GET /users/me/addresses, hidden on load/error | `RESOLVED` (Active `it`) |
 | **BUG-050** | `apps/backend/test/t19-admin-id-document-corp.spec.ts` | `Admin provider ID document Cross-Origin-Resource-Policy same-site on 302 success, same-origin on errors and sibling routes` | `RESOLVED` (Active `it`) |
 
 ---
@@ -180,6 +183,18 @@ Because HairConnekt follows a strict **zero production code change** rule during
   2. Applied `toBookingResponse` across `createBooking`, `findOne`, and `findAll` (and all actions returning `this.findOne`).
   3. Added comprehensive test suite `apps/backend/test/t16-booking-response-privacy.spec.ts` verifying recursive absence of sensitive fields, address rule enforcement, and preservation of required fields.
 
+- **Resolution (Step 2)**:
+  1. Created separate private Cloudflare R2 bucket configuration (`R2_PRIVATE_BUCKET_NAME`) across `render.yaml`, `apps/backend/.env.example`, `.github/workflows/ci.yml`, `test/env-guard.ts`, and `src/main.ts`.
+  2. Updated `R2Service` (`apps/backend/src/common/storage/r2.service.ts`):
+     - Fails fast on initialization if `R2_PRIVATE_BUCKET_NAME` is missing, empty, or equals `R2_BUCKET_NAME`.
+     - On module initialization in production, sends `HeadBucketCommand` against the private bucket.
+     - `uploadPrivateFile`: writes private files (including provider ID documents) strictly to `this.privateBucket` with `Cache-Control: private, no-cache, no-store`.
+     - Added `deletePrivateByKey(key)` to delete objects from `this.privateBucket`.
+     - `createSignedReadUrl`: checks the private bucket first; falls back to public bucket only on 404 (`NotFound`), logging a warning with no object key or credentials; rethrows any other errors immediately.
+     - Preserved public file methods (`uploadFile`, `uploadFileWithKey`, `deleteFile`, `deleteByKey`) targeting `this.bucket`.
+  3. Created migration script `apps/backend/scripts/migrate-id-documents-to-private-bucket.ts` supporting `--dry-run`, `--copy`, and `--purge-source` with strict prefix isolation, size/ETag verification, and safe pagination.
+  4. Added comprehensive test suite `apps/backend/test/t17-private-id-storage.spec.ts` (14 passing tests) verifying bucket validation, upload separation, dual-read fallback, startup checks, and migration logic.
+
 ---
 
 ### BUG-041 & BUG-042: Mobile Booking Address Privacy & Default Address Rules [RESOLVED]
@@ -201,17 +216,6 @@ Because HairConnekt follows a strict **zero production code change** rule during
      - `deleteAddress`: executed inside a database transaction; if the deleted address was default and other addresses remain, promotes the oldest remaining address (by `createdAt`) to `isDefault: true`.
      - `updateAddress`: ignores requests to set `isDefault: false` on the user's only default address while other addresses exist.
   3. Added regression test suite `apps/backend/test/t18-booking-location.spec.ts` (7 passing tests).
-- **Resolution (Step 2)**:
-  1. Created separate private Cloudflare R2 bucket configuration (`R2_PRIVATE_BUCKET_NAME`) across `render.yaml`, `apps/backend/.env.example`, `.github/workflows/ci.yml`, `test/env-guard.ts`, and `src/main.ts`.
-  2. Updated `R2Service` (`apps/backend/src/common/storage/r2.service.ts`):
-     - Fails fast on initialization if `R2_PRIVATE_BUCKET_NAME` is missing, empty, or equals `R2_BUCKET_NAME`.
-     - On module initialization in production, sends `HeadBucketCommand` against the private bucket.
-     - `uploadPrivateFile`: writes private files (including provider ID documents) strictly to `this.privateBucket` with `Cache-Control: private, no-cache, no-store`.
-     - Added `deletePrivateByKey(key)` to delete objects from `this.privateBucket`.
-     - `createSignedReadUrl`: checks the private bucket first; falls back to public bucket only on 404 (`NotFound`), logging a warning with no object key or credentials; rethrows any other errors immediately.
-     - Preserved public file methods (`uploadFile`, `uploadFileWithKey`, `deleteFile`, `deleteByKey`) targeting `this.bucket`.
-  3. Created migration script `apps/backend/scripts/migrate-id-documents-to-private-bucket.ts` supporting `--dry-run`, `--copy`, and `--purge-source` with strict prefix isolation, size/ETag verification, and safe pagination.
-  4. Added comprehensive test suite `apps/backend/test/t17-private-id-storage.spec.ts` (14 passing tests) verifying bucket validation, upload separation, dual-read fallback, startup checks, and migration logic.
 
 ---
 
@@ -230,3 +234,36 @@ Because HairConnekt follows a strict **zero production code change** rule during
      - Unauthenticated 401 has CORP `same-origin` and no Location.
      - Admin 404 for a provider with no ID document has CORP `same-origin` and no Location.
      - Authenticated non-admin (client role) is 403 rejected with no Location.
+
+---
+
+### BUG-040 & BUG-044: Mobile Booking Location Privacy, Live Address Badge & Address-Field Refactor [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` tests active in `apps/mobile/test/t20-mobile-address-location.spec.ts` and `apps/backend/test/t18-booking-location.spec.ts`)
+- **Location**: `apps/mobile/src/utils/address.ts`, `apps/mobile/src/utils/location.ts`, `apps/mobile/src/app/(client)/booking/details.tsx`, `apps/mobile/src/app/(provider)/booking-request/[id].tsx`
+- **Symptom**: Mobile booking screens displayed inconsistent booking location per role/status; saved-address badge count was stale or hardcoded; booking-address field logic was duplicated inline across screens without reusable utilities.
+- **Root Cause**: Absence of centralized mobile-side address privacy helpers; screens reimplemented address rendering and badge counts without live server state.
+- **Resolution**: Extracted `formatAddressForRole(booking, actor)` and `useAddressesCount()` into `apps/mobile/src/utils/`, refactored booking screens to use shared `BookingAddressField` components, and wired saved-address badges to the live `GET /users/me/addresses` response length.
+- **Tests**: Active `it` tests in T18 backend (`apps/backend/test/t18-booking-location.spec.ts`) and T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
+
+---
+
+### BUG-043: Route Button Maps Chooser (iOS Action Sheet / Android geo / Web Fallback) [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-mobile-address-location.spec.ts`)
+- **Location**: `apps/mobile/src/utils/maps.ts`, `apps/mobile/src/app/(provider)/booking-request/[id].tsx`, `apps/mobile/src/app/(client)/bookings/[id].tsx`
+- **Symptom**: Tapping the "Route" navigation button produced unhandled promise rejections on unsupported schemes, silently failed on web, and had no platform-aware chooser between Google Maps, Apple Maps, and browser fallback.
+- **Root Cause**: Raw `Linking.openURL(url)` calls without `canOpenURL` guards, and no iOS/Android/web platform branching for map navigation schemes.
+- **Resolution**: Implemented `openMapsRouter(address)` in `apps/mobile/src/utils/maps.ts` detecting Google Maps installation on iOS and presenting an action sheet or falling back to Apple Maps direct; on Android opens a `geo:` intent; on web falls back to Google Maps URL; all promise chains catch errors with no unhandled rejections.
+- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
+
+---
+
+### BUG-048: Client Profile Addresses Menu Badge Uses Live Server Count [RESOLVED]
+
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-mobile-address-location.spec.ts`)
+- **Location**: `apps/mobile/src/utils/useAddresses.ts`, `apps/mobile/src/app/(client)/profile/index.tsx`
+- **Symptom**: The client profile "Addresses" menu item displayed a hardcoded or stale badge value, and the badge remained visible during loading and after fetch errors, misleading users about how many saved addresses they had.
+- **Root Cause**: Badge value was a static literal; no hook wired to `GET /users/me/addresses`, and no conditional visibility tied to `isLoading` / `isError` state.
+- **Resolution**: Added `useAddresses()` hook in `apps/mobile/src/utils/useAddresses.ts` fetching live `GET /users/me/addresses` and exposing `count`, `isLoading`, and `isError`; profile menu badge now hides on load/error and displays the server-returned array length.
+- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
