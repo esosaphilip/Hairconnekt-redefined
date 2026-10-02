@@ -354,6 +354,25 @@ describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
       expect(r.routeAddress).toBeNull();
     });
 
+    it('polish: provider mobile PENDING address null → exact tNotProvided display, routeAddress null', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'PENDING', address: null },
+        'provider',
+        { tNote: 'Exact address shown after accepting', tNotProvided: 'Mobile service — address not provided' },
+      );
+      expect(r.displayLines).toEqual(['Mobile service — address not provided']);
+      expect(r.routeAddress).toBeNull();
+    });
+
+    it('polish: provider mobile PENDING address { postalCode 10115 + city Berlin } → place first, note second', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'PENDING', address: { postalCode: '10115', city: 'Berlin' } },
+        'provider',
+        { tNote: 'Exact address shown after accepting', tNotProvided: 'Mobile service — address not provided' },
+      );
+      expect(r.displayLines).toEqual(['10115 Berlin', 'Exact address shown after accepting']);
+    });
+
     it('defect A2: client PENDING studio provider with only city Köln → displayLines[0] is Köln; displayLines[1] is the note', () => {
       const r = getBookingLocation(
         { isMobile: false, status: 'PENDING', provider: { city: 'Köln' } },

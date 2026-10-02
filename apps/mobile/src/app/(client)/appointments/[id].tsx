@@ -142,6 +142,7 @@ export default function AppointmentDetails() {
   const avatarUri = user.avatarUrl as string | undefined;
   const loc = getBookingLocation(booking, 'client', {
     tNote: t('bookingLocationAfterAccepting'),
+    tNotProvided: t('bookingLocationNoAddress'),
     tAtYourAddress: t('bookingLocationMobileAtClient'),
   });
 

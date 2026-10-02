@@ -273,7 +273,11 @@ export default function ClientProfileScreen() {
             title={t('clientProfileAddresses')} 
             rightComponent={
               addrCountVisible && !addrCountLoading && savedAddrCount != null && savedAddrCount >= 0
-                ? <Text style={styles.badgeCountText}>{savedAddrCount} {t('clientProfileSaved')}</Text>
+                ? (
+                  <View style={styles.badgeCount}>
+                    <Text style={styles.badgeCountText}>{savedAddrCount} {t('clientProfileSaved')}</Text>
+                  </View>
+                )
                 : null
             }
             onPress={() => router.push('/(shared)/addresses')} 
