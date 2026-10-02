@@ -1,0 +1,466 @@
+import fs from 'fs';
+import path from 'path';
+import {
+  getBookingLocation,
+  formatRouteAddress,
+  formatDisplayLinesMobile,
+  formatDisplayLinesStudio,
+  BookingLocationInput,
+} from '../src/utils/bookingLocation';
+import {
+  buildAppleMapsUrl,
+  buildGoogleMapsAppUrl,
+  buildAndroidGeoUrl,
+  buildWebFallbackUrl,
+  openDirections,
+} from '../src/utils/openDirections';
+
+const srcDir = path.join(__dirname, '..', 'src');
+const bookingsProviderFile = path.join(
+  srcDir,
+  'app',
+  '(provider)',
+  'appointments',
+  '[id].tsx',
+);
+const clientProfileFile = path.join(
+  srcDir,
+  'app',
+  '(client)',
+  'profile',
+  'index.tsx',
+);
+const clientBookingsListFile = path.join(
+  srcDir,
+  'app',
+  '(client)',
+  'appointments',
+  'index.tsx',
+);
+
+const allSourceFiles: string[] = [];
+function walk(d: string) {
+  const entries = fs.readdirSync(d, { withFileTypes: true });
+  for (const e of entries) {
+    const fp = path.join(d, e.name);
+    if (e.isDirectory()) walk(fp);
+    else if (/\.(tsx?|jsx?)$/.test(e.name)) allSourceFiles.push(fp);
+  }
+}
+walk(srcDir);
+
+function fileContains(filePath: string, pat: RegExp): boolean {
+  return pat.test(fs.readFileSync(filePath, 'utf-8'));
+}
+
+function countMatchesInFiles(patterns: RegExp[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const fp of allSourceFiles) {
+    const content = fs.readFileSync(fp, 'utf-8');
+    for (const p of patterns) {
+      const key = p.source;
+      out[key] = (out[key] ?? 0) + ((content.match(p) ?? []) as unknown as RegExpExecArray[]).length;
+    }
+  }
+  return out;
+}
+
+describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
+  describe('1. formatRouteAddress output format', () => {
+    it('returns null when street is missing', () => {
+      expect(
+        formatRouteAddress({ city: 'Berlin', postalCode: '12345' }),
+      ).toBeNull();
+    });
+    it('returns null when city is missing', () => {
+      expect(
+        formatRouteAddress({ street: 'Hauptstraße', postalCode: '12345' }),
+      ).toBeNull();
+    });
+    it('includes houseNumber in first segment when present', () => {
+      expect(
+        formatRouteAddress({
+          street: 'Am Fußberg',
+          houseNumber: '12',
+          postalCode: '12347',
+          city: 'Berlin',
+        }),
+      ).toBe('Am Fußberg 12, 12347 Berlin, Deutschland');
+    });
+    it('omits space padding when houseNumber absent', () => {
+      expect(
+        formatRouteAddress({
+          street: 'Am Fußberg',
+          postalCode: '12347',
+          city: 'Berlin',
+        }),
+      ).toBe('Am Fußberg, 12347 Berlin, Deutschland');
+    });
+  });
+
+  describe('2. getBookingLocation matrix (provider confirmed mobile)', () => {
+    const fullAddress = {
+      street: 'Hauptstraße',
+      houseNumber: '8a',
+      postalCode: '10115',
+      city: 'Berlin',
+    };
+
+    it('provider confirmed mobile → routeAddress non-null, kind mobile, traveller provider', () => {
+      const booking: BookingLocationInput = {
+        isMobile: true,
+        status: 'CONFIRMED',
+        address: fullAddress,
+      };
+      const r = getBookingLocation(booking, 'provider');
+      expect(r.kind).toBe('mobile');
+      expect(r.traveller).toBe('provider');
+      expect(r.routeAddress).toBeTruthy();
+      expect(r.routeAddress?.endsWith(', Deutschland')).toBe(true);
+    });
+
+    it('provider PENDING mobile → routeAddress null, displayLines do NOT contain "null" or "undefined"', () => {
+      const booking: BookingLocationInput = {
+        isMobile: true,
+        status: 'PENDING',
+        address: fullAddress,
+      };
+      const r = getBookingLocation(booking, 'provider', {
+        tNote: 'Exact address shown after accepting',
+      });
+      expect(r.routeAddress).toBeNull();
+      for (const line of r.displayLines) {
+        expect(line).not.toMatch(/\bnull\b/);
+        expect(line).not.toMatch(/\bundefined\b/);
+      }
+      expect(r.displayLines.join(' ')).toContain('Exact address shown after accepting');
+    });
+
+    it('client viewing mobile PENDING → displayLines include address, routeAddress null (since client sees their own, but status pending hides provider travel option for routing? status pending → routeAddress null)', () => {
+      const booking: BookingLocationInput = {
+        isMobile: true,
+        status: 'PENDING',
+        address: fullAddress,
+      };
+      const r = getBookingLocation(booking, 'client', {
+        tAtYourAddress: 'Mobile service at your address',
+      });
+      expect(r.kind).toBe('mobile');
+      expect(r.traveller).toBe('provider');
+      expect(r.routeAddress).toBeNull();
+      expect(r.displayLines.some((l) => l.includes('Mobile service at your address'))).toBe(true);
+      // Client always sees full lines even in pending (own address)
+      expect(
+        r.displayLines.some(
+          (l) => l.includes('Hauptstraße 8a') && l.includes('10115 Berlin'),
+        ),
+      ).toBe(true);
+    });
+
+    it('client CONFIRMED studio (non-mobile) → routeAddress non-null with provider addr', () => {
+      const booking: BookingLocationInput = {
+        isMobile: false,
+        status: 'CONFIRMED',
+        provider: {
+          street: 'Studioallee',
+          houseNumber: '3',
+          postalCode: '60311',
+          city: 'Frankfurt am Main',
+        },
+      };
+      const r = getBookingLocation(booking, 'client', {
+        tNote: 'Exact address shown after accepting',
+      });
+      expect(r.kind).toBe('studio');
+      expect(r.traveller).toBe('client');
+      expect(r.routeAddress).toBe(
+        'Studioallee 3, 60311 Frankfurt am Main, Deutschland',
+      );
+    });
+
+    it('studio PENDING client → routeAddress null; shows tNote + city only', () => {
+      const booking: BookingLocationInput = {
+        isMobile: false,
+        status: 'PENDING',
+        provider: {
+          postalCode: '60311',
+          city: 'Frankfurt am Main',
+        },
+      };
+      const r = getBookingLocation(booking, 'client', {
+        tNote: 'Exact address shown after accepting',
+      });
+      expect(r.routeAddress).toBeNull();
+      expect(r.displayLines.join(' ')).toContain('Exact address shown after accepting');
+      expect(r.displayLines.join(' ')).toContain('60311 Frankfurt am Main');
+    });
+
+    it('null address on provider + mobile CONFIRMED → gracefully uses tNotProvided, routeAddress null, never shows "null" string', () => {
+      const booking: BookingLocationInput = {
+        isMobile: true,
+        status: 'CONFIRMED',
+        address: null as unknown as undefined,
+      };
+      const r = getBookingLocation(booking, 'provider', {
+        tNotProvided: 'Mobile service — address not provided',
+      });
+      for (const line of r.displayLines) {
+        expect(line).not.toMatch(/\bnull\b/);
+        expect(line).not.toMatch(/\bundefined\b/);
+      }
+      expect(r.displayLines.join(' ')).toContain('Mobile service — address not provided');
+      expect(r.routeAddress).toBeNull();
+    });
+
+    it('missing postalCode + houseNumber in provider confirmed mobile → still builds routeAddress with street+city only', () => {
+      const booking: BookingLocationInput = {
+        isMobile: true,
+        status: 'CONFIRMED',
+        address: { street: 'Hauptstraße', city: 'München' },
+      };
+      const r = getBookingLocation(booking, 'provider');
+      expect(r.routeAddress).toBe('Hauptstraße, München, Deutschland');
+      for (const line of r.displayLines) {
+        expect(line).not.toMatch(/\bnull\b/);
+        expect(line).not.toMatch(/\bundefined\b/);
+      }
+    });
+  });
+
+  describe('3. URL builders encode spaces, commas, ß, umlauts', () => {
+    const addrWithSpecialChars =
+      'Straße 12, 12347 Berlin-Mitte, Deutschland';
+    const addrWithUmlaut = 'Österreichischer Allee 3, 1010 Wien';
+
+    it('buildAppleMapsUrl encodes', () => {
+      expect(buildAppleMapsUrl(addrWithSpecialChars)).toBe(
+        'https://maps.apple.com/?daddr=' +
+          encodeURIComponent(addrWithSpecialChars) +
+          '&dirflg=d',
+      );
+      expect(buildAppleMapsUrl(addrWithUmlaut)).toBe(
+        'https://maps.apple.com/?daddr=' +
+          encodeURIComponent(addrWithUmlaut) +
+          '&dirflg=d',
+      );
+    });
+
+    it('buildGoogleMapsAppUrl uses comgooglemaps scheme + driving mode', () => {
+      expect(buildGoogleMapsAppUrl(addrWithSpecialChars)).toBe(
+        'comgooglemaps://?daddr=' +
+          encodeURIComponent(addrWithSpecialChars) +
+          '&directionsmode=driving',
+      );
+      expect(buildGoogleMapsAppUrl(addrWithUmlaut)).toBe(
+        'comgooglemaps://?daddr=' +
+          encodeURIComponent(addrWithUmlaut) +
+          '&directionsmode=driving',
+      );
+    });
+
+    it('buildAndroidGeoUrl uses geo:0,0?q=', () => {
+      expect(buildAndroidGeoUrl(addrWithSpecialChars)).toBe(
+        'geo:0,0?q=' + encodeURIComponent(addrWithSpecialChars),
+      );
+    });
+
+    it('buildWebFallbackUrl uses Google Maps dir API destination param', () => {
+      expect(buildWebFallbackUrl(addrWithSpecialChars)).toBe(
+        'https://www.google.com/maps/dir/?api=1&destination=' +
+          encodeURIComponent(addrWithSpecialChars),
+      );
+    });
+  });
+
+  describe('4. openDirections platform behaviour (never rejects, assert expected calls)', () => {
+    const strings = {
+      appleMaps: 'Apple Maps',
+      googleMaps: 'Google Maps',
+      cancel: 'Cancel',
+      errorTitle: 'Could not open directions',
+      errorMessage: 'Please try again',
+    };
+
+    it('iOS with Google Maps installed → shows action sheet; user picks Apple Maps → opens maps.apple.com URL', async () => {
+      const canOpenURL = jest.fn().mockResolvedValue(true);
+      const openURL = jest.fn().mockResolvedValue(true);
+      const showActionSheet = jest.fn().mockResolvedValue(0);
+      const alert = jest.fn();
+      const addr = 'Hauptstraße 1, Berlin';
+
+      await openDirections(addr, {
+        platform: 'ios',
+        canOpenURL,
+        openURL,
+        showActionSheet,
+        alert,
+        strings,
+      });
+
+      expect(canOpenURL).toHaveBeenCalledWith('comgooglemaps://');
+      expect(showActionSheet).toHaveBeenCalledWith({
+        options: ['Apple Maps', 'Google Maps', 'Cancel'],
+        cancelButtonIndex: 2,
+      });
+      expect(openURL).toHaveBeenCalledWith(buildAppleMapsUrl(addr));
+      expect(alert).not.toHaveBeenCalled();
+    });
+
+    it('iOS + GM installed; user picks Google Maps (index 1) → comgooglemaps:// scheme called', async () => {
+      const openURL = jest.fn().mockResolvedValue(true);
+      const addr = 'Hauptstraße 1, Berlin';
+      await openDirections(addr, {
+        platform: 'ios',
+        canOpenURL: jest.fn().mockResolvedValue(true),
+        openURL,
+        showActionSheet: jest.fn().mockResolvedValue(1),
+        alert: jest.fn(),
+        strings,
+      });
+      expect(openURL).toHaveBeenCalledWith(buildGoogleMapsAppUrl(addr));
+    });
+
+    it('iOS + GM installed; user taps Cancel (index 2) → no URL opened, no alert, resolves void', async () => {
+      const openURL = jest.fn();
+      const alert = jest.fn();
+      await expect(
+        openDirections('A, B', {
+          platform: 'ios',
+          canOpenURL: jest.fn().mockResolvedValue(true),
+          openURL,
+          showActionSheet: jest.fn().mockResolvedValue(2),
+          alert,
+          strings,
+        }),
+      ).resolves.toBeUndefined();
+      expect(openURL).not.toHaveBeenCalled();
+      expect(alert).not.toHaveBeenCalled();
+    });
+
+    it('iOS without Google Maps → opens Apple Maps directly; never calls showActionSheet', async () => {
+      const canOpenURL = jest.fn().mockResolvedValue(false);
+      const showActionSheet = jest.fn();
+      const openURL = jest.fn().mockResolvedValue(true);
+      await openDirections('X, Y', {
+        platform: 'ios',
+        canOpenURL,
+        openURL,
+        showActionSheet,
+        alert: jest.fn(),
+        strings,
+      });
+      expect(canOpenURL).toHaveBeenCalledWith('comgooglemaps://');
+      expect(showActionSheet).not.toHaveBeenCalled();
+      expect(openURL).toHaveBeenCalledWith(buildAppleMapsUrl('X, Y'));
+    });
+
+    it('Android → geo:0,0?q= intent called directly; no action sheet', async () => {
+      const showActionSheet = jest.fn();
+      const openURL = jest.fn().mockResolvedValue(true);
+      await openDirections('A, B', {
+        platform: 'android',
+        canOpenURL: jest.fn(),
+        openURL,
+        showActionSheet,
+        alert: jest.fn(),
+        strings,
+      });
+      expect(openURL).toHaveBeenCalledWith(buildAndroidGeoUrl('A, B'));
+      expect(showActionSheet).not.toHaveBeenCalled();
+    });
+
+    it('all platforms: if primary URL fails (throws), opens buildWebFallbackUrl; if fallback fails → alert() called with title+message (never rejects)', async () => {
+      const openURL = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('primary fail'))
+        .mockRejectedValueOnce(new Error('fallback fail'));
+      const alert = jest.fn();
+
+      await expect(
+        openDirections('addr', {
+          platform: 'android',
+          canOpenURL: jest.fn(),
+          openURL,
+          showActionSheet: jest.fn(),
+          alert,
+          strings,
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(openURL).toHaveBeenCalledWith(buildAndroidGeoUrl('addr'));
+      expect(openURL).toHaveBeenLastCalledWith(buildWebFallbackUrl('addr'));
+      expect(alert).toHaveBeenCalledWith(
+        'Could not open directions',
+        'Please try again',
+      );
+    });
+
+    it('openDirections never rejects unhandled: even if alert() throws, outer wrapper still resolves void', async () => {
+      const openURL = jest
+        .fn()
+        .mockRejectedValue(new Error('boom'));
+      const alert = jest.fn(() => {
+        throw new Error('alert also fails');
+      });
+      await expect(
+        openDirections('x', {
+          platform: 'ios',
+          canOpenURL: jest.fn().mockResolvedValue(false),
+          openURL,
+          showActionSheet: jest.fn(),
+          alert,
+          strings,
+        }),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('5. Banned-string static audit (filesystem grep)', () => {
+    it('maps.google.com literal has 0 occurrences across mobile src', () => {
+      const c = countMatchesInFiles([/maps\.google\.com/g]);
+      expect(Object.values(c).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    it('providerUnknownCity has 0 occurrences (key deleted + no usage)', () => {
+      const c = countMatchesInFiles([/providerUnknownCity/g]);
+      expect(Object.values(c).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    it('"City unknown" has 0 literal occurrences (relied on providerUnknownCity before)', () => {
+      const c = countMatchesInFiles([/City unknown/g, /Stadt unbekannt/g]);
+      expect(Object.values(c).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    it('deprecated addressStreet / addressHouseNumber / addressCity / addressPostalCode (old flat fields) have 0 occurrences', () => {
+      const c = countMatchesInFiles([
+        /\baddressStreet\b/g,
+        /\baddressHouseNumber\b/g,
+        /\baddressCity\b/g,
+        /\baddressPostalCode\b/g,
+      ]);
+      expect(Object.values(c).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    it('booking.client?.city pattern has 0 occurrences (removed from provider appointments screen)', () => {
+      const c = countMatchesInFiles([
+        /booking\.client\?\.city/g,
+        /client\?\.city/g,
+        /booking\.client\.address\?\.city/g,
+      ]);
+      expect(Object.values(c).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    it('hard-coded "> 2 saved " / "2 Saved" in profile screen replaced with live count', () => {
+      const profileContent = fs.readFileSync(clientProfileFile, 'utf-8');
+      // old pattern: `<Text>2 {t('clientProfileSaved')}</Text>` → gone
+      expect(profileContent).not.toMatch(/>\s*2\s*\{?t\(['"]clientProfileSaved['"]\)\}?\s*<\/Text>/);
+      expect(profileContent).not.toMatch(/[^\dA-Za-z]\s*2\s*saved/i);
+    });
+
+    it('totalBookings reference kept as the TWO allowed occurrences (1x type decl + 1x usage) in booking-request screen exactly', () => {
+      const c = countMatchesInFiles([/\btotalBookings\b/g]);
+      const total = Object.values(c).reduce((a, b) => a + b, 0);
+      expect(total).toBe(2);
+    });
+  });
+});
