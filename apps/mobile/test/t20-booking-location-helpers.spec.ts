@@ -136,7 +136,7 @@ describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
       expect(r.displayLines.join(' ')).toContain('Exact address shown after accepting');
     });
 
-    it('client viewing mobile PENDING → displayLines include address, routeAddress null (since client sees their own, but status pending hides provider travel option for routing? status pending → routeAddress null)', () => {
+    it('client viewing mobile PENDING always sees their own full address, while routeAddress stays null because viewer is not the traveller on mobile bookings', () => {
       const booking: BookingLocationInput = {
         isMobile: true,
         status: 'PENDING',
@@ -302,6 +302,119 @@ describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
           'client',
         ).routeAddress,
       ).toBe(exactStudioRoute);
+    });
+
+    const noHouseMobileAddr = {
+      street: 'Hauptstraße',
+      postalCode: '10115',
+      city: 'Berlin',
+    };
+
+    it('defect A1: client viewing mobile CONFIRMED with street+postal+city but no houseNumber still shows street, postal+city, no "address not provided"', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'CONFIRMED', address: noHouseMobileAddr },
+        'client',
+      );
+      expect(r.displayLines.join(' ')).toContain('Hauptstraße');
+      expect(r.displayLines.join(' ')).toContain('10115 Berlin');
+      expect(r.displayLines.join(' ')).not.toContain('address not provided');
+      expect(r.displayLines.join(' ')).not.toContain('nicht hinterlegt');
+    });
+
+    it('defect A1: provider viewing mobile CONFIRMED street/no-house shows street, no "address not provided"; routeAddress exact Hauptstraße, 10115 Berlin, Deutschland', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'CONFIRMED', address: noHouseMobileAddr },
+        'provider',
+      );
+      expect(r.displayLines.join(' ')).toContain('Hauptstraße');
+      expect(r.displayLines.join(' ')).not.toContain('address not provided');
+      expect(r.displayLines.join(' ')).not.toContain('nicht hinterlegt');
+      expect(r.routeAddress).toBe('Hauptstraße, 10115 Berlin, Deutschland');
+    });
+
+    it('defect A2: provider PENDING mobile full address → displayLines[0] is postal+city; displayLines[1] is the note; no street', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'PENDING', address: fullMobileAddr },
+        'provider',
+        { tNote: 'Exact address shown after accepting' },
+      );
+      expect(r.displayLines[0]).toBe('10115 Berlin');
+      expect(r.displayLines[1]).toBe('Exact address shown after accepting');
+      expect(r.displayLines.join(' ')).not.toContain(fullMobileAddr.street);
+      expect(r.displayLines.join(' ')).not.toContain(fullMobileAddr.houseNumber);
+    });
+
+    it('defect A2: provider CANCELLED mobile full address → displayLines exactly [postal+city], no note, no street; routeAddress null', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'CANCELLED', address: fullMobileAddr },
+        'provider',
+        { tNote: 'Exact address shown after accepting' },
+      );
+      expect(r.displayLines).toEqual(['10115 Berlin']);
+      expect(r.routeAddress).toBeNull();
+    });
+
+    it('defect A2: client PENDING studio provider with only city Köln → displayLines[0] is Köln; displayLines[1] is the note', () => {
+      const r = getBookingLocation(
+        { isMobile: false, status: 'PENDING', provider: { city: 'Köln' } },
+        'client',
+        { tNote: 'Exact address shown after accepting' },
+      );
+      expect(r.displayLines[0]).toBe('Köln');
+      expect(r.displayLines[1]).toBe('Exact address shown after accepting');
+    });
+
+    it('defect A2: client CANCELLED studio provider with only city Köln → displayLines exactly [Köln], no note', () => {
+      const r = getBookingLocation(
+        { isMobile: false, status: 'CANCELLED', provider: { city: 'Köln' } },
+        'client',
+        { tNote: 'Exact address shown after accepting' },
+      );
+      expect(r.displayLines).toEqual(['Köln']);
+    });
+
+    it('defect A3: provider mobile status lowercase confirmed returns full display with street + exact routeAddress', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'confirmed', address: fullMobileAddr },
+        'provider',
+      );
+      expect(r.routeAddress).toBe(exactMobileRoute);
+      expect(r.displayLines.join(' ')).toContain(fullMobileAddr.street);
+    });
+
+    it('defect A3: client studio status snake_case lower-case in_progress returns exact routeAddress with full provider addr', () => {
+      const r = getBookingLocation(
+        { isMobile: false, status: 'in_progress', provider: fullStudioProviderAddr },
+        'client',
+      );
+      expect(r.routeAddress).toBe(exactStudioRoute);
+    });
+
+    it('defect A3: status hyphen+space variants normalise so client studio "in progress" + provider "CONFIRMED" equal their canonical counterparts; provider mobile address null PENDING shows only "address not provided" once and never null/undefined', () => {
+      const rA = getBookingLocation(
+        { isMobile: false, status: 'in progress', provider: fullStudioProviderAddr },
+        'client',
+      );
+      expect(rA.routeAddress).toBe(exactStudioRoute);
+
+      const rB = getBookingLocation(
+        { isMobile: false, status: 'in-progress', provider: fullStudioProviderAddr },
+        'client',
+      );
+      expect(rB.routeAddress).toBe(exactStudioRoute);
+
+      const rC = getBookingLocation(
+        { isMobile: true, status: undefined, address: null },
+        'provider',
+        {
+          tNotProvided: 'Mobile service — address not provided',
+        },
+      );
+      expect(rC.displayLines).toEqual(['Mobile service — address not provided']);
+      for (const line of rC.displayLines) {
+        expect(line).not.toMatch(/\bnull\b/);
+        expect(line).not.toMatch(/\bundefined\b/);
+      }
     });
   });
 

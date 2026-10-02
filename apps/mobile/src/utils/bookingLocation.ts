@@ -46,6 +46,17 @@ function hasStreetAndCity(parts: BookingAddressParts | null | undefined): boolea
   return isNonEmptyString(parts.street) && isNonEmptyString(parts.city);
 }
 
+function normaliseStatus(raw: unknown): string {
+  if (raw === null || raw === undefined) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+  return s
+    .replace(/[\s-]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+}
+
 export function formatRouteAddress(
   parts: BookingAddressParts,
 ): string | null {
@@ -71,112 +82,89 @@ export function formatRouteAddress(
   return `${firstSegment}, ${secondSegment}, Deutschland`;
 }
 
+function buildPlaceLines(
+  parts: BookingAddressParts | null | undefined,
+  showFull: boolean,
+): { placeLines: string[]; hasAny: boolean } {
+  const placeLines: string[] = [];
+
+  if (showFull) {
+    const firstSegParts: string[] = [];
+    if (isNonEmptyString(parts?.street)) {
+      firstSegParts.push(parts!.street!.trim());
+      if (isNonEmptyString(parts?.houseNumber)) {
+        firstSegParts.push(parts!.houseNumber!.trim());
+      }
+    }
+    const firstSeg = firstSegParts.join(' ');
+
+    const secondSegParts: string[] = [];
+    if (isNonEmptyString(parts?.postalCode)) {
+      secondSegParts.push(parts!.postalCode!.trim());
+    }
+    if (isNonEmptyString(parts?.city)) {
+      secondSegParts.push(parts!.city!.trim());
+    }
+    const secondSeg = secondSegParts.join(' ');
+
+    if (firstSeg && secondSeg) {
+      placeLines.push(`${firstSeg}, ${secondSeg}`);
+    } else if (firstSeg) {
+      placeLines.push(firstSeg);
+    } else if (secondSeg) {
+      placeLines.push(secondSeg);
+    }
+  } else {
+    const onlyCityParts: string[] = [];
+    if (isNonEmptyString(parts?.postalCode)) {
+      onlyCityParts.push(parts!.postalCode!.trim());
+    }
+    if (isNonEmptyString(parts?.city)) {
+      onlyCityParts.push(parts!.city!.trim());
+    }
+    const onlyCity = onlyCityParts.join(' ');
+    if (onlyCity) placeLines.push(onlyCity);
+  }
+
+  const hasAny =
+    isNonEmptyString(parts?.street) ||
+    isNonEmptyString(parts?.postalCode) ||
+    isNonEmptyString(parts?.city);
+
+  return { placeLines, hasAny };
+}
+
 type MobileDisplayContext = {
   address: BookingAddressParts | null | undefined;
   viewerRole: 'client' | 'provider';
-  statusAllowed: boolean;
+  statusNormalised: string;
+  displayStatusAllowed: boolean;
   options: BookingLocationOptions;
 };
 
 export function formatDisplayLinesMobile(
   ctx: MobileDisplayContext,
 ): string[] {
-  const { address, viewerRole, statusAllowed, options } = ctx;
+  const { address, viewerRole, statusNormalised, displayStatusAllowed, options } = ctx;
   const lines: string[] = [];
 
-  const hasFullAddress =
-    isNonEmptyString(address?.street) && isNonEmptyString(address?.houseNumber);
-  const hasPostalCity =
-    isNonEmptyString(address?.postalCode) || isNonEmptyString(address?.city);
+  const showFullAddress = viewerRole === 'client' || displayStatusAllowed;
+  const { placeLines, hasAny } = buildPlaceLines(address, showFullAddress);
 
   if (viewerRole === 'client') {
     lines.push(options.tAtYourAddress ?? 'Mobile service at your address');
+  }
 
-    if (hasFullAddress) {
-      const streetLineParts: string[] = [];
-      streetLineParts.push(address!.street!.trim());
-      if (isNonEmptyString(address?.houseNumber)) {
-        streetLineParts.push(address!.houseNumber!.trim());
-      }
-      const streetLine = streetLineParts.join(' ');
+  for (const l of placeLines) lines.push(l);
 
-      const cityLineParts: string[] = [];
-      if (isNonEmptyString(address?.postalCode)) {
-        cityLineParts.push(address!.postalCode!.trim());
-      }
-      if (isNonEmptyString(address?.city)) {
-        cityLineParts.push(address!.city!.trim());
-      }
-      const cityLine = cityLineParts.join(' ');
-
-      if (cityLine) {
-        lines.push(`${streetLine}, ${cityLine}`);
-      } else {
-        lines.push(streetLine);
-      }
-    } else if (hasPostalCity) {
-      const cityLineParts: string[] = [];
-      if (isNonEmptyString(address?.postalCode)) {
-        cityLineParts.push(address!.postalCode!.trim());
-      }
-      if (isNonEmptyString(address?.city)) {
-        cityLineParts.push(address!.city!.trim());
-      }
-      lines.push(cityLineParts.join(' '));
-    } else {
-      lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
-    }
-  } else {
-    if (statusAllowed) {
-      if (hasFullAddress) {
-        const streetLineParts: string[] = [];
-        streetLineParts.push(address!.street!.trim());
-        if (isNonEmptyString(address?.houseNumber)) {
-          streetLineParts.push(address!.houseNumber!.trim());
-        }
-        const streetLine = streetLineParts.join(' ');
-
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(address?.postalCode)) {
-          cityLineParts.push(address!.postalCode!.trim());
-        }
-        if (isNonEmptyString(address?.city)) {
-          cityLineParts.push(address!.city!.trim());
-        }
-        const cityLine = cityLineParts.join(' ');
-
-        if (cityLine) {
-          lines.push(`${streetLine}, ${cityLine}`);
-        } else {
-          lines.push(streetLine);
-        }
-      } else if (hasPostalCity) {
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(address?.postalCode)) {
-          cityLineParts.push(address!.postalCode!.trim());
-        }
-        if (isNonEmptyString(address?.city)) {
-          cityLineParts.push(address!.city!.trim());
-        }
-        lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
-        lines.push(cityLineParts.join(' '));
-      } else {
-        lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
-      }
-    } else {
-      lines.push(options.tNote ?? 'Exact address shown after accepting');
-
-      if (hasPostalCity) {
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(address?.postalCode)) {
-          cityLineParts.push(address!.postalCode!.trim());
-        }
-        if (isNonEmptyString(address?.city)) {
-          cityLineParts.push(address!.city!.trim());
-        }
-        lines.push(cityLineParts.join(' '));
-      }
-    }
+  if (statusNormalised === 'PENDING' && viewerRole === 'provider' && !displayStatusAllowed) {
+    lines.push(options.tNote ?? 'Exact address shown after accepting');
+  } else if (viewerRole === 'provider' && displayStatusAllowed && !hasAny) {
+    lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
+  } else if (viewerRole === 'provider' && !displayStatusAllowed && statusNormalised !== 'PENDING' && !hasAny) {
+    lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
+  } else if (viewerRole === 'client' && !hasAny) {
+    lines.push(options.tNotProvided ?? 'Mobile service — address not provided');
   }
 
   return lines.filter((l) => l.length > 0);
@@ -185,99 +173,30 @@ export function formatDisplayLinesMobile(
 type StudioDisplayContext = {
   provider: BookingAddressParts | null | undefined;
   viewerRole: 'client' | 'provider';
-  statusAllowed: boolean;
+  statusNormalised: string;
+  displayStatusAllowed: boolean;
   options: BookingLocationOptions;
 };
 
 export function formatDisplayLinesStudio(
   ctx: StudioDisplayContext,
 ): string[] {
-  const { provider, viewerRole, statusAllowed, options } = ctx;
+  const { provider, viewerRole, statusNormalised, displayStatusAllowed, options } = ctx;
   const lines: string[] = [];
 
-  const hasFullAddress =
-    isNonEmptyString(provider?.street) && isNonEmptyString(provider?.houseNumber);
-  const hasPostalCity =
-    isNonEmptyString(provider?.postalCode) || isNonEmptyString(provider?.city);
-  const hasCity = isNonEmptyString(provider?.city);
+  const showFullProviderAddr = viewerRole === 'provider' || displayStatusAllowed;
+  const { placeLines, hasAny } = buildPlaceLines(provider, showFullProviderAddr);
 
   if (viewerRole === 'provider') {
     lines.push(options.tAtYourStudio ?? 'At your studio');
+  }
 
-    if (hasFullAddress) {
-      const streetLineParts: string[] = [];
-      streetLineParts.push(provider!.street!.trim());
-      if (isNonEmptyString(provider?.houseNumber)) {
-        streetLineParts.push(provider!.houseNumber!.trim());
-      }
-      const streetLine = streetLineParts.join(' ');
+  for (const l of placeLines) lines.push(l);
 
-      const cityLineParts: string[] = [];
-      if (isNonEmptyString(provider?.postalCode)) {
-        cityLineParts.push(provider!.postalCode!.trim());
-      }
-      if (isNonEmptyString(provider?.city)) {
-        cityLineParts.push(provider!.city!.trim());
-      }
-      const cityLine = cityLineParts.join(' ');
-
-      if (cityLine) {
-        lines.push(`${streetLine}, ${cityLine}`);
-      } else {
-        lines.push(streetLine);
-      }
-    } else if (hasCity) {
-      const cityLineParts: string[] = [];
-      if (isNonEmptyString(provider?.postalCode)) {
-        cityLineParts.push(provider!.postalCode!.trim());
-      }
-      cityLineParts.push(provider!.city!.trim());
-      lines.push(cityLineParts.join(' '));
-    }
-  } else {
-    if (statusAllowed) {
-      if (hasFullAddress) {
-        const streetLineParts: string[] = [];
-        streetLineParts.push(provider!.street!.trim());
-        if (isNonEmptyString(provider?.houseNumber)) {
-          streetLineParts.push(provider!.houseNumber!.trim());
-        }
-        const streetLine = streetLineParts.join(' ');
-
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(provider?.postalCode)) {
-          cityLineParts.push(provider!.postalCode!.trim());
-        }
-        if (isNonEmptyString(provider?.city)) {
-          cityLineParts.push(provider!.city!.trim());
-        }
-        const cityLine = cityLineParts.join(' ');
-
-        if (cityLine) {
-          lines.push(`${streetLine}, ${cityLine}`);
-        } else {
-          lines.push(streetLine);
-        }
-      } else if (hasCity) {
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(provider?.postalCode)) {
-          cityLineParts.push(provider!.postalCode!.trim());
-        }
-        cityLineParts.push(provider!.city!.trim());
-        lines.push(cityLineParts.join(' '));
-      }
-    } else {
-      lines.push(options.tNote ?? 'Exact address shown after accepting');
-
-      if (hasCity) {
-        const cityLineParts: string[] = [];
-        if (isNonEmptyString(provider?.postalCode)) {
-          cityLineParts.push(provider!.postalCode!.trim());
-        }
-        cityLineParts.push(provider!.city!.trim());
-        lines.push(cityLineParts.join(' '));
-      }
-    }
+  if (statusNormalised === 'PENDING' && viewerRole === 'client' && !displayStatusAllowed) {
+    lines.push(options.tNote ?? 'Exact address shown after accepting');
+  } else if (!hasAny) {
+    // No fallback text needed for empty provider address (studio address not set)
   }
 
   return lines.filter((l) => l.length > 0);
@@ -289,12 +208,13 @@ export function getBookingLocation(
   options: BookingLocationOptions = {},
 ): BookingLocationResult {
   const isMobile = Boolean(booking?.isMobile);
-  const status = booking?.status;
+  const statusNormalised = normaliseStatus(booking?.status);
   const routeStatusAllowed =
-    typeof status === 'string' && ALLOWED_ROUTE_STATUSES.has(status);
+    statusNormalised.length > 0 &&
+    ALLOWED_ROUTE_STATUSES.has(statusNormalised);
   const displayStatusAllowed =
-    typeof status === 'string' &&
-    ALLOWED_FULL_ADDRESS_DISPLAY_STATUSES.has(status);
+    statusNormalised.length > 0 &&
+    ALLOWED_FULL_ADDRESS_DISPLAY_STATUSES.has(statusNormalised);
 
   if (isMobile) {
     const address = booking?.address ?? null;
@@ -302,7 +222,8 @@ export function getBookingLocation(
     const displayLines = formatDisplayLinesMobile({
       address,
       viewerRole,
-      statusAllowed: displayStatusAllowed,
+      statusNormalised,
+      displayStatusAllowed,
       options,
     });
 
@@ -328,7 +249,8 @@ export function getBookingLocation(
   const displayLines = formatDisplayLinesStudio({
     provider: providerAddr,
     viewerRole,
-    statusAllowed: displayStatusAllowed,
+    statusNormalised,
+    displayStatusAllowed,
     options,
   });
 
