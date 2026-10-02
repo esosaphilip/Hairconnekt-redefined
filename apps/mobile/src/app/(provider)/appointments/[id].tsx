@@ -15,6 +15,8 @@ import {
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
+  Linking,
+  ActionSheetIOS,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -27,6 +29,8 @@ import { debugError } from '@/utils/logger';
 import { ApiError, apiJson } from '@/services/apiClient';
 import { mapHttpError } from '@/utils/error-messages';
 import { openPhoneCall } from '@/utils/phone-call';
+import { getBookingLocation } from '@/utils/bookingLocation';
+import { openDirections } from '@/utils/openDirections';
 
 type BackendCancelReason = 'Krank' | 'Notfall' | 'Sonstiges';
 
@@ -45,10 +49,6 @@ type BookingClient = {
   lastName: string;
   phone?: string;
   avatarUrl?: string;
-  city?: string;
-  address?: {
-    city?: string;
-  };
 };
 
 type BookingServiceItem = {
@@ -67,6 +67,13 @@ type ProviderAppointment = {
   platformFeePercent?: number;
   providerPayout?: number;
   clientNotes?: string;
+  isMobile?: boolean;
+  address?: {
+    street?: string | null;
+    houseNumber?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+  };
   client?: BookingClient;
   services?: BookingServiceItem[];
 };
@@ -378,9 +385,51 @@ export default function ProviderAppointmentDetailScreen() {
               <Text style={styles.clientName}>
                 {booking.client?.firstName} {booking.client?.lastName}
               </Text>
-              <Text style={styles.clientCity}>
-                {booking.client?.city || booking.client?.address?.city || t('providerUnknownCity')}
-              </Text>
+              {(() => {
+                const location = getBookingLocation(booking, 'provider', {
+                  tNote: t('bookingLocationAfterAccepting'),
+                  tNotProvided: t('bookingLocationNoAddress'),
+                  tAtYourStudio: t('bookingLocationAtProviderStudio'),
+                });
+                return (
+                  <View style={{ marginTop: spacing.xxs }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} style={{ marginTop: 2, marginRight: spacing.xxs }} />
+                      <View style={{ flex: 1 }}>
+                        {location.displayLines.map((line, idx) => (
+                          <Text key={idx} style={{ fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary }}>
+                            {line}
+                          </Text>
+                        ))}
+                      </View>
+                      {location.routeAddress !== null && (
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: borderRadius.sm }}
+                          onPress={() => {
+                            void openDirections(location.routeAddress!, {
+                              platform: Platform.OS,
+                              canOpenURL: Linking.canOpenURL.bind(Linking),
+                              openURL: Linking.openURL.bind(Linking),
+                              showActionSheet: (opts) => new Promise<number>(r => ActionSheetIOS.showActionSheetWithOptions(opts, r)),
+                              alert: (title, msg) => Alert.alert(title, msg),
+                              strings: {
+                                appleMaps: t('directionsAppleMaps'),
+                                googleMaps: t('directionsGoogleMaps'),
+                                cancel: t('directionsCancel'),
+                                errorTitle: t('directionsErrorTitle'),
+                                errorMessage: t('directionsErrorBody'),
+                              },
+                            });
+                          }}
+                        >
+                          <Feather name="map-pin" size={fontSizes.sm} color={colors.primary} style={{ marginRight: spacing.xxxs }} />
+                          <Text style={{ fontFamily: fonts.bodyBold, fontSize: fontSizes.sm, color: colors.primary }}>{t('appointmentsRoute')}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })()}
             </View>
           </View>
 
@@ -656,7 +705,6 @@ const styles = StyleSheet.create({
   clientAvatar: { width: layout.headerHeight, height: layout.headerHeight, borderRadius: layout.iconButton - spacing.unit, },
   clientInfo: { flex: 1 },
   clientName: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxs },
-  clientCity: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary },
 
   clientActions: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
   greyButton: { flex: 1, backgroundColor: colors.surface, paddingVertical: spacing.sm, borderRadius: borderRadius.sm, alignItems: 'center' },

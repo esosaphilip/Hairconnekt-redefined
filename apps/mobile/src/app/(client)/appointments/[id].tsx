@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, ActivityIndicator, Linking, Platform, ActionSheetIOS, Alert } from 'react-native';
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -12,6 +12,8 @@ import { debugError, debugLog } from '@/utils/logger';
 import { apiJson, getApiMessage } from '@/services/apiClient';
 import { tokenStorage } from '../../../utils/token-storage';
 import { API } from '../../../utils/api';
+import { getBookingLocation } from '@/utils/bookingLocation';
+import { openDirections } from '@/utils/openDirections';
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -138,7 +140,10 @@ export default function AppointmentDetails() {
   const user = provider.user || {};
   const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
   const avatarUri = user.avatarUrl as string | undefined;
-  const city = user.city as string | undefined;
+  const loc = getBookingLocation(booking, 'client', {
+    tNote: t('bookingLocationAfterAccepting'),
+    tAtYourAddress: t('bookingLocationMobileAtClient'),
+  });
 
   const openChat = async (providerUserId: string) => {
     if (!providerUserId) return;
@@ -201,10 +206,14 @@ export default function AppointmentDetails() {
             )}
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>{providerName}</Text>
-              {!!city && (
+              {loc.displayLines.length > 0 && (
                 <View style={styles.locationRow}>
                   <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} />
-                  <Text style={styles.locationText}>{city}</Text>
+                  <View style={{ flex: 1, marginLeft: spacing.xxs }}>
+                    {loc.displayLines.map((line: string, idx: number) => (
+                      <Text key={idx} style={styles.locationText}>{line}</Text>
+                    ))}
+                  </View>
                 </View>
               )}
             </View>
@@ -238,6 +247,42 @@ export default function AppointmentDetails() {
               <Feather name="phone" size={fontSizes.lg} color={colors.primary} />
               <Text style={styles.providerBtnText}>{t('appointmentsCall')}</Text>
             </TouchableOpacity>
+            {loc.routeAddress !== null && (
+              <>
+                <View style={styles.btnDivider} />
+                <TouchableOpacity
+                  style={styles.providerBtn}
+                  onPress={async () => {
+                    if (!loc.routeAddress) return;
+                    const showActionSheet = (opts: {
+                      options: string[];
+                      cancelButtonIndex?: number;
+                      title?: string;
+                    }): Promise<number> =>
+                      new Promise((resolve) => {
+                        ActionSheetIOS.showActionSheetWithOptions(opts, resolve);
+                      });
+                    await openDirections(loc.routeAddress, {
+                      platform: Platform.OS as any,
+                      canOpenURL: Linking.canOpenURL.bind(Linking),
+                      openURL: Linking.openURL.bind(Linking),
+                      showActionSheet,
+                      alert: (title: string, msg: string) => Alert.alert(title, msg),
+                      strings: {
+                        appleMaps: t('directionsAppleMaps'),
+                        googleMaps: t('directionsGoogleMaps'),
+                        cancel: t('directionsCancel'),
+                        errorTitle: t('directionsErrorTitle'),
+                        errorMessage: t('directionsErrorBody'),
+                      },
+                    });
+                  }}
+                >
+                  <Feather name="map-pin" size={fontSizes.lg} color={colors.primary} />
+                  <Text style={styles.providerBtnText}>{t('appointmentsRoute')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 

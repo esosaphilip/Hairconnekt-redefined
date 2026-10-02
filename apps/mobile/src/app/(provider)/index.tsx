@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount, formatBookingTime } from '@/utils/format';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
+import { getBookingLocation } from '@/utils/bookingLocation';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -308,7 +309,13 @@ export default function ProviderDashboardScreen() {
         </View>
 
         {todayBookings.length > 0 ? (
-          todayBookings.map((booking) => (
+          todayBookings.map((booking) => {
+            const bookLoc = getBookingLocation(booking, 'provider', {
+              tNote: t('bookingLocationAfterAccepting'),
+              tNotProvided: t('bookingLocationNoAddress'),
+              tAtYourStudio: t('bookingLocationAtProviderStudio'),
+            });
+            return (
             <TouchableOpacity 
               key={booking.id} 
               style={styles.bookingCard}
@@ -343,6 +350,12 @@ export default function ProviderDashboardScreen() {
               <Text style={styles.serviceName}>
                 {booking.services?.[0]?.name || 'Service'} {booking.totalPrice ? `· €${formatAmount(booking.totalPrice, lang)}` : ''}
               </Text>
+              {bookLoc.displayLines[0] && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+                  <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} style={{ marginRight: spacing.xxs }} />
+                  <Text style={styles.serviceName} numberOfLines={1}>{bookLoc.displayLines[0]}</Text>
+                </View>
+              )}
               
               <View style={styles.bookingActions}>
                 {bookingStatus(booking.status) === 'confirmed' && (
@@ -364,7 +377,8 @@ export default function ProviderDashboardScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-          ))
+            );
+          })
         ) : (
           <View style={styles.emptySlotCard}>
             <Text style={styles.emptySlotText}>{t('dashboardNoAppts')}</Text>

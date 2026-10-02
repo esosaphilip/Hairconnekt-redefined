@@ -9,6 +9,7 @@ import { AuthService } from '../../../services/authService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
+import { isAuthError } from '../../../utils/auth-error';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -20,6 +21,9 @@ export default function ClientProfileScreen() {
   const [avatarVersion, setAvatarVersion] = useState(Date.now());
   const userRef = useRef<any>(null);
   const isRedirectingRef = useRef(false);
+  const [savedAddrCount, setSavedAddrCount] = useState<number|null>(null);
+  const [addrCountLoading, setAddrCountLoading] = useState(true);
+  const [addrCountVisible, setAddrCountVisible] = useState(false);
 
   const fetchUser = useCallback(async () => {
     let isGuest = false;
@@ -63,6 +67,36 @@ export default function ClientProfileScreen() {
         isRedirectingRef.current = false;
       };
     }, [fetchUser])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAddressCount = async () => {
+        try {
+          setAddrCountLoading(true);
+          setAddrCountVisible(false);
+          const data = await apiJson<any>('/users/me/addresses', { auth: true });
+          const list = data?.data ?? data ?? [];
+          setSavedAddrCount(Array.isArray(list) ? list.length : 0);
+          setAddrCountVisible(true);
+        } catch (e: any) {
+          if (isAuthError(e)) {
+            userRef.current = null;
+            setUser(null);
+            if (!isRedirectingRef.current) {
+              isRedirectingRef.current = true;
+              router.push('/(auth)/login?returnTo=/(client)/profile' as any);
+            }
+            return;
+          }
+          debugError('client profile addresses count load failed', e);
+          setAddrCountVisible(false);
+        } finally {
+          setAddrCountLoading(false);
+        }
+      };
+      fetchAddressCount();
+    }, [router])
   );
 
   const handlePickAvatar = async () => {
@@ -238,9 +272,9 @@ export default function ClientProfileScreen() {
             icon="map-pin" 
             title={t('clientProfileAddresses')} 
             rightComponent={
-              <View style={styles.badgeCount}>
-                <Text style={styles.badgeCountText}>2 {t('clientProfileSaved')}</Text>
-              </View>
+              addrCountVisible && !addrCountLoading && savedAddrCount != null && savedAddrCount >= 0
+                ? <Text style={styles.badgeCountText}>{savedAddrCount} {t('clientProfileSaved')}</Text>
+                : null
             }
             onPress={() => router.push('/(shared)/addresses')} 
           />
