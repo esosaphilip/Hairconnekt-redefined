@@ -84,6 +84,7 @@ jobs:
           R2_ACCESS_KEY_ID: dummy-r2-access-key-id
           R2_SECRET_ACCESS_KEY: dummy-r2-secret-access-key
           R2_BUCKET_NAME: dummy-r2-bucket
+          R2_PRIVATE_BUCKET_NAME: dummy-r2-private-bucket
           R2_PUBLIC_URL: https://dummy-r2.hairconnekt.de
           R2_INTERNAL_ENDPOINT: https://dummy-r2-internal.hairconnekt.de
           GOOGLE_MAPS_API_KEY: dummy-google-maps-api-key

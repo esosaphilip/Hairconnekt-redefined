@@ -101,6 +101,13 @@ jobs:
           ADMIN_SESSION_SECRET: integration-test-admin-session
           PORT: 3000
           CORS_ORIGIN: '*'
+          R2_ACCOUNT_ID: dummy-r2-account-id
+          R2_ACCESS_KEY_ID: dummy-r2-access-key-id
+          R2_SECRET_ACCESS_KEY: dummy-r2-secret-access-key
+          R2_BUCKET_NAME: dummy-r2-bucket
+          R2_PRIVATE_BUCKET_NAME: dummy-r2-private-bucket
+          R2_PUBLIC_URL: https://dummy-r2.hairconnekt.de
+          R2_ENDPOINT: https://dummy-r2-account-id.r2.cloudflarestorage.com
         run: |
           nohup npx ts-node -r tsconfig-paths/register src/main.ts > /tmp/backend-server.log 2>&1 &
           echo "Server PID: $!"

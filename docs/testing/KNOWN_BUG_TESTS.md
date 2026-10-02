@@ -20,7 +20,7 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-028** | `apps/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
-| **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization` | `RESOLVED` (Active `it`) |
+| **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts`, `apps/backend/test/t17-private-id-storage.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization; T17: Private ID Document Storage & Migration` | `RESOLVED` (Active `it`) |
 
 ---
 
@@ -178,3 +178,14 @@ Because HairConnekt follows a strict **zero production code change** rule during
   2. Applied `toBookingResponse` across `createBooking`, `findOne`, and `findAll` (and all actions returning `this.findOne`).
   3. Added comprehensive test suite `apps/backend/test/t16-booking-response-privacy.spec.ts` verifying recursive absence of sensitive fields, address rule enforcement, and preservation of required fields.
 
+- **Resolution (Step 2)**:
+  1. Created separate private Cloudflare R2 bucket configuration (`R2_PRIVATE_BUCKET_NAME`) across `render.yaml`, `apps/backend/.env.example`, `.github/workflows/ci.yml`, `test/env-guard.ts`, and `src/main.ts`.
+  2. Updated `R2Service` (`apps/backend/src/common/storage/r2.service.ts`):
+     - Fails fast on initialization if `R2_PRIVATE_BUCKET_NAME` is missing, empty, or equals `R2_BUCKET_NAME`.
+     - On module initialization in production, sends `HeadBucketCommand` against the private bucket.
+     - `uploadPrivateFile`: writes private files (including provider ID documents) strictly to `this.privateBucket` with `Cache-Control: private, no-cache, no-store`.
+     - Added `deletePrivateByKey(key)` to delete objects from `this.privateBucket`.
+     - `createSignedReadUrl`: checks the private bucket first; falls back to public bucket only on 404 (`NotFound`), logging a warning with no object key or credentials; rethrows any other errors immediately.
+     - Preserved public file methods (`uploadFile`, `uploadFileWithKey`, `deleteFile`, `deleteByKey`) targeting `this.bucket`.
+  3. Created migration script `apps/backend/scripts/migrate-id-documents-to-private-bucket.ts` supporting `--dry-run`, `--copy`, and `--purge-source` with strict prefix isolation, size/ETag verification, and safe pagination.
+  4. Added comprehensive test suite `apps/backend/test/t17-private-id-storage.spec.ts` (14 passing tests) verifying bucket validation, upload separation, dual-read fallback, startup checks, and migration logic.

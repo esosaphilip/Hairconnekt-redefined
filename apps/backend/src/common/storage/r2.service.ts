@@ -1,22 +1,41 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class R2Service {
+export class R2Service implements OnModuleInit {
   private readonly logger = new Logger(R2Service.name);
   private client: S3Client;
   private bucket: string;
+  private privateBucket: string;
   private publicUrl: string;
 
   constructor() {
-    this.bucket = process.env.R2_BUCKET_NAME!;
+    const bucket = (process.env.R2_BUCKET_NAME ?? '').trim();
+    const privateBucket = (process.env.R2_PRIVATE_BUCKET_NAME ?? '').trim();
+
+    if (!privateBucket) {
+      throw new Error('R2_PRIVATE_BUCKET_NAME is required but missing or empty');
+    }
+    if (bucket && privateBucket === bucket) {
+      throw new Error('R2_PRIVATE_BUCKET_NAME must not be the same as R2_BUCKET_NAME');
+    }
+
+    this.bucket = bucket;
+    this.privateBucket = privateBucket;
     this.publicUrl = process.env.R2_PUBLIC_URL!;
     this.client = new S3Client({
       region: 'auto',
@@ -26,6 +45,21 @@ export class R2Service {
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
       },
     });
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+    try {
+      await this.client.send(
+        new HeadBucketCommand({ Bucket: this.privateBucket }),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Private R2 bucket "${this.privateBucket}" check failed on startup: ${msg}`);
+      throw new Error(`R2 private bucket "${this.privateBucket}" is unreachable or credentials lack access. Startup aborted.`);
+    }
   }
 
   async uploadFile(
@@ -46,7 +80,15 @@ export class R2Service {
   ): Promise<string> {
     const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
     const key = `${folder}/${uuidv4()}.${ext}`;
-    await this.putObject(buffer, mimeType, key, 'private, max-age=0, no-store');
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.privateBucket,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+        CacheControl: 'private, no-cache, no-store',
+      }),
+    );
     return key;
   }
 
@@ -85,12 +127,41 @@ export class R2Service {
     storedKey: string,
     expiresInSeconds = 60,
   ): Promise<string> {
+    const key = this.normalizeStoredKey(storedKey);
+    let targetBucket = this.privateBucket;
+
+    // TODO(BUG-045): remove after migration
+    // Temporary read-only fallback for the migration window:
+    // First HeadObject in the private bucket; only if that returns "not found",
+    // sign against the public bucket instead and log one warning line (without the key).
+    // Any other error is thrown, not swallowed.
     try {
-      const key = this.normalizeStoredKey(storedKey);
+      await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.privateBucket,
+          Key: key,
+        }),
+      );
+    } catch (err: any) {
+      const isNotFound =
+        err?.name === 'NotFound' ||
+        err?.name === 'NoSuchKey' ||
+        err?.$metadata?.httpStatusCode === 404;
+
+      if (isNotFound) {
+        this.logger.warn('ID document served from legacy public bucket');
+        targetBucket = this.bucket;
+      } else {
+        this.logger.error('R2 HeadObject failed on private bucket');
+        throw err;
+      }
+    }
+
+    try {
       return await getSignedUrl(
         this.client as any,
         new GetObjectCommand({
-          Bucket: this.bucket,
+          Bucket: targetBucket,
           Key: key,
         }),
         { expiresIn: expiresInSeconds },
@@ -117,6 +188,19 @@ export class R2Service {
       this.logger.error('R2 delete failed');
       throw new InternalServerErrorException(
         'Datei konnte nicht aus dem Speicher gelöscht werden.',
+      );
+    }
+  }
+
+  async deletePrivateByKey(key: string): Promise<void> {
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({ Bucket: this.privateBucket, Key: key }),
+      );
+    } catch (err) {
+      this.logger.error('R2 private delete failed');
+      throw new InternalServerErrorException(
+        'Datei konnte nicht aus dem privaten Speicher gelöscht werden.',
       );
     }
   }

@@ -34,6 +34,7 @@ async function bootstrap() {
   setEnvAlias('JWT_REFRESH_EXPIRES', ['REFRESH_JWT_EXPIRES_IN']);
 
   setEnvAlias('R2_BUCKET_NAME', ['R2_BUCKET']);
+  setEnvAlias('R2_PRIVATE_BUCKET_NAME', ['R2_PRIVATE_BUCKET']);
   setEnvAlias('R2_PUBLIC_URL', ['R2_PUBLIC_BASE_URL']);
   setEnvAlias('SMTP_FROM', ['EMAIL_FROM', 'SENDGRID_FROM_EMAIL']);
   setEnvAlias('EMAIL_FROM', ['SMTP_FROM', 'SENDGRID_FROM_EMAIL']);
@@ -63,6 +64,7 @@ async function bootstrap() {
     requireEnv('R2_ACCESS_KEY_ID');
     requireEnv('R2_SECRET_ACCESS_KEY');
     requireEnv('R2_BUCKET_NAME');
+    requireEnv('R2_PRIVATE_BUCKET_NAME');
     requireEnv('R2_ENDPOINT');
     requireEnv('BREVO_API_KEY');
     requireEnv('SMTP_FROM');
