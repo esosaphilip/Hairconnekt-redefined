@@ -130,7 +130,6 @@ export default function AppointmentsList() {
     const providerName = provider.businessName || (user.firstName ? `${user.firstName} ${user.lastName}` : t('providerGeneric'));
     const avatarUri = user.avatarUrl as string | undefined;
     const loc = getBookingLocation(item, 'client', { tNote: t('bookingLocationAfterAccepting'), tNotProvided: t('bookingLocationNoAddress'), tAtYourAddress: t('bookingLocationMobileAtClient') });
-    const address = loc.displayLines.join(', ');
     
     const serviceNames = item.services && item.services.length > 0
       ? item.services.map((s: any) => s.name).join(', ')
@@ -171,6 +170,14 @@ export default function AppointmentsList() {
         <Text style={styles.dateTimeText}>
           {formatDate(item.scheduledDate)}, {formatBookingTime(item.scheduledTime, lang)}{t('timeSuffix')}
         </Text>
+
+        {/* ROW 3.5: Location */}
+        {loc.displayLines.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.xs }}>
+            <Feather name="map-pin" size={fontSizes.sm} color={colors.textSecondary} style={{ marginTop: 2, marginRight: spacing.xs }} />
+            <Text style={styles.dateTimeText} numberOfLines={2}>{loc.displayLines.join(', ')}</Text>
+          </View>
+        )}
 
         {/* ROW 4: Action Buttons */}
         <View style={styles.actionsRow}>

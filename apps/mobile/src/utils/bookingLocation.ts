@@ -29,6 +29,11 @@ export interface BookingLocationOptions {
 const ALLOWED_ROUTE_STATUSES: ReadonlySet<string> = new Set([
   'CONFIRMED',
   'IN_PROGRESS',
+]);
+
+const ALLOWED_FULL_ADDRESS_DISPLAY_STATUSES: ReadonlySet<string> = new Set([
+  'CONFIRMED',
+  'IN_PROGRESS',
   'COMPLETED',
 ]);
 
@@ -285,8 +290,11 @@ export function getBookingLocation(
 ): BookingLocationResult {
   const isMobile = Boolean(booking?.isMobile);
   const status = booking?.status;
-  const statusAllowed =
+  const routeStatusAllowed =
     typeof status === 'string' && ALLOWED_ROUTE_STATUSES.has(status);
+  const displayStatusAllowed =
+    typeof status === 'string' &&
+    ALLOWED_FULL_ADDRESS_DISPLAY_STATUSES.has(status);
 
   if (isMobile) {
     const address = booking?.address ?? null;
@@ -294,12 +302,16 @@ export function getBookingLocation(
     const displayLines = formatDisplayLinesMobile({
       address,
       viewerRole,
-      statusAllowed,
+      statusAllowed: displayStatusAllowed,
       options,
     });
 
     let routeAddress: string | null = null;
-    if (statusAllowed && hasStreetAndCity(address)) {
+    if (
+      viewerRole === 'provider' &&
+      routeStatusAllowed &&
+      hasStreetAndCity(address)
+    ) {
       routeAddress = formatRouteAddress(address!);
     }
 
@@ -316,12 +328,16 @@ export function getBookingLocation(
   const displayLines = formatDisplayLinesStudio({
     provider: providerAddr,
     viewerRole,
-    statusAllowed,
+    statusAllowed: displayStatusAllowed,
     options,
   });
 
   let routeAddress: string | null = null;
-  if (statusAllowed && hasStreetAndCity(providerAddr)) {
+  if (
+    viewerRole === 'client' &&
+    routeStatusAllowed &&
+    hasStreetAndCity(providerAddr)
+  ) {
     routeAddress = formatRouteAddress(providerAddr!);
   }
 

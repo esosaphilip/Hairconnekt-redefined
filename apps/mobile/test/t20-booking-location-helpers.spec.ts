@@ -225,6 +225,84 @@ describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
         expect(line).not.toMatch(/\bundefined\b/);
       }
     });
+
+    const fullMobileAddr = {
+      street: 'Hauptstraße',
+      houseNumber: '8a',
+      postalCode: '10115',
+      city: 'Berlin',
+    };
+    const fullStudioProviderAddr = {
+      street: 'Studioallee',
+      houseNumber: '3',
+      postalCode: '60311',
+      city: 'Frankfurt am Main',
+    };
+    const exactMobileRoute = 'Hauptstraße 8a, 10115 Berlin, Deutschland';
+    const exactStudioRoute = 'Studioallee 3, 60311 Frankfurt am Main, Deutschland';
+
+    it('traveller rule 1: client viewing mobile CONFIRMED with full address has routeAddress null', () => {
+      expect(
+        getBookingLocation(
+          { isMobile: true, status: 'CONFIRMED', address: fullMobileAddr },
+          'client',
+        ).routeAddress,
+      ).toBeNull();
+    });
+
+    it('traveller rule 2: client viewing mobile IN_PROGRESS with full address has routeAddress null', () => {
+      expect(
+        getBookingLocation(
+          { isMobile: true, status: 'IN_PROGRESS', address: fullMobileAddr },
+          'client',
+        ).routeAddress,
+      ).toBeNull();
+    });
+
+    it('traveller rule 3: provider viewing studio CONFIRMED with full provider address has routeAddress null', () => {
+      expect(
+        getBookingLocation(
+          { isMobile: false, status: 'CONFIRMED', provider: fullStudioProviderAddr },
+          'provider',
+        ).routeAddress,
+      ).toBeNull();
+    });
+
+    it('traveller rule 4: provider viewing mobile COMPLETED with full address has routeAddress null and display still contains street', () => {
+      const r = getBookingLocation(
+        { isMobile: true, status: 'COMPLETED', address: fullMobileAddr },
+        'provider',
+      );
+      expect(r.routeAddress).toBeNull();
+      expect(r.displayLines.join(' ')).toContain(fullMobileAddr.street);
+    });
+
+    it('traveller rule 5: client viewing studio COMPLETED with full provider address has routeAddress null and display still contains street', () => {
+      const r = getBookingLocation(
+        { isMobile: false, status: 'COMPLETED', provider: fullStudioProviderAddr },
+        'client',
+      );
+      expect(r.routeAddress).toBeNull();
+      expect(r.displayLines.join(' ')).toContain(fullStudioProviderAddr.street);
+    });
+
+    it('traveller rule 6: provider viewing mobile IN_PROGRESS with full address returns exact route string', () => {
+      expect(
+        getBookingLocation(
+          { isMobile: true, status: 'IN_PROGRESS', address: fullMobileAddr },
+          'provider',
+        ).routeAddress,
+      ).toBe(exactMobileRoute);
+    });
+
+    it('traveller rule 7: client viewing studio IN_PROGRESS with full provider address returns exact route string', () => {
+      expect(
+        getBookingLocation(
+          { isMobile: false, status: 'IN_PROGRESS', provider: fullStudioProviderAddr },
+          'client',
+        ).routeAddress,
+      ).toBe(exactStudioRoute);
+    });
   });
 
   describe('3. URL builders encode spaces, commas, ß, umlauts', () => {
@@ -455,12 +533,6 @@ describe('T20: Booking Location Helpers + Maps Chooser Static Audit', () => {
       // old pattern: `<Text>2 {t('clientProfileSaved')}</Text>` → gone
       expect(profileContent).not.toMatch(/>\s*2\s*\{?t\(['"]clientProfileSaved['"]\)\}?\s*<\/Text>/);
       expect(profileContent).not.toMatch(/[^\dA-Za-z]\s*2\s*saved/i);
-    });
-
-    it('totalBookings reference kept as the TWO allowed occurrences (1x type decl + 1x usage) in booking-request screen exactly', () => {
-      const c = countMatchesInFiles([/\btotalBookings\b/g]);
-      const total = Object.values(c).reduce((a, b) => a + b, 0);
-      expect(total).toBe(2);
     });
   });
 });

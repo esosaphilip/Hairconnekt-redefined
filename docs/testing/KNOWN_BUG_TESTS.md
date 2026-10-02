@@ -20,11 +20,11 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-028** | `apps/backend/test/t08-booking-conflicts.spec.ts` | `rejects booking with yesterday date` | `RESOLVED` (Active `it`) |
 | **BUG-033** | `apps/backend/test/booking-address.spec.ts`, `t08-booking-conflicts.spec.ts`, `apps/mobile/test/t14-mobile-logic.spec.ts` | `Mobile booking address collection and snapshot persistence` | `RESOLVED` (Active `it`) |
 | **BUG-036** | `apps/backend/test/t07-provider-setup.spec.ts` | `[KNOWN BUG-036] provider can edit an existing service including its category` | `RESOLVED` (Active `it`) |
-| **BUG-040 / BUG-041 / BUG-042 / BUG-044** | `apps/backend/test/t18-booking-location.spec.ts`, `apps/mobile/test/t20-mobile-address-location.spec.ts` | T18 backend + T20 mobile: Mobile screens display correct booking location per role & status privacy rules, saved-address badge live count, booking-address-field refactor | `RESOLVED` (Active `it`) |
-| **BUG-043** | `apps/mobile/test/t20-mobile-address-location.spec.ts` | T20 mobile only: Maps chooser on Route button press — iOS action sheet when GM installed else Apple Maps direct; Android geo intent; web fallback; no unhandled rejections | `RESOLVED` (Active `it`) |
+| **BUG-040 / BUG-041 / BUG-042 / BUG-044** | `apps/backend/test/t18-booking-location.spec.ts`, `apps/mobile/test/t20-booking-location-helpers.spec.ts` | T18 backend + T20 mobile: Mobile screens display correct booking location per role & status privacy rules, saved-address badge live count, booking-address-field refactor | `RESOLVED` (Active `it`) |
+| **BUG-043** | `apps/mobile/test/t20-booking-location-helpers.spec.ts` | T20 mobile only: Maps chooser on Route button press — iOS action sheet when GM installed else Apple Maps direct; Android geo intent; web fallback; no unhandled rejections | `RESOLVED` (Active `it`) |
 | **BUG-045** | `apps/backend/test/t16-booking-response-privacy.spec.ts`, `apps/backend/test/t17-private-id-storage.spec.ts` | `T16: Booking Response Privacy & Allowed Field Serialization; T17: Private ID Document Storage & Migration` | `RESOLVED` (Active `it`) |
 | **BUG-041 / BUG-042** | `apps/backend/test/t18-booking-location.spec.ts` | `T18: Booking Location Privacy & Default Address Rules` | `RESOLVED` (Active `it`) |
-| **BUG-048** | `apps/mobile/test/t20-mobile-address-location.spec.ts` | T20 mobile only: Client profile addresses menu badge uses live server count from GET /users/me/addresses, hidden on load/error | `RESOLVED` (Active `it`) |
+| **BUG-048** | `apps/mobile/test/t20-booking-location-helpers.spec.ts` | T20 mobile only: Client profile addresses menu badge uses live server count from GET /users/me/addresses, hidden on load/error | `RESOLVED` (Active `it`) |
 | **BUG-050** | `apps/backend/test/t19-admin-id-document-corp.spec.ts` | `Admin provider ID document Cross-Origin-Resource-Policy same-site on 302 success, same-origin on errors and sibling routes` | `RESOLVED` (Active `it`) |
 
 ---
@@ -239,31 +239,31 @@ Because HairConnekt follows a strict **zero production code change** rule during
 
 ### BUG-040 & BUG-044: Mobile Booking Location Privacy, Live Address Badge & Address-Field Refactor [RESOLVED]
 
-- **Status**: **RESOLVED** (`it` tests active in `apps/mobile/test/t20-mobile-address-location.spec.ts` and `apps/backend/test/t18-booking-location.spec.ts`)
-- **Location**: `apps/mobile/src/utils/address.ts`, `apps/mobile/src/utils/location.ts`, `apps/mobile/src/app/(client)/booking/details.tsx`, `apps/mobile/src/app/(provider)/booking-request/[id].tsx`
-- **Symptom**: Mobile booking screens displayed inconsistent booking location per role/status; saved-address badge count was stale or hardcoded; booking-address field logic was duplicated inline across screens without reusable utilities.
-- **Root Cause**: Absence of centralized mobile-side address privacy helpers; screens reimplemented address rendering and badge counts without live server state.
-- **Resolution**: Extracted `formatAddressForRole(booking, actor)` and `useAddressesCount()` into `apps/mobile/src/utils/`, refactored booking screens to use shared `BookingAddressField` components, and wired saved-address badges to the live `GET /users/me/addresses` response length.
-- **Tests**: Active `it` tests in T18 backend (`apps/backend/test/t18-booking-location.spec.ts`) and T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
+- **Status**: **RESOLVED** (`it` tests active in `apps/mobile/test/t20-booking-location-helpers.spec.ts` and `apps/backend/test/t18-booking-location.spec.ts`)
+- **Location**: `apps/mobile/src/utils/bookingLocation.ts`, `apps/mobile/src/app/(provider)/appointments/[id].tsx`, `apps/mobile/src/app/(provider)/booking-request/[id].tsx`, `apps/mobile/src/app/(client)/appointments/index.tsx`, `apps/mobile/src/app/(client)/appointments/[id].tsx`, `apps/mobile/src/app/(provider)/index.tsx`, `apps/mobile/src/app/(provider)/calendar.tsx`, `apps/mobile/src/app/(client)/profile/index.tsx`
+- **Symptom**: Mobile booking screens displayed inconsistent booking location per role/status; saved-address badge count was a hardcoded stale literal; booking-address field logic was duplicated inline per screen without reusable utilities; provider accepted screen showed "City unknown" (BUG-040/042); Route button fired on the wrong traveller side (BUG-041); dashboard and calendar booking cards showed no location at all (BUG-044).
+- **Root Cause**: Absence of centralized mobile-side address/privacy helpers; screens reimplemented address rendering and badge counts without live server state and without role/status-aware traveller logic.
+- **Resolution**: Added pure helper `getBookingLocation(booking, viewerRole, options?)` in `apps/mobile/src/utils/bookingLocation.ts` returning `{ kind, traveller, displayLines, routeAddress }` applying the 7-row role/status privacy matrix and traveller rule (only the traveller gets a non-null `routeAddress`, and only for `CONFIRMED`/`IN_PROGRESS` bookings); refactored all 6 booking screens to use the helper and the shared `openDirections` for Route buttons; replaced `(client)/profile/index.tsx` "2 saved" badge with a live `GET /users/me/addresses` count hidden on load/error.
+- **Tests**: Active `it` tests in T18 backend (`apps/backend/test/t18-booking-location.spec.ts`) and T20 mobile (`apps/mobile/test/t20-booking-location-helpers.spec.ts`).
 
 ---
 
 ### BUG-043: Route Button Maps Chooser (iOS Action Sheet / Android geo / Web Fallback) [RESOLVED]
 
-- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-mobile-address-location.spec.ts`)
-- **Location**: `apps/mobile/src/utils/maps.ts`, `apps/mobile/src/app/(provider)/booking-request/[id].tsx`, `apps/mobile/src/app/(client)/bookings/[id].tsx`
-- **Symptom**: Tapping the "Route" navigation button produced unhandled promise rejections on unsupported schemes, silently failed on web, and had no platform-aware chooser between Google Maps, Apple Maps, and browser fallback.
-- **Root Cause**: Raw `Linking.openURL(url)` calls without `canOpenURL` guards, and no iOS/Android/web platform branching for map navigation schemes.
-- **Resolution**: Implemented `openMapsRouter(address)` in `apps/mobile/src/utils/maps.ts` detecting Google Maps installation on iOS and presenting an action sheet or falling back to Apple Maps direct; on Android opens a `geo:` intent; on web falls back to Google Maps URL; all promise chains catch errors with no unhandled rejections.
-- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-booking-location-helpers.spec.ts`)
+- **Location**: `apps/mobile/src/utils/openDirections.ts`, `apps/mobile/src/app/(provider)/appointments/[id].tsx`, `apps/mobile/src/app/(client)/appointments/index.tsx`, `apps/mobile/src/app/(client)/appointments/[id].tsx`, `apps/mobile/app.config.ts`
+- **Symptom**: Tapping the "Route" navigation button opened a hardcoded `https://maps.google.com/?q=…` URL on the client list and had no platform-aware chooser between Google Maps, Apple Maps, and browser fallback; iOS could not check for Google Maps app because `comgooglemaps://` was not declared in `LSApplicationQueriesSchemes`; error and fallback paths had no protection against unhandled promise rejections.
+- **Root Cause**: Raw `Linking.openURL(url)` calls without `canOpenURL` guards, no iOS/Android/web platform branching for map navigation schemes, and the missing iOS scheme whitelist entry.
+- **Resolution**: Added four pure URL builders (`buildAppleMapsUrl`, `buildGoogleMapsAppUrl`, `buildAndroidGeoUrl`, `buildWebFallbackUrl`) and the dependency-injected async `openDirections(address, opts)` in `apps/mobile/src/utils/openDirections.ts` that checks the platform and, on iOS, the presence of Google Maps, and shows a promise-wrapped `ActionSheetIOS` when appropriate; on Android opens the `geo:0,0?q=` intent; any failure falls back to the web URL and then to a translated `Alert`; the whole chain never rejects. Added `LSApplicationQueriesSchemes: ['comgooglemaps']` to the base `ios.infoPlist` in `apps/mobile/app.config.ts`.
+- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-booking-location-helpers.spec.ts`).
 
 ---
 
 ### BUG-048: Client Profile Addresses Menu Badge Uses Live Server Count [RESOLVED]
 
-- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-mobile-address-location.spec.ts`)
-- **Location**: `apps/mobile/src/utils/useAddresses.ts`, `apps/mobile/src/app/(client)/profile/index.tsx`
-- **Symptom**: The client profile "Addresses" menu item displayed a hardcoded or stale badge value, and the badge remained visible during loading and after fetch errors, misleading users about how many saved addresses they had.
-- **Root Cause**: Badge value was a static literal; no hook wired to `GET /users/me/addresses`, and no conditional visibility tied to `isLoading` / `isError` state.
-- **Resolution**: Added `useAddresses()` hook in `apps/mobile/src/utils/useAddresses.ts` fetching live `GET /users/me/addresses` and exposing `count`, `isLoading`, and `isError`; profile menu badge now hides on load/error and displays the server-returned array length.
-- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-mobile-address-location.spec.ts`).
+- **Status**: **RESOLVED** (`it` test active in `apps/mobile/test/t20-booking-location-helpers.spec.ts`)
+- **Location**: `apps/mobile/src/app/(client)/profile/index.tsx`
+- **Symptom**: The client profile "Addresses" menu item displayed the hardcoded literal `<Text>2 {t('clientProfileSaved')}</Text>`, and it was always visible, even during loading and after fetch errors, misleading users about how many saved addresses they actually had.
+- **Root Cause**: Badge value was a static literal; there was no fetch wired to `GET /users/me/addresses`, and no conditional visibility tied to loading/error state.
+- **Resolution**: In `apps/mobile/src/app/(client)/profile/index.tsx` added three states (`savedAddrCount`, `addrCountLoading`, `addrCountVisible`) and a `useFocusEffect(useCallback(...))` block that calls `apiJson('/users/me/addresses', { auth: true })`, unwraps `data?.data ?? data ?? []` to the list, and uses the list length. Auth errors reuse the same clear-session + `/(auth)/login?returnTo=/(client)/profile` redirect pattern as `fetchUser`; other errors log via `debugError`. The Addresses menu `rightComponent` renders `${count} ${t('clientProfileSaved')}` only when `addrCountVisible && !addrCountLoading && savedAddrCount >= 0`, and otherwise renders `null`.
+- **Tests**: Active `it` tests in T20 mobile (`apps/mobile/test/t20-booking-location-helpers.spec.ts`).
