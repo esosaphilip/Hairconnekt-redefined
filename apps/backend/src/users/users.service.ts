@@ -56,7 +56,11 @@ export class UsersService {
   }
 
   async createAddress(userId: string, data: Partial<Address>): Promise<Address> {
-    if (data.isDefault) {
+    const existingCount = await this.addressRepository.count({ where: { userId } });
+    // If user has NO other address, the new one is saved with isDefault: true, whatever the request says.
+    const isDefault = existingCount === 0 ? true : Boolean(data.isDefault);
+
+    if (isDefault && existingCount > 0) {
       await this.addressRepository.update({ userId }, { isDefault: false });
     }
     const row = this.addressRepository.create({
@@ -66,7 +70,7 @@ export class UsersService {
       houseNumber: data.houseNumber as string,
       city: data.city as string,
       postalCode: data.postalCode as string,
-      isDefault: data.isDefault ?? false,
+      isDefault,
     } as Partial<Address>);
     return this.addressRepository.save(row);
   }
@@ -76,26 +80,59 @@ export class UsersService {
       where: { id: addressId, userId },
     });
     if (!existing) throw new NotFoundException('Adresse nicht gefunden.');
-    if (data.isDefault) {
-      await this.addressRepository.update({ userId }, { isDefault: false });
-    }
+
     const patch: Partial<Address> = {};
     if (data.label !== undefined) patch.label = data.label;
     if (data.street !== undefined) patch.street = data.street;
     if (data.houseNumber !== undefined) patch.houseNumber = data.houseNumber;
     if (data.city !== undefined) patch.city = data.city;
     if (data.postalCode !== undefined) patch.postalCode = data.postalCode;
-    if (data.isDefault !== undefined) patch.isDefault = data.isDefault;
-    await this.addressRepository.update({ id: addressId, userId }, patch);
+
+    if (data.isDefault === true) {
+      await this.addressRepository.update({ userId }, { isDefault: false });
+      patch.isDefault = true;
+    } else if (data.isDefault === false) {
+      // If a request would set the user's ONLY default to false while they still have addresses,
+      // ignore that part (a user with addresses always has exactly one default).
+      if (!existing.isDefault) {
+        patch.isDefault = false;
+      }
+      // If existing.isDefault is true, we ignore data.isDefault: false
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await this.addressRepository.update({ id: addressId, userId }, patch);
+    }
     const updated = await this.addressRepository.findOne({ where: { id: addressId } });
     if (!updated) throw new NotFoundException('Adresse nicht gefunden.');
     return updated;
   }
 
   async deleteAddress(userId: string, addressId: string): Promise<{ deleted: boolean }> {
-    const res = await this.addressRepository.delete({ id: addressId, userId });
-    if (!res.affected) throw new NotFoundException('Adresse nicht gefunden.');
-    return { deleted: true };
+    return this.addressRepository.manager.transaction(async (manager) => {
+      const addressRepo = manager.getRepository(Address);
+      const existing = await addressRepo.findOne({
+        where: { id: addressId, userId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Adresse nicht gefunden.');
+      }
+
+      await addressRepo.delete({ id: addressId, userId });
+
+      if (existing.isDefault) {
+        // If deleted address was default, promote oldest remaining address (by createdAt)
+        const oldestRemaining = await addressRepo.findOne({
+          where: { userId },
+          order: { createdAt: 'ASC' },
+        });
+        if (oldestRemaining) {
+          await addressRepo.update({ id: oldestRemaining.id }, { isDefault: true });
+        }
+      }
+
+      return { deleted: true };
+    });
   }
 
   async updateAvatar(userId: string, file: Express.Multer.File): Promise<{ avatarUrl: string }> {

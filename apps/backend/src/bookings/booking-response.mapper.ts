@@ -23,12 +23,21 @@ export function toBookingResponse(
     ? (booking as any).toJSON()
     : { ...booking };
 
+  // Remove the four raw snapshot columns for all callers (address object is the only supported shape)
+  delete raw.addressStreet;
+  delete raw.addressHouseNumber;
+  delete raw.addressCity;
+  delete raw.addressPostalCode;
+
   const actorId = actor?.id || actor?.sub;
   const actorRole = actor?.role;
 
   const isCallerClient =
     Boolean(actorRole && (actorRole === UserRole.CLIENT || actorRole === 'client')) &&
     Boolean(actorId && (booking.clientId === actorId || booking.client?.id === actorId));
+
+  const isCallerProvider =
+    Boolean(actorRole && (actorRole === UserRole.PROVIDER || actorRole === 'provider'));
 
   const isConfirmedStatus =
     booking.status === BookingStatus.CONFIRMED ||
@@ -37,6 +46,54 @@ export function toBookingResponse(
     (booking.status as string) === 'CONFIRMED' ||
     (booking.status as string) === 'IN_PROGRESS' ||
     (booking.status as string) === 'COMPLETED';
+
+  // Map client's mobile-booking address based on privacy rules:
+  // - Client who owns the booking: full address unchanged
+  // - Provider: full address when CONFIRMED/IN_PROGRESS/COMPLETED; street & houseNumber null when PENDING/CANCELLED/etc.
+  // - No address (e.g. studio booking): null
+  let mappedAddress: any = null;
+  if (raw.address) {
+    if (isCallerClient) {
+      mappedAddress = {
+        street: raw.address.street ?? '',
+        houseNumber: raw.address.houseNumber ?? '',
+        postalCode: raw.address.postalCode ?? '',
+        city: raw.address.city ?? '',
+      };
+    } else if (isCallerProvider) {
+      if (isConfirmedStatus) {
+        mappedAddress = {
+          street: raw.address.street ?? '',
+          houseNumber: raw.address.houseNumber ?? '',
+          postalCode: raw.address.postalCode ?? '',
+          city: raw.address.city ?? '',
+        };
+      } else {
+        mappedAddress = {
+          street: null,
+          houseNumber: null,
+          postalCode: raw.address.postalCode ?? '',
+          city: raw.address.city ?? '',
+        };
+      }
+    } else if (actorRole === UserRole.ADMIN || actorRole === 'admin') {
+      mappedAddress = {
+        street: raw.address.street ?? '',
+        houseNumber: raw.address.houseNumber ?? '',
+        postalCode: raw.address.postalCode ?? '',
+        city: raw.address.city ?? '',
+      };
+    } else {
+      mappedAddress = {
+        street: null,
+        houseNumber: null,
+        postalCode: raw.address.postalCode ?? '',
+        city: raw.address.city ?? '',
+      };
+    }
+  } else {
+    mappedAddress = null;
+  }
 
   // 1. Map nested provider using strict allowlist
   let mappedProvider: any = undefined;
@@ -101,6 +158,7 @@ export function toBookingResponse(
 
   return {
     ...raw,
+    address: mappedAddress,
     ...(mappedProvider !== undefined ? { provider: mappedProvider } : {}),
     ...(mappedClient !== undefined ? { client: mappedClient } : {}),
     services: booking.services ?? raw.services ?? [],
