@@ -36,6 +36,7 @@ const KEYS = {
   APP_LANGUAGE: 'hc_app_language',
   LANGUAGE: 'hc_language',
   DISCOVERY_OVERRIDE: 'hc_discovery_override',
+  LAST_LOGIN_SIDE: 'hc_last_login_side',
 } as const;
 
 export const tokenStorage = {
@@ -53,12 +54,17 @@ export const tokenStorage = {
     return null;
   },
 
-  async save(accessToken: string, refreshToken: string, role: UserRole): Promise<void> {
-    await Promise.all([
+  async save(accessToken: string, refreshToken?: string | null, role?: UserRole | null): Promise<void> {
+    const tasks: Promise<unknown>[] = [
       SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken),
-      SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken),
-      SecureStore.setItemAsync(KEYS.USER_ROLE, role),
-    ]);
+    ];
+    if (refreshToken) {
+      tasks.push(SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken));
+    }
+    if (role) {
+      tasks.push(SecureStore.setItemAsync(KEYS.USER_ROLE, role));
+    }
+    await Promise.all(tasks);
   },
 
   /** Switch client ↔ provider mode without re-login (same keys as save). */
@@ -124,6 +130,16 @@ export const tokenStorage = {
       return;
     }
     await AsyncStorage.setItem(KEYS.DISCOVERY_OVERRIDE, JSON.stringify(override));
+  },
+
+  async getLastLoginSide(): Promise<'client' | 'provider' | null> {
+    const raw = await AsyncStorage.getItem(KEYS.LAST_LOGIN_SIDE);
+    if (raw === 'client' || raw === 'provider') return raw;
+    return null;
+  },
+
+  async setLastLoginSide(side: 'client' | 'provider'): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LAST_LOGIN_SIDE, side);
   },
 
   async clear(): Promise<void> {

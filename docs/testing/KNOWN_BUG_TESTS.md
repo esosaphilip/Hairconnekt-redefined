@@ -26,6 +26,8 @@ Because HairConnekt follows a strict **zero production code change** rule during
 | **BUG-041 / BUG-042** | `apps/backend/test/t18-booking-location.spec.ts` | `T18: Booking Location Privacy & Default Address Rules` | `RESOLVED` (Active `it`) |
 | **BUG-048** | `apps/mobile/test/t20-booking-location-helpers.spec.ts` | T20 mobile only: Client profile addresses menu badge uses live server count from GET /users/me/addresses, hidden on load/error | `RESOLVED` (Active `it`) |
 | **BUG-050** | `apps/backend/test/t19-admin-id-document-corp.spec.ts` | `Admin provider ID document Cross-Origin-Resource-Policy same-site on 302 success, same-origin on errors and sibling routes` | `RESOLVED` (Active `it`) |
+| **BUG-039** | `apps/mobile/test/t21-role-routing.spec.ts` | T21: Login Client/Provider tab is cosmetic, account is routed to real role; mismatch notice shown once (Alert.alert); login screen preselects tab by url role > remembered side > Client default | `RESOLVED` (Active `it`) |
+| **BUG-054** | `apps/mobile/test/t21-role-routing.spec.ts`, `apps/mobile/src/utils/useGroupRoleGuard.tsx`, `apps/mobile/src/app/(auth)/splash.tsx`, `apps/mobile/src/app/(client)/_layout.tsx`, `apps/mobile/src/app/(provider)/_layout.tsx`, `apps/mobile/src/app/(auth)/login.tsx` | T21 + live guards: Provider account must never remain on client side; layout guards on mount/focus redirect; splash trusts /users/me.role over stored role; provider login resets navigation history | `RESOLVED` (Active `it`) |
 
 ---
 

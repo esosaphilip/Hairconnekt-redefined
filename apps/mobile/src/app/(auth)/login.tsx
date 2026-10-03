@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing } from '../../theme';
@@ -9,15 +9,58 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { apiJson } from '@/services/apiClient';
+import { ApiError, apiJson } from '@/services/apiClient';
+import {
+  groupForRole,
+  loginRoutingDecision,
+  preselectedLoginTab,
+  providerDestinationFromError,
+  providerDestinationFromStatus,
+  providerDestinationRoute,
+  type LoginTab,
+} from '@/utils/roleRouting';
+
+const mismatchNotice = (
+  lang: string,
+  actualSide: 'client' | 'provider',
+): { title: string; message: string } => {
+  if (actualSide === 'provider') {
+    return {
+      title: 'Anbieter-Bereich',
+      message:
+        lang === 'de'
+          ? 'Das ist ein Anbieter-Konto. Du wurdest in den Anbieter-Bereich weitergeleitet.'
+          : 'This is a provider account, so you\'ve been taken to the provider area.',
+    };
+  }
+  return {
+    title: 'Kunden-Bereich',
+    message:
+      lang === 'de'
+        ? 'Das ist ein Kunden-Konto. Du wurdest in den Kunden-Bereich weitergeleitet.'
+        : 'This is a client account, so you\'ve been taken to the client area.',
+  };
+};
 
 export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole, returnTo } = useLocalSearchParams<{ role: 'client' | 'provider'; returnTo?: string }>();
   const { lang, t } = useLanguage();
   const insets = useSafeAreaInsets();
-  const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
-  
+  const [role, setRole] = useState<LoginTab>('client');
+
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      const remembered = await tokenStorage.getLastLoginSide();
+      if (!mounted) return;
+      setRole(preselectedLoginTab({ urlRole, rememberedRole: remembered }));
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [urlRole]);
+
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +74,7 @@ export default function LoginScreen() {
     setErrorMessage(message);
     setErrorStatus(status);
     setErrorVisible(true);
-  }
+  };
 
   const handleLogin = async () => {
     Keyboard.dismiss();
@@ -40,46 +83,78 @@ export default function LoginScreen() {
       return;
     }
 
+    const selectedTab = role;
+    let authData: any;
+
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      
-      const authData = await apiJson<any>('/auth/login', {
+
+      authData = await apiJson<any>('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
       });
       const token = authData.accessToken;
-      const role = authData.user.role;
+      const accountRole = authData.user.role;
 
-      // FIX: Use the tokenStorage utility to save tokens correctly
-      await tokenStorage.save(token, authData.refreshToken, role);
-      // Also save user info for future use if needed
+      await tokenStorage.save(token, authData.refreshToken, accountRole);
       await tokenStorage.setUser(authData.user);
 
-      if (role === 'client') {
-        const shouldReturn = typeof returnTo === 'string' && returnTo.length > 0;
-        router.replace((shouldReturn ? returnTo : '/(client)') as any);
+      const accountGroup = groupForRole(accountRole);
+      if (accountGroup) {
+        await tokenStorage.setLastLoginSide(accountGroup);
+      }
+
+      let providerStatus: any = undefined;
+      let providerStatusError: any = undefined;
+
+      if (accountGroup === 'provider') {
+        try {
+          providerStatus = await apiJson<any>('/providers/me', { auth: true });
+        } catch (err: any) {
+          if (err instanceof ApiError) {
+            providerStatusError = { status: err.status };
+          } else {
+            providerStatusError = err ?? { status: undefined };
+          }
+        }
+      }
+
+      const decision = loginRoutingDecision({
+        accountRole,
+        selectedTab,
+        returnTo: typeof returnTo === 'string' ? returnTo : undefined,
+        providerStatus,
+        providerStatusError,
+      });
+
+      if (!decision) {
+        setIsLoading(false);
         return;
       }
 
-      if (role === 'provider') {
-        try {
-          const provider = await apiJson<any>('/providers/me', { auth: true });
-          if (provider.status?.toLowerCase() === 'approved') {
-            router.replace('/(provider)');
-          } else {
-            router.replace('/(provider)/pending');
-          }
-        } catch (err: any) {
-          if (err?.status === 404) {
-            router.replace('/(auth)/provider-register/type' as any);
-            return;
-          }
-          router.replace('/(provider)/pending');
+      if (decision.resetHistory) {
+        if (decision.noticeSide) {
+          const notice = mismatchNotice(lang, decision.noticeSide);
+          router.replace(decision.destination as any);
+          setTimeout(() => {
+            Alert.alert(notice.title, notice.message, [{ text: 'OK' }]);
+          }, 300);
+        } else {
+          router.replace(decision.destination as any);
         }
         return;
       }
+
+      router.replace(decision.destination as any);
+      if (decision.noticeSide) {
+        const notice = mismatchNotice(lang, decision.noticeSide);
+        setTimeout(() => {
+          Alert.alert(notice.title, notice.message, [{ text: 'OK' }]);
+        }, 300);
+      }
+      return;
     } catch (err: any) {
       const status = err?.status ?? err.response?.status;
       const body = err?.body ?? err?.response?.data;
