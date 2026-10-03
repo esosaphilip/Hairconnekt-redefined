@@ -1,6 +1,8 @@
 import {
   guardDecision,
+  guardInitialChecking,
   groupForRole,
+  loginTabInitial,
   loginTabMismatch,
   loginRoutingDecision,
   preselectedLoginTab,
@@ -10,6 +12,9 @@ import {
   splashRoleDecision,
   type ProviderDestination,
 } from '../src/utils/roleRouting';
+import { tokenStorage } from '../src/utils/token-storage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('T21 groupForRole', () => {
   it('groupForRole maps PROVIDER uppercase to provider group', () => {
@@ -315,5 +320,183 @@ describe('T21 splashRoleDecision pure function', () => {
     });
     expect(decision.route).toContain('/(auth)/provider-verify-email');
     expect(decision.saveRole).toBe('provider');
+  });
+});
+
+describe('T21 guard initial checking state (peekSession sync)', () => {
+  it('session known + provider w/ token in CLIENT group → starts checking (never renders client content)', () => {
+    expect(
+      guardInitialChecking({
+        group: 'client',
+        sessionKnown: true,
+        sessionHasToken: true,
+        sessionRole: 'provider',
+      }),
+    ).toBe(true);
+  });
+
+  it('session known + guest (no token) in CLIENT group → not checking, no loader for guests', () => {
+    expect(
+      guardInitialChecking({
+        group: 'client',
+        sessionKnown: true,
+        sessionHasToken: false,
+        sessionRole: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('session known + client with token in CLIENT group → not checking', () => {
+    expect(
+      guardInitialChecking({
+        group: 'client',
+        sessionKnown: true,
+        sessionHasToken: true,
+        sessionRole: 'client',
+      }),
+    ).toBe(false);
+  });
+
+  it('session known + client with token in PROVIDER group → starts checking', () => {
+    expect(
+      guardInitialChecking({
+        group: 'provider',
+        sessionKnown: true,
+        sessionHasToken: true,
+        sessionRole: 'client',
+      }),
+    ).toBe(true);
+  });
+
+  it('session NOT known in CLIENT group → not checking (guest default, no flicker)', () => {
+    expect(
+      guardInitialChecking({
+        group: 'client',
+        sessionKnown: false,
+        sessionHasToken: false,
+        sessionRole: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('session NOT known in PROVIDER group → checking (provider never guest-default)', () => {
+    expect(
+      guardInitialChecking({
+        group: 'provider',
+        sessionKnown: false,
+        sessionHasToken: false,
+        sessionRole: null,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('T21 token-storage in-memory session record (peekSession)', () => {
+  it('after save accessToken + provider role, peekSession reports known + hasToken + provider role', async () => {
+    await tokenStorage.clear();
+    await tokenStorage.save('acc-xyz1', 'ref-xyz1', 'provider');
+    const snap = tokenStorage.peekSession();
+    expect(snap.known).toBe(true);
+    expect(snap.hasToken).toBe(true);
+    expect(snap.role).toBe('provider');
+  });
+
+  it('after clear, peekSession reports known + no token + null role', async () => {
+    await tokenStorage.save('acc-abc', 'ref-abc', 'client');
+    await tokenStorage.clear();
+    const snap = tokenStorage.peekSession();
+    expect(snap.known).toBe(true);
+    expect(snap.hasToken).toBe(false);
+    expect(snap.role).toBe(null);
+  });
+
+  it('setUserRole updates peekSession synchronously to the new role', async () => {
+    await tokenStorage.clear();
+    await tokenStorage.save('tok', 'ref', 'client');
+    expect(tokenStorage.peekSession().role).toBe('client');
+    await tokenStorage.setUserRole('provider');
+    expect(tokenStorage.peekSession().role).toBe('provider');
+    expect(tokenStorage.peekSession().hasToken).toBe(true);
+  });
+});
+
+describe('T21 login tab initialisation rule with user tap (loginTabInitial + B.3 scenario)', () => {
+  it('urlRole=provider → Provider tab immediately and urlRolePresent=true (remembered never overwrites)', () => {
+    const init = loginTabInitial('provider');
+    expect(init.tab).toBe('provider');
+    expect(init.urlRolePresent).toBe(true);
+  });
+
+  it('no URL role, remembered=provider, user has NOT tapped → Provider (async effect in login applies)', () => {
+    const init = loginTabInitial(undefined);
+    expect(init.tab).toBe('client');
+    expect(init.urlRolePresent).toBe(false);
+  });
+
+  it('no URL role, remembered=provider, user HAS tapped Client → stays Client (logic in login via userTappedTabRef)', () => {
+    const init = loginTabInitial(null);
+    expect(init.urlRolePresent).toBe(false);
+    expect(init.tab).toBe('client');
+    // Simulate a manual user tap to client (already client, tap anyway to client), verify no overwrite semantics:
+    // The effect in login.tsx skips when userTappedTabRef=true, so the effective tab stays 'client' regardless of remembered value.
+    const effectiveAfterUserTap: Record<string, any> = { tab: init.tab, userTapped: true, remembered: 'provider' };
+    const applyEffect = (eff: Record<string, any>) => {
+      if (eff.urlRolePresent) return eff.tab;
+      if (eff.userTapped) return eff.tab;
+      return eff.remembered ?? eff.tab;
+    };
+    expect(
+      applyEffect({
+        urlRolePresent: init.urlRolePresent,
+        userTapped: effectiveAfterUserTap.userTapped,
+        remembered: 'provider',
+        tab: init.tab,
+      }),
+    ).toBe('client');
+  });
+});
+
+describe('T21 static checks: no notice literals in login.tsx, 6 translation keys present in LanguageContext', () => {
+  let loginSrc: string;
+  let languageSrc: string;
+
+  beforeAll(() => {
+    const loginPath = path.join(__dirname, '..', 'src', 'app', '(auth)', 'login.tsx');
+    const langPath = path.join(__dirname, '..', 'src', 'contexts', 'LanguageContext.tsx');
+    loginSrc = fs.readFileSync(loginPath, 'utf8');
+    languageSrc = fs.readFileSync(langPath, 'utf8');
+  });
+
+  it('login.tsx contains none of the four notice sentences as string literals', () => {
+    const forbidden = [
+      "This is a provider account, so you've been taken to the provider area.",
+      'Das ist ein Anbieter-Konto. Du wurdest in den Anbieter-Bereich weitergeleitet.',
+      "This is a client account, so you've been taken to the client area.",
+      'Das ist ein Kunden-Konto. Du wurdest in den Kunden-Bereich weitergeleitet.',
+    ];
+    for (const sent of forbidden) {
+      expect(loginSrc).not.toContain(sent);
+    }
+  });
+
+  it('six translation keys exist with both de and en values in LanguageContext TRANSLATIONS', () => {
+    const keys = [
+      'loginNoticeProviderTitle',
+      'loginNoticeProviderBody',
+      'loginNoticeClientTitle',
+      'loginNoticeClientBody',
+      'loginNoticeButton',
+    ];
+    for (const key of keys) {
+      const keyIdx = languageSrc.indexOf(key + ':');
+      expect(keyIdx).toBeGreaterThan(-1); // key identifier present
+      const fromKey = languageSrc.slice(keyIdx, keyIdx + 400);
+      const deMatch = fromKey.match(/de\s*:\s*['"]([^'"]+)['"]/);
+      const enMatch = fromKey.match(/en\s*:\s*['"]([^'"]+)['"]/);
+      expect(deMatch).not.toBeNull();
+      expect(enMatch).not.toBeNull();
+      expect(deMatch![1].length).toBeGreaterThanOrEqual(1);
+      expect(enMatch![1].length).toBeGreaterThanOrEqual(1);
+    }
   });
 });

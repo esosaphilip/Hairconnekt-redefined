@@ -344,6 +344,18 @@ export const TRANSLATIONS = {
   browseWithoutAccount: { de: 'Weiter ohne Konto', en: 'Browse without an account' },
   browseContinueAsGuest: { de: 'Als Gast weiter', en: 'Continue as guest' },
 
+  loginNoticeProviderTitle: { de: 'Anbieter-Bereich', en: 'Provider area' },
+  loginNoticeProviderBody: {
+    de: 'Das ist ein Anbieter-Konto. Du wurdest in den Anbieter-Bereich weitergeleitet.',
+    en: 'This is a provider account, so you\'ve been taken to the provider area.',
+  },
+  loginNoticeClientTitle: { de: 'Kunden-Bereich', en: 'Client area' },
+  loginNoticeClientBody: {
+    de: 'Das ist ein Kunden-Konto. Du wurdest in den Kunden-Bereich weitergeleitet.',
+    en: 'This is a client account, so you\'ve been taken to the client area.',
+  },
+  loginNoticeButton: { de: 'OK', en: 'OK' },
+
   tabHome: { de: 'Startseite', en: 'Home' },
   tabSearch: { de: 'Suchen', en: 'Search' },
   tabAppointments: { de: 'Termine', en: 'Appointments' },

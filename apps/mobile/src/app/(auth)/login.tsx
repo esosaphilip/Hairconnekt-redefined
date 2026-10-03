@@ -13,53 +13,45 @@ import { ApiError, apiJson } from '@/services/apiClient';
 import {
   groupForRole,
   loginRoutingDecision,
-  preselectedLoginTab,
+  loginTabInitial,
   providerDestinationFromError,
   providerDestinationFromStatus,
   providerDestinationRoute,
   type LoginTab,
 } from '@/utils/roleRouting';
-
-const mismatchNotice = (
-  lang: string,
-  actualSide: 'client' | 'provider',
-): { title: string; message: string } => {
-  if (actualSide === 'provider') {
-    return {
-      title: 'Anbieter-Bereich',
-      message:
-        lang === 'de'
-          ? 'Das ist ein Anbieter-Konto. Du wurdest in den Anbieter-Bereich weitergeleitet.'
-          : 'This is a provider account, so you\'ve been taken to the provider area.',
-    };
-  }
-  return {
-    title: 'Kunden-Bereich',
-    message:
-      lang === 'de'
-        ? 'Das ist ein Kunden-Konto. Du wurdest in den Kunden-Bereich weitergeleitet.'
-        : 'This is a client account, so you\'ve been taken to the client area.',
-  };
-};
+import { dismissAllThenReplace } from '@/utils/useGroupRoleGuard';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole, returnTo } = useLocalSearchParams<{ role: 'client' | 'provider'; returnTo?: string }>();
   const { lang, t } = useLanguage();
   const insets = useSafeAreaInsets();
-  const [role, setRole] = useState<LoginTab>('client');
+  const { tab: initialTab, urlRolePresent } = loginTabInitial(urlRole);
+  const [role, setRole] = useState<LoginTab>(initialTab);
+  const userTappedTabRef = useRef(false);
+
+  const changeRole = (next: LoginTab) => {
+    userTappedTabRef.current = true;
+    setRole(next);
+  };
 
   useEffect(() => {
     let mounted = true;
+    if (urlRolePresent) return;
     void (async () => {
       const remembered = await tokenStorage.getLastLoginSide();
       if (!mounted) return;
-      setRole(preselectedLoginTab({ urlRole, rememberedRole: remembered }));
+      if (userTappedTabRef.current) return;
+      setRole((current) => {
+        if (userTappedTabRef.current) return current;
+        if (remembered === 'client' || remembered === 'provider') return remembered;
+        return current;
+      });
     })();
     return () => {
       mounted = false;
     };
-  }, [urlRole]);
+  }, [urlRole, urlRolePresent]);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -113,11 +105,10 @@ export default function LoginScreen() {
         try {
           providerStatus = await apiJson<any>('/providers/me', { auth: true });
         } catch (err: any) {
-          if (err instanceof ApiError) {
-            providerStatusError = { status: err.status };
-          } else {
-            providerStatusError = err ?? { status: undefined };
-          }
+          providerStatusError =
+            err instanceof ApiError
+              ? { status: err.status }
+              : err ?? { status: undefined };
         }
       }
 
@@ -135,23 +126,22 @@ export default function LoginScreen() {
       }
 
       if (decision.resetHistory) {
-        if (decision.noticeSide) {
-          const notice = mismatchNotice(lang, decision.noticeSide);
-          router.replace(decision.destination as any);
-          setTimeout(() => {
-            Alert.alert(notice.title, notice.message, [{ text: 'OK' }]);
-          }, 300);
-        } else {
-          router.replace(decision.destination as any);
-        }
-        return;
+        dismissAllThenReplace(router, decision.destination);
+      } else {
+        router.replace(decision.destination as any);
       }
 
-      router.replace(decision.destination as any);
-      if (decision.noticeSide) {
-        const notice = mismatchNotice(lang, decision.noticeSide);
+      if (decision.noticeSide === 'provider') {
         setTimeout(() => {
-          Alert.alert(notice.title, notice.message, [{ text: 'OK' }]);
+          Alert.alert(t('loginNoticeProviderTitle'), t('loginNoticeProviderBody'), [
+            { text: t('loginNoticeButton') },
+          ]);
+        }, 300);
+      } else if (decision.noticeSide === 'client') {
+        setTimeout(() => {
+          Alert.alert(t('loginNoticeClientTitle'), t('loginNoticeClientBody'), [
+            { text: t('loginNoticeButton') },
+          ]);
         }, 300);
       }
       return;
@@ -161,9 +151,10 @@ export default function LoginScreen() {
       if (body?.errorCode === 'EMAIL_NOT_VERIFIED' && typeof body?.email === 'string') {
         const targetEmail = body.email;
         const targetRole = body?.role === 'provider' ? 'provider' : 'client';
-        const screen = targetRole === 'provider'
-          ? `/(auth)/provider-verify-email?email=${encodeURIComponent(targetEmail)}`
-          : `/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}`;
+        const screen =
+          targetRole === 'provider'
+            ? `/(auth)/provider-verify-email?email=${encodeURIComponent(targetEmail)}`
+            : `/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}`;
         router.replace(screen as any);
         return;
       }
@@ -206,7 +197,7 @@ export default function LoginScreen() {
           <View style={styles.roleToggleContainer}>
             <TouchableOpacity
               style={[styles.roleTogglePill, role === 'client' && styles.roleTogglePillActive]}
-              onPress={() => setRole('client')}
+              onPress={() => changeRole('client')}
               activeOpacity={0.8}
             >
               <Text style={[styles.roleToggleText, role === 'client' && styles.roleToggleTextActive]}>
@@ -215,7 +206,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.roleTogglePill, role === 'provider' && styles.roleTogglePillActive]}
-              onPress={() => setRole('provider')}
+              onPress={() => changeRole('provider')}
               activeOpacity={0.8}
             >
               <Text style={[styles.roleToggleText, role === 'provider' && styles.roleToggleTextActive]}>

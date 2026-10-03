@@ -166,6 +166,37 @@ export interface SplashRoleInput {
   serverEmail?: string;
 }
 
+export interface GuardInitialStateInput {
+  group: Group;
+  sessionKnown: boolean;
+  sessionHasToken: boolean;
+  sessionRole: RoleLike;
+}
+
+export const guardInitialChecking = (input: GuardInitialStateInput): boolean => {
+  if (input.sessionKnown) {
+    const decision = guardDecision({
+      group: input.group,
+      hasToken: input.sessionHasToken,
+      role: input.sessionRole,
+    });
+    return decision === 'leave';
+  }
+  return input.group === 'provider';
+};
+
+export interface LoginTabInitial {
+  tab: LoginTab;
+  urlRolePresent: boolean;
+}
+
+export const loginTabInitial = (urlRole?: string | string[] | null): LoginTabInitial => {
+  const tab = preselectedLoginTab({ urlRole });
+  const raw = Array.isArray(urlRole) ? urlRole[0] : urlRole;
+  const urlRolePresent = typeof raw === 'string' && groupForRole(raw) !== null;
+  return { tab, urlRolePresent };
+};
+
 export const splashRoleDecision = (input: SplashRoleInput): SplashRoleDecision => {
   if (!input.hasToken) {
     return { route: '/(client)' };

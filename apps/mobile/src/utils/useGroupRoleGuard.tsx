@@ -1,25 +1,43 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback } from 'react';
 import { tokenStorage } from './token-storage';
-import { apiJson } from '@/services/apiClient';
-import { ApiError } from '@/services/apiClient';
+import { apiJson, ApiError } from '@/services/apiClient';
 import { colors } from '@/theme';
 import {
   Group,
   GuardDecision,
+  guardInitialChecking,
+  groupForRole,
   guardDecision,
   providerDestinationFromError,
   providerDestinationFromStatus,
   providerDestinationRoute,
 } from './roleRouting';
 
+const dismissAllThenReplace = (router: any, destination: string): void => {
+  try {
+    if (typeof router.canDismiss === 'function' && router.canDismiss()) {
+      router.dismissAll();
+    }
+  } catch {
+    // ignore; fall through to replace
+  }
+  router.replace(destination as any);
+};
+
 const useGroupRoleGuard = (group: Group) => {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(group !== 'client');
+  const initial = tokenStorage.peekSession();
+  const [isChecking, setIsChecking] = useState<boolean>(
+    guardInitialChecking({
+      group,
+      sessionKnown: initial.known,
+      sessionHasToken: initial.hasToken,
+      sessionRole: initial.role,
+    }),
+  );
   const redirectingRef = useRef(false);
-  const checkedRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,15 +46,27 @@ const useGroupRoleGuard = (group: Group) => {
       const run = async () => {
         if (redirectingRef.current) return;
 
-        const token = await tokenStorage.getAccessToken();
-        const role = await tokenStorage.getUserRole();
-        const hasToken = Boolean(token);
+        let token: string | null = null;
+        let role: string | null = null;
+        let hasToken = false;
+        try {
+          token = await tokenStorage.getAccessToken();
+          role = await tokenStorage.getUserRole();
+          hasToken = Boolean(token);
+        } catch {
+          if (group === 'provider') {
+            redirectingRef.current = true;
+            dismissAllThenReplace(router, '/(auth)/login?role=provider');
+          } else {
+            setIsChecking(false);
+          }
+          return;
+        }
 
         const decision: GuardDecision = guardDecision({ group, hasToken, role });
 
         if (decision === 'allow') {
           if (!cancelled) setIsChecking(false);
-          checkedRef.current = true;
           return;
         }
 
@@ -45,22 +75,26 @@ const useGroupRoleGuard = (group: Group) => {
         if (group === 'client') {
           try {
             const provider = await apiJson<any>('/providers/me', { auth: true });
-            const dest = providerDestinationFromStatus(provider);
-            router.replace(providerDestinationRoute(dest) as any);
+            const route = providerDestinationRoute(
+              providerDestinationFromStatus(provider),
+            );
+            dismissAllThenReplace(router, route);
           } catch (err: any) {
-            if (err instanceof ApiError && err.status === 404) {
-              router.replace(providerDestinationRoute(providerDestinationFromError({ status: 404 })) as any);
-            } else {
-              router.replace(providerDestinationRoute(providerDestinationFromError(err)) as any);
-            }
+            const mapped =
+              err instanceof ApiError && err.status === 404
+                ? providerDestinationFromError({ status: 404 })
+                : providerDestinationFromError(err);
+            dismissAllThenReplace(router, providerDestinationRoute(mapped));
           }
           return;
         }
 
-        if (hasToken && role !== 'provider') {
-          router.replace('/(client)' as any);
+        if (groupForRole(role) === 'provider' && hasToken) {
+          dismissAllThenReplace(router, '/(provider)');
+        } else if (hasToken) {
+          dismissAllThenReplace(router, '/(client)');
         } else {
-          router.replace('/(auth)/login?role=provider' as any);
+          dismissAllThenReplace(router, '/(auth)/login?role=provider');
         }
       };
 
@@ -68,15 +102,10 @@ const useGroupRoleGuard = (group: Group) => {
 
       return () => {
         cancelled = true;
+        redirectingRef.current = false;
       };
     }, [group, router]),
   );
-
-  useEffect(() => {
-    if (group === 'client' && !checkedRef.current) {
-      setIsChecking(false);
-    }
-  }, [group]);
 
   return isChecking;
 };
@@ -85,7 +114,7 @@ export const GroupGuardGate: React.FC<{
   isChecking: boolean;
   group: Group;
   children: React.ReactNode;
-}> = ({ isChecking, group, children }) => {
+}> = ({ isChecking, children }) => {
   if (isChecking) {
     return (
       <View style={styles.loadingContainer}>
@@ -105,4 +134,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export { useGroupRoleGuard };
+export { useGroupRoleGuard, dismissAllThenReplace };

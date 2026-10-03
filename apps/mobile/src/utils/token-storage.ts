@@ -39,30 +39,88 @@ const KEYS = {
   LAST_LOGIN_SIDE: 'hc_last_login_side',
 } as const;
 
+type SessionSnapshot = {
+  known: boolean;
+  hasToken: boolean;
+  role: string | null;
+};
+
+const session: {
+  accessToken: string | null | undefined;
+  refreshToken: string | null | undefined;
+  userRole: string | null | undefined;
+  roleSet: boolean;
+} = {
+  accessToken: undefined,
+  refreshToken: undefined,
+  userRole: undefined,
+  roleSet: false,
+};
+
+const snapshot = (): SessionSnapshot => {
+  const known = session.accessToken !== undefined || session.roleSet;
+  return {
+    known,
+    hasToken: session.accessToken != null && session.accessToken.length > 0,
+    role:
+      session.userRole === 'client' || session.userRole === 'provider' || session.userRole === 'admin'
+        ? session.userRole
+        : null,
+  };
+};
+
 export const tokenStorage = {
+  peekSession(): SessionSnapshot {
+    return snapshot();
+  },
+
   async getAccessToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
+    if (session.accessToken === undefined) {
+      const value = await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
+      session.accessToken = value;
+    }
+    return session.accessToken;
   },
 
   async getRefreshToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+    if (session.refreshToken === undefined) {
+      const value = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+      session.refreshToken = value;
+    }
+    return session.refreshToken;
   },
 
   async getUserRole(): Promise<UserRole | null> {
-    const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
-    if (raw === 'client' || raw === 'provider' || raw === 'admin') return raw;
+    if (session.userRole === undefined) {
+      const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
+      session.userRole = raw;
+      session.roleSet = true;
+    }
+    if (
+      session.userRole === 'client' ||
+      session.userRole === 'provider' ||
+      session.userRole === 'admin'
+    ) {
+      return session.userRole;
+    }
     return null;
   },
 
-  async save(accessToken: string, refreshToken?: string | null, role?: UserRole | null): Promise<void> {
-    const tasks: Promise<unknown>[] = [
-      SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken),
-    ];
+  async save(
+    accessToken: string,
+    refreshToken?: string | null,
+    role?: UserRole | null,
+  ): Promise<void> {
+    const tasks: Promise<unknown>[] = [SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken)];
+    session.accessToken = accessToken;
     if (refreshToken) {
       tasks.push(SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken));
+      session.refreshToken = refreshToken;
     }
     if (role) {
       tasks.push(SecureStore.setItemAsync(KEYS.USER_ROLE, role));
+      session.userRole = role;
+      session.roleSet = true;
     }
     await Promise.all(tasks);
   },
@@ -70,6 +128,8 @@ export const tokenStorage = {
   /** Switch client ↔ provider mode without re-login (same keys as save). */
   async setUserRole(role: UserRole): Promise<void> {
     await SecureStore.setItemAsync(KEYS.USER_ROLE, role);
+    session.userRole = role;
+    session.roleSet = true;
   },
 
   async setUser(user: unknown): Promise<void> {
@@ -149,5 +209,9 @@ export const tokenStorage = {
       SecureStore.deleteItemAsync(KEYS.USER_ROLE),
       SecureStore.deleteItemAsync(KEYS.USER_JSON),
     ]);
+    session.accessToken = null;
+    session.refreshToken = null;
+    session.userRole = null;
+    session.roleSet = true;
   },
 };
