@@ -61,65 +61,70 @@ const deepLinkTargetGroup = (
 };
 
 const resolveDefaultRoute = async (): Promise<string> => {
-  const accessToken = await tokenStorage.getAccessToken();
-  const storedRole = await tokenStorage.getUserRole();
-
-  if (!accessToken) {
-    const decision = splashRoleDecision({ hasToken: false, storedRole });
-    return decision.route;
-  }
-
-  let me: any = null;
-  let emailUnverified = false;
-  let serverEmail: string | undefined;
-  let serverRole: string | undefined;
   try {
-    me = await apiJson<any>('/users/me', { auth: true });
-    await tokenStorage.setUser(me);
-    serverRole = typeof me?.role === 'string' ? me.role : undefined;
-    emailUnverified = me?.isEmailVerified === false;
-    serverEmail = typeof me?.email === 'string' ? me.email : undefined;
-  } catch (err) {
-    Sentry.captureException(err);
-  }
+    const accessToken = await tokenStorage.getAccessToken();
+    const storedRole = await tokenStorage.getUserRole();
 
-  let providerStatus: any = undefined;
-  let providerStatusError: any = undefined;
+    if (!accessToken) {
+      const decision = splashRoleDecision({ hasToken: false, storedRole });
+      return decision.route;
+    }
 
-  const effectiveRole = serverRole !== undefined ? serverRole : storedRole;
-  if (groupForRole(effectiveRole) === 'provider') {
+    let me: any = null;
+    let emailUnverified = false;
+    let serverEmail: string | undefined;
+    let serverRole: string | undefined;
     try {
-      providerStatus = await apiJson<any>('/providers/me', { auth: true });
-    } catch (err: any) {
-      if (err instanceof ApiError) {
-        providerStatusError = { status: err.status };
-      } else {
-        providerStatusError = err ?? { status: undefined };
+      me = await apiJson<any>('/users/me', { auth: true });
+      await tokenStorage.setUser(me);
+      serverRole = typeof me?.role === 'string' ? me.role : undefined;
+      emailUnverified = me?.isEmailVerified === false;
+      serverEmail = typeof me?.email === 'string' ? me.email : undefined;
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+
+    let providerStatus: any = undefined;
+    let providerStatusError: any = undefined;
+
+    const effectiveRole = serverRole !== undefined ? serverRole : storedRole;
+    if (groupForRole(effectiveRole) === 'provider') {
+      try {
+        providerStatus = await apiJson<any>('/providers/me', { auth: true });
+      } catch (err: any) {
+        if (err instanceof ApiError) {
+          providerStatusError = { status: err.status };
+        } else {
+          providerStatusError = err ?? { status: undefined };
+        }
       }
     }
-  }
 
-  const decision = splashRoleDecision({
-    hasToken: true,
-    storedRole,
-    serverRole,
-    providerStatus,
-    providerStatusError,
-    serverEmailUnverified: emailUnverified,
-    serverEmail,
-  });
+    const decision = splashRoleDecision({
+      hasToken: true,
+      storedRole,
+      serverRole,
+      providerStatus,
+      providerStatusError,
+      serverEmailUnverified: emailUnverified,
+      serverEmail,
+    });
 
-  if (decision.saveRole) {
-    const access = await tokenStorage.getAccessToken();
-    const refresh = await tokenStorage.getRefreshToken();
-    if (access) {
-      await tokenStorage.save(access, refresh ?? undefined, decision.saveRole);
-    } else {
-      await tokenStorage.setUserRole(decision.saveRole as any);
+    if (decision.saveRole) {
+      const access = await tokenStorage.getAccessToken();
+      const refresh = await tokenStorage.getRefreshToken();
+      if (access) {
+        await tokenStorage.save(access, refresh ?? undefined, decision.saveRole);
+      } else {
+        await tokenStorage.setUserRole(decision.saveRole as any);
+      }
     }
-  }
 
-  return decision.route;
+    return decision.route;
+  } catch (error) {
+    Sentry.captureException(error);
+    return '/(client)';
+  }
 };
 
 export default function SplashScreen() {
@@ -187,42 +192,47 @@ export default function SplashScreen() {
     });
 
     const timer = setTimeout(async () => {
-      const targetGroup = deepLinkTargetGroup(segments);
-      const meaningful = hasMeaningfulDeepLink(segments, initialUrlRef.current, params as any);
-      if (targetGroup === null && meaningful) {
-        return;
-      }
-
-      const accessToken = await tokenStorage.getAccessToken();
-      if (!accessToken) {
-        if (targetGroup === 'client') return;
-        if (targetGroup === 'provider') {
-          router.replace('/(auth)/login?role=provider' as any);
+      try {
+        const targetGroup = deepLinkTargetGroup(segments);
+        const meaningful = hasMeaningfulDeepLink(segments, initialUrlRef.current, params as any);
+        if (targetGroup === null && meaningful) {
           return;
         }
+
+        const accessToken = await tokenStorage.getAccessToken();
+        if (!accessToken) {
+          if (targetGroup === 'client') return;
+          if (targetGroup === 'provider') {
+            router.replace('/(auth)/login?role=provider' as any);
+            return;
+          }
+          const route = await resolveDefaultRoute();
+          router.replace(route as any);
+          return;
+        }
+
+        let realRole: string | null = null;
+        try {
+          const me = await apiJson<any>('/users/me', { auth: true });
+          realRole = typeof me?.role === 'string' ? me.role : await tokenStorage.getUserRole();
+        } catch {
+          realRole = await tokenStorage.getUserRole();
+        }
+        const userGroup = groupForRole(realRole);
+
+        if (meaningful && targetGroup !== null && userGroup !== null && targetGroup === userGroup) {
+          return;
+        }
+        if (meaningful && targetGroup !== null && userGroup === null) {
+          return;
+        }
+
         const route = await resolveDefaultRoute();
         router.replace(route as any);
-        return;
+      } catch (error) {
+        Sentry.captureException(error);
+        router.replace('/(client)' as any);
       }
-
-      let realRole: string | null = null;
-      try {
-        const me = await apiJson<any>('/users/me', { auth: true });
-        realRole = typeof me?.role === 'string' ? me.role : await tokenStorage.getUserRole();
-      } catch {
-        realRole = await tokenStorage.getUserRole();
-      }
-      const userGroup = groupForRole(realRole);
-
-      if (meaningful && targetGroup !== null && userGroup !== null && targetGroup === userGroup) {
-        return;
-      }
-      if (meaningful && targetGroup !== null && userGroup === null) {
-        return;
-      }
-
-      const route = await resolveDefaultRoute();
-      router.replace(route as any);
     }, 2000);
 
     return () => clearTimeout(timer);

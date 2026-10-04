@@ -197,6 +197,22 @@ export const loginTabInitial = (urlRole?: string | string[] | null): LoginTabIni
   return { tab, urlRolePresent };
 };
 
+export interface RememberedTabResultInput {
+  current: LoginTab;
+  urlRolePresent: boolean;
+  userTapped: boolean;
+  remembered: 'client' | 'provider' | string | null;
+}
+
+export const rememberedTabResult = (input: RememberedTabResultInput): LoginTab => {
+  if (input.urlRolePresent) return input.current;
+  if (input.userTapped) return input.current;
+  if (input.remembered === 'client' || input.remembered === 'provider') {
+    return input.remembered;
+  }
+  return input.current;
+};
+
 export const splashRoleDecision = (input: SplashRoleInput): SplashRoleDecision => {
   if (!input.hasToken) {
     return { route: '/(client)' };

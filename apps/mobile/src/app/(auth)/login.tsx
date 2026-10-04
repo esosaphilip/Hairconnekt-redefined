@@ -14,9 +14,7 @@ import {
   groupForRole,
   loginRoutingDecision,
   loginTabInitial,
-  providerDestinationFromError,
-  providerDestinationFromStatus,
-  providerDestinationRoute,
+  rememberedTabResult,
   type LoginTab,
 } from '@/utils/roleRouting';
 import { dismissAllThenReplace } from '@/utils/useGroupRoleGuard';
@@ -41,12 +39,14 @@ export default function LoginScreen() {
     void (async () => {
       const remembered = await tokenStorage.getLastLoginSide();
       if (!mounted) return;
-      if (userTappedTabRef.current) return;
-      setRole((current) => {
-        if (userTappedTabRef.current) return current;
-        if (remembered === 'client' || remembered === 'provider') return remembered;
-        return current;
-      });
+      setRole((current) =>
+        rememberedTabResult({
+          current,
+          urlRolePresent,
+          userTapped: userTappedTabRef.current,
+          remembered,
+        }),
+      );
     })();
     return () => {
       mounted = false;

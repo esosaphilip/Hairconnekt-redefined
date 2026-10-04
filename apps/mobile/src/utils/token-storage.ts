@@ -75,33 +75,27 @@ export const tokenStorage = {
   },
 
   async getAccessToken(): Promise<string | null> {
-    if (session.accessToken === undefined) {
-      const value = await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
-      session.accessToken = value;
-    }
-    return session.accessToken;
+    const value = await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
+    session.accessToken = value;
+    return value;
   },
 
   async getRefreshToken(): Promise<string | null> {
-    if (session.refreshToken === undefined) {
-      const value = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
-      session.refreshToken = value;
-    }
-    return session.refreshToken;
+    const value = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+    session.refreshToken = value;
+    return value;
   },
 
   async getUserRole(): Promise<UserRole | null> {
-    if (session.userRole === undefined) {
-      const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
-      session.userRole = raw;
-      session.roleSet = true;
-    }
+    const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
+    session.userRole = raw;
+    session.roleSet = true;
     if (
-      session.userRole === 'client' ||
-      session.userRole === 'provider' ||
-      session.userRole === 'admin'
+      raw === 'client' ||
+      raw === 'provider' ||
+      raw === 'admin'
     ) {
-      return session.userRole;
+      return raw;
     }
     return null;
   },

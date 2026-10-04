@@ -9,10 +9,12 @@ import {
   providerDestinationFromError,
   providerDestinationFromStatus,
   providerDestinationRoute,
+  rememberedTabResult,
   splashRoleDecision,
   type ProviderDestination,
 } from '../src/utils/roleRouting';
 import { tokenStorage } from '../src/utils/token-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as fs from 'fs';
 import * as path from 'path';
 

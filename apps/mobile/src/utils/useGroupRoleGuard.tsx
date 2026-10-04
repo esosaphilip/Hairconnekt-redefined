@@ -43,6 +43,19 @@ const useGroupRoleGuard = (group: Group) => {
     useCallback(() => {
       let cancelled = false;
 
+      // C2: every time focus returns, synchronously decide whether the screen
+      // should be hidden right now, before any await.
+      const focusSnapshot = tokenStorage.peekSession();
+      const shouldHideOnEntry = guardInitialChecking({
+        group,
+        sessionKnown: focusSnapshot.known,
+        sessionHasToken: focusSnapshot.hasToken,
+        sessionRole: focusSnapshot.role,
+      });
+      if (shouldHideOnEntry) {
+        setIsChecking(true);
+      }
+
       const run = async () => {
         if (redirectingRef.current) return;
 
@@ -70,6 +83,8 @@ const useGroupRoleGuard = (group: Group) => {
           return;
         }
 
+        // C2: decision is leave; hide content BEFORE any await / navigation.
+        setIsChecking(true);
         redirectingRef.current = true;
 
         if (group === 'client') {
@@ -89,9 +104,10 @@ const useGroupRoleGuard = (group: Group) => {
           return;
         }
 
-        if (groupForRole(role) === 'provider' && hasToken) {
-          dismissAllThenReplace(router, '/(provider)');
-        } else if (hasToken) {
+        // group === 'provider' && decision === 'leave'
+        // (groupForRole(role) === 'provider' && hasToken is unreachable here
+        // because that combination would have produced decision === 'allow'.)
+        if (hasToken) {
           dismissAllThenReplace(router, '/(client)');
         } else {
           dismissAllThenReplace(router, '/(auth)/login?role=provider');
