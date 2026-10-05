@@ -68,6 +68,7 @@ type ProviderAppointment = {
   platformFeePercent?: number;
   providerPayout?: number;
   clientNotes?: string;
+  isMobile?: boolean;
   address?: {
     street?: string | null;
     houseNumber?: string | null;
