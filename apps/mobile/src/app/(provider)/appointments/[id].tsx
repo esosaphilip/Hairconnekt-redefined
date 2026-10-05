@@ -31,6 +31,7 @@ import { mapHttpError } from '@/utils/error-messages';
 import { openPhoneCall } from '@/utils/phone-call';
 import { getBookingLocation } from '@/utils/bookingLocation';
 import { openDirections } from '@/utils/openDirections';
+import { cancellationWindowHours, isInsideCancellationWindow } from '@/utils/cancellationWindow';
 
 type BackendCancelReason = 'Krank' | 'Notfall' | 'Sonstiges';
 
@@ -67,7 +68,6 @@ type ProviderAppointment = {
   platformFeePercent?: number;
   providerPayout?: number;
   clientNotes?: string;
-  isMobile?: boolean;
   address?: {
     street?: string | null;
     houseNumber?: string | null;
@@ -76,6 +76,13 @@ type ProviderAppointment = {
   };
   client?: BookingClient;
   services?: BookingServiceItem[];
+  provider?: {
+    cancellationPolicy?: unknown;
+    street?: string | null;
+    houseNumber?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+  };
 };
 
 type ProviderAppointmentResponse = ProviderAppointment | { data?: ProviderAppointment };
@@ -253,20 +260,10 @@ export default function ProviderAppointmentDetailScreen() {
     );
   };
 
-  const isShortNotice = useCallback((): boolean => {
-    if (!booking?.scheduledDate || !booking?.scheduledTime) return false;
-    const [year, month, day] = booking.scheduledDate.split('-').map(Number);
-    const [hours, minutes] = booking.scheduledTime.split(':').map(Number);
-    const apptDate = new Date(year, month - 1, day, hours, minutes);
-    const diffHours = (apptDate.getTime() - Date.now()) / (1000 * 60 * 60);
-    return diffHours < 24 && diffHours > 0;
-  }, [booking]);
-
   const confirmCancel = (reason: BackendCancelReason, notes?: string) => {
-    const warning = isShortNotice() ? `${t('cancelPolicyUrgent')}\n\n` : '';
     Alert.alert(
       t('cancelConfirmTitle'),
-      `${warning}${t('cancelConfirmBody')}`,
+      t('cancelConfirmBody'),
       [
         { text: t('cancel'), style: 'cancel' },
         {
@@ -594,13 +591,20 @@ export default function ProviderAppointmentDetailScreen() {
             >
               <Text style={styles.modalTitle}>{t('cancelTitle')}</Text>
 
-              {isShortNotice() && (
-                <View style={styles.warningBanner}>
-                  <Text style={styles.warningBannerText}>
-                    ⚠️ {t('cancelPolicyUrgent')}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.warningBanner}>
+                <Text style={styles.warningBannerText}>
+                  {(
+                    isInsideCancellationWindow({
+                      scheduledDate: booking?.scheduledDate,
+                      scheduledTime: booking?.scheduledTime,
+                      policy: booking?.provider?.cancellationPolicy,
+                      now: new Date(),
+                    })
+                      ? t('cancelProviderNoteUrgent')
+                      : t('cancelProviderNote')
+                  ).replace(/\{hours\}/g, String(cancellationWindowHours(booking?.provider?.cancellationPolicy)))}
+                </Text>
+              </View>
 
               <Text style={styles.modalSectionLabel}>{t('cancelReason')}</Text>
               <View style={styles.presetReasonsRow}>
