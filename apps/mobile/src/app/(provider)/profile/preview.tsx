@@ -7,6 +7,7 @@ import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
 import { formatRating, formatReviewCount, formatReviewDate } from '@/utils/format';
+import { cancellationWindowHours } from '@/utils/cancellationWindow';
 const { width } = Dimensions.get('window');
 
 const safeDistance = (val: any): string => {
@@ -234,7 +235,7 @@ export default function ProfilePreviewScreen() {
               )}
 
               <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
-              <Text style={styles.policyText}>{t('freeCancellationUntil')} {provider.cancellationPolicy || t('cancellationDefault')}</Text>
+              <Text style={styles.policyText}>{t('freeCancellationUntil').replace('{hours}', String(cancellationWindowHours(provider.cancellationPolicy)))}</Text>
             </View>
           )}
 

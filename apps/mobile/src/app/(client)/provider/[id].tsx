@@ -12,6 +12,7 @@ import { formatAmount, formatRating, formatReviewCount, formatReviewDate } from 
 import { ApiError, apiJson } from '@/services/apiClient';
 import { debugLog } from '@/utils/logger';
 import { tokenStorage } from '@/utils/token-storage';
+import { cancellationWindowHours } from '@/utils/cancellationWindow';
 
 const { width } = Dimensions.get('window');
 
@@ -366,7 +367,7 @@ export default function ProviderProfile() {
               )}
 
               <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
-              <Text style={styles.policyText}>{t('freeCancellationUntil')} {provider.cancellationPolicy || t('cancellationDefault')}</Text>
+              <Text style={styles.policyText}>{t('freeCancellationUntil').replace('{hours}', String(cancellationWindowHours(provider.cancellationPolicy)))}</Text>
             </View>
           )}
 

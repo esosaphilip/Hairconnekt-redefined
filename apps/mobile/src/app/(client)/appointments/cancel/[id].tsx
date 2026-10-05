@@ -7,6 +7,7 @@ import { GermanErrorBanner } from '../../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../../utils/error-messages';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson, getApiMessage } from '@/services/apiClient';
+import { cancellationWindowHours, isInsideCancellationWindow } from '@/utils/cancellationWindow';
 
 type BackendReason = 'Andere Pläne' | 'Krank' | 'Notfall' | 'Anbieter abgesagt' | 'Sonstiges';
 
@@ -112,18 +113,14 @@ export default function CancelAppointment() {
     );
   }
 
-  // Calculate 24h limit
-  let isShortNotice = false;
-  if (booking?.scheduledDate && booking?.scheduledTime) {
-    const [year, month, day] = booking.scheduledDate.split('-');
-    const [hours, minutes] = booking.scheduledTime.split(':');
-    const appointmentDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
-    
-    const diffHours = (appointmentDate.getTime() - Date.now()) / (1000 * 60 * 60);
-    if (diffHours < 24 && diffHours > 0) {
-      isShortNotice = true;
-    }
-  }
+  const policy = booking?.provider?.cancellationPolicy;
+  const hours = cancellationWindowHours(policy);
+  const isShortNotice = isInsideCancellationWindow({
+    scheduledDate: booking?.scheduledDate,
+    scheduledTime: booking?.scheduledTime,
+    policy,
+    now: new Date(),
+  });
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -164,7 +161,7 @@ export default function CancelAppointment() {
               </Text>
             </View>
             <Text style={[styles.policyText, isShortNotice && styles.policyTextUrgent]}>
-              {isShortNotice ? t('cancelPolicyUrgent') : t('cancelPolicyText')}
+              {(isShortNotice ? t('cancelPolicyUrgent') : t('cancelPolicyText')).replace('{hours}', String(hours))}
             </Text>
           </View>
 
