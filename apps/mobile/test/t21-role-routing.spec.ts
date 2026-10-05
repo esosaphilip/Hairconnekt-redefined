@@ -422,43 +422,59 @@ describe('T21 token-storage in-memory session record (peekSession)', () => {
   });
 });
 
-describe('T21 login tab initialisation rule with user tap (loginTabInitial + B.3 scenario)', () => {
+describe('T21 login tab initialisation rule with user tap (loginTabInitial + rememberedTabResult)', () => {
   it('urlRole=provider → Provider tab immediately and urlRolePresent=true (remembered never overwrites)', () => {
     const init = loginTabInitial('provider');
     expect(init.tab).toBe('provider');
     expect(init.urlRolePresent).toBe(true);
   });
 
-  it('no URL role, remembered=provider, user has NOT tapped → Provider (async effect in login applies)', () => {
-    const init = loginTabInitial(undefined);
-    expect(init.tab).toBe('client');
-    expect(init.urlRolePresent).toBe(false);
+  it('rememberedTabResult: no URL role, not tapped, remembered provider, current client → Provider', () => {
+    expect(
+      rememberedTabResult({
+        current: 'client',
+        urlRolePresent: false,
+        userTapped: false,
+        remembered: 'provider',
+      }),
+    ).toBe('provider');
   });
 
-  it('no URL role, remembered=provider, user HAS tapped Client → stays Client (logic in login via userTappedTabRef)', () => {
-    const init = loginTabInitial(null);
-    expect(init.urlRolePresent).toBe(false);
-    expect(init.tab).toBe('client');
-    // Simulate a manual user tap to client (already client, tap anyway to client), verify no overwrite semantics:
-    // The effect in login.tsx skips when userTappedTabRef=true, so the effective tab stays 'client' regardless of remembered value.
-    const effectiveAfterUserTap: Record<string, any> = { tab: init.tab, userTapped: true, remembered: 'provider' };
-    const applyEffect = (eff: Record<string, any>) => {
-      if (eff.urlRolePresent) return eff.tab;
-      if (eff.userTapped) return eff.tab;
-      return eff.remembered ?? eff.tab;
-    };
+  it('rememberedTabResult: no URL role, tapped, remembered provider, current client → stays Client', () => {
     expect(
-      applyEffect({
-        urlRolePresent: init.urlRolePresent,
-        userTapped: effectiveAfterUserTap.userTapped,
+      rememberedTabResult({
+        current: 'client',
+        urlRolePresent: false,
+        userTapped: true,
         remembered: 'provider',
-        tab: init.tab,
+      }),
+    ).toBe('client');
+  });
+
+  it('rememberedTabResult: URL role present, not tapped, remembered client, current provider → stays Provider', () => {
+    expect(
+      rememberedTabResult({
+        current: 'provider',
+        urlRolePresent: true,
+        userTapped: false,
+        remembered: 'client',
+      }),
+    ).toBe('provider');
+  });
+
+  it('rememberedTabResult: no URL role, not tapped, remembered banana (unrecognised), current client → stays Client', () => {
+    expect(
+      rememberedTabResult({
+        current: 'client',
+        urlRolePresent: false,
+        userTapped: false,
+        remembered: 'banana',
       }),
     ).toBe('client');
   });
 });
 
-describe('T21 static checks: no notice literals in login.tsx, 6 translation keys present in LanguageContext', () => {
+describe('T21 static checks: no notice literals in login.tsx, five translation keys present in LanguageContext', () => {
   let loginSrc: string;
   let languageSrc: string;
 
@@ -481,7 +497,7 @@ describe('T21 static checks: no notice literals in login.tsx, 6 translation keys
     }
   });
 
-  it('six translation keys exist with both de and en values in LanguageContext TRANSLATIONS', () => {
+  it('five translation keys exist with both de and en values in LanguageContext TRANSLATIONS', () => {
     const keys = [
       'loginNoticeProviderTitle',
       'loginNoticeProviderBody',
@@ -500,5 +516,23 @@ describe('T21 static checks: no notice literals in login.tsx, 6 translation keys
       expect(deMatch![1].length).toBeGreaterThanOrEqual(1);
       expect(enMatch![1].length).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+describe('T21 token readers are never served from memory', () => {
+  // KEYS from token-storage.ts used below:
+  // ACCESS_TOKEN: 'hc_access_token'
+  // USER_ROLE:    'hc_user_role'
+  it('after save, mutating SecureStore mock directly returns NEW values on next get (not cached)', async () => {
+    await tokenStorage.clear();
+    await tokenStorage.save('cached-token', 'cached-refresh', 'client');
+    expect(await tokenStorage.getAccessToken()).toBe('cached-token');
+
+    (SecureStore as any)._store.set('hc_access_token', 'new-token');
+    (SecureStore as any)._store.set('hc_user_role', 'provider');
+
+    expect(await tokenStorage.getAccessToken()).toBe('new-token');
+    expect(await tokenStorage.getUserRole()).toBe('provider');
+    expect(tokenStorage.peekSession().role).toBe('provider');
   });
 });
