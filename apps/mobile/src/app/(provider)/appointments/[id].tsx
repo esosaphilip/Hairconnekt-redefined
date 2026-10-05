@@ -18,6 +18,7 @@ import {
   Linking,
   ActionSheetIOS,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
@@ -32,6 +33,7 @@ import { openPhoneCall } from '@/utils/phone-call';
 import { getBookingLocation } from '@/utils/bookingLocation';
 import { openDirections } from '@/utils/openDirections';
 import { cancellationWindowHours, isInsideCancellationWindow } from '@/utils/cancellationWindow';
+import { sheetKeyboardProps } from '@/utils/sheetKeyboard';
 
 type BackendCancelReason = 'Krank' | 'Notfall' | 'Sonstiges';
 
@@ -95,6 +97,7 @@ export default function ProviderAppointmentDetailScreen() {
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
   const bookingId = String(id ?? '');
+  const insets = useSafeAreaInsets();
   
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<ProviderAppointment | null>(null);
@@ -588,82 +591,88 @@ export default function ProviderAppointmentDetailScreen() {
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               style={styles.cancelBottomSheet}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              {...sheetKeyboardProps({ platform: Platform.OS, topInset: insets.top })}
             >
-              <Text style={styles.modalTitle}>{t('cancelTitle')}</Text>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.cancelSheetScrollContent}
+              >
+                <Text style={styles.modalTitle}>{t('cancelTitle')}</Text>
 
-              <View style={styles.warningBanner}>
-                <Text style={styles.warningBannerText}>
-                  {(
-                    isInsideCancellationWindow({
-                      scheduledDate: booking?.scheduledDate,
-                      scheduledTime: booking?.scheduledTime,
-                      policy: booking?.provider?.cancellationPolicy,
-                      now: new Date(),
-                    })
-                      ? t('cancelProviderNoteUrgent')
-                      : t('cancelProviderNote')
-                  ).replace(/\{hours\}/g, String(cancellationWindowHours(booking?.provider?.cancellationPolicy)))}
-                </Text>
-              </View>
+                <View style={styles.warningBanner}>
+                  <Text style={styles.warningBannerText}>
+                    {(
+                      isInsideCancellationWindow({
+                        scheduledDate: booking?.scheduledDate,
+                        scheduledTime: booking?.scheduledTime,
+                        policy: booking?.provider?.cancellationPolicy,
+                        now: new Date(),
+                      })
+                        ? t('cancelProviderNoteUrgent')
+                        : t('cancelProviderNote')
+                    ).replace(/\{hours\}/g, String(cancellationWindowHours(booking?.provider?.cancellationPolicy)))}
+                  </Text>
+                </View>
 
-              <Text style={styles.modalSectionLabel}>{t('cancelReason')}</Text>
-              <View style={styles.presetReasonsRow}>
-                {PROVIDER_CANCEL_REASONS.map((r) => (
-                  <TouchableOpacity
-                    key={r.apiValue}
-                    style={[
-                      styles.reasonChip,
-                      cancelReason === r.apiValue && styles.reasonChipActive,
-                    ]}
-                    onPress={() => setCancelReason(r.apiValue)}
-                  >
-                    <Text
+                <Text style={styles.modalSectionLabel}>{t('cancelReason')}</Text>
+                <View style={styles.presetReasonsRow}>
+                  {PROVIDER_CANCEL_REASONS.map((r) => (
+                    <TouchableOpacity
+                      key={r.apiValue}
                       style={[
-                        styles.reasonChipText,
-                        cancelReason === r.apiValue && styles.reasonChipTextActive,
+                        styles.reasonChip,
+                        cancelReason === r.apiValue && styles.reasonChipActive,
                       ]}
+                      onPress={() => setCancelReason(r.apiValue)}
                     >
-                      {t(r.labelKey)}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.reasonChipText,
+                          cancelReason === r.apiValue && styles.reasonChipTextActive,
+                        ]}
+                      >
+                        {t(r.labelKey)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.modalSectionLabel}>{t('cancelNotes')}</Text>
+                <TextInput
+                  style={styles.cancelNotesInput}
+                  value={cancelNotes}
+                  onChangeText={setCancelNotes}
+                  placeholder={t('cancelNotesPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  multiline
+                  numberOfLines={3}
+                />
+
+                <View style={styles.modalActionsRow}>
+                  <TouchableOpacity
+                    style={styles.modalCancelBtn}
+                    onPress={() => setShowCancelModal(false)}
+                    disabled={isCancelling}
+                  >
+                    <Text style={styles.modalCancelBtnText}>{t('cancel')}</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.modalSectionLabel}>{t('cancelNotes')}</Text>
-              <TextInput
-                style={styles.cancelNotesInput}
-                value={cancelNotes}
-                onChangeText={setCancelNotes}
-                placeholder={t('cancelNotesPlaceholder')}
-                placeholderTextColor={colors.textTertiary}
-                multiline
-                numberOfLines={3}
-              />
-
-              <View style={styles.modalActionsRow}>
-                <TouchableOpacity
-                  style={styles.modalCancelBtn}
-                  onPress={() => setShowCancelModal(false)}
-                  disabled={isCancelling}
-                >
-                  <Text style={styles.modalCancelBtnText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalSubmitBtn,
-                    (!cancelReason || isCancelling) && styles.modalSubmitBtnDisabled,
-                  ]}
-                  disabled={!cancelReason || isCancelling}
-                  onPress={() => confirmCancel(cancelReason, cancelNotes)}
-                >
-                  {isCancelling ? (
-                    <ActivityIndicator color={colors.background} />
-                  ) : (
-                    <Text style={styles.modalSubmitBtnText}>{t('cancelConfirmBtn')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalSubmitBtn,
+                      (!cancelReason || isCancelling) && styles.modalSubmitBtnDisabled,
+                    ]}
+                    disabled={!cancelReason || isCancelling}
+                    onPress={() => confirmCancel(cancelReason, cancelNotes)}
+                  >
+                    {isCancelling ? (
+                      <ActivityIndicator color={colors.background} />
+                    ) : (
+                      <Text style={styles.modalSubmitBtnText}>{t('cancelConfirmBtn')}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -759,6 +768,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: Platform.OS === 'ios' ? spacing.xxxl : spacing.xl,
   },
+  cancelSheetScrollContent: { paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md },
   modalTitle: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.xl,

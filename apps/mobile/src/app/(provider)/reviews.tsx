@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Modal, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing, shadows } from '../../theme';
@@ -9,6 +10,7 @@ import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatReviewCount, formatReviewDate } from '@/utils/format';
 import { debugError, debugLog } from '@/utils/logger';
+import { sheetKeyboardProps } from '@/utils/sheetKeyboard';
 
 interface ReviewSummary {
   avgRating: number;
@@ -33,6 +35,7 @@ export default function ReviewsScreen() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const locale = lang === 'en' ? 'en-US' : 'de-DE';
+  const insets = useSafeAreaInsets();
 
   const [providerId, setProviderId] = useState<string | null>(null);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
@@ -323,8 +326,7 @@ export default function ReviewsScreen() {
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               style={styles.bottomSheet}
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? layout.headerHeight + spacing.md : 0}
+              {...sheetKeyboardProps({ platform: Platform.OS, topInset: insets.top, iosOffset: layout.headerHeight + spacing.md })}
             >
               <ScrollView
                 keyboardShouldPersistTaps="handled"
