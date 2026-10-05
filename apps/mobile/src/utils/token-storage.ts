@@ -36,34 +36,94 @@ const KEYS = {
   APP_LANGUAGE: 'hc_app_language',
   LANGUAGE: 'hc_language',
   DISCOVERY_OVERRIDE: 'hc_discovery_override',
+  LAST_LOGIN_SIDE: 'hc_last_login_side',
 } as const;
 
+type SessionSnapshot = {
+  known: boolean;
+  hasToken: boolean;
+  role: string | null;
+};
+
+const session: {
+  accessToken: string | null | undefined;
+  refreshToken: string | null | undefined;
+  userRole: string | null | undefined;
+  roleSet: boolean;
+} = {
+  accessToken: undefined,
+  refreshToken: undefined,
+  userRole: undefined,
+  roleSet: false,
+};
+
+const snapshot = (): SessionSnapshot => {
+  const known = session.accessToken !== undefined || session.roleSet;
+  return {
+    known,
+    hasToken: session.accessToken != null && session.accessToken.length > 0,
+    role:
+      session.userRole === 'client' || session.userRole === 'provider' || session.userRole === 'admin'
+        ? session.userRole
+        : null,
+  };
+};
+
 export const tokenStorage = {
+  peekSession(): SessionSnapshot {
+    return snapshot();
+  },
+
   async getAccessToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
+    const value = await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
+    session.accessToken = value;
+    return value;
   },
 
   async getRefreshToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+    const value = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+    session.refreshToken = value;
+    return value;
   },
 
   async getUserRole(): Promise<UserRole | null> {
     const raw = await SecureStore.getItemAsync(KEYS.USER_ROLE);
-    if (raw === 'client' || raw === 'provider' || raw === 'admin') return raw;
+    session.userRole = raw;
+    session.roleSet = true;
+    if (
+      raw === 'client' ||
+      raw === 'provider' ||
+      raw === 'admin'
+    ) {
+      return raw;
+    }
     return null;
   },
 
-  async save(accessToken: string, refreshToken: string, role: UserRole): Promise<void> {
-    await Promise.all([
-      SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken),
-      SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken),
-      SecureStore.setItemAsync(KEYS.USER_ROLE, role),
-    ]);
+  async save(
+    accessToken: string,
+    refreshToken?: string | null,
+    role?: UserRole | null,
+  ): Promise<void> {
+    const tasks: Promise<unknown>[] = [SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken)];
+    session.accessToken = accessToken;
+    if (refreshToken) {
+      tasks.push(SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken));
+      session.refreshToken = refreshToken;
+    }
+    if (role) {
+      tasks.push(SecureStore.setItemAsync(KEYS.USER_ROLE, role));
+      session.userRole = role;
+      session.roleSet = true;
+    }
+    await Promise.all(tasks);
   },
 
   /** Switch client ↔ provider mode without re-login (same keys as save). */
   async setUserRole(role: UserRole): Promise<void> {
     await SecureStore.setItemAsync(KEYS.USER_ROLE, role);
+    session.userRole = role;
+    session.roleSet = true;
   },
 
   async setUser(user: unknown): Promise<void> {
@@ -126,6 +186,16 @@ export const tokenStorage = {
     await AsyncStorage.setItem(KEYS.DISCOVERY_OVERRIDE, JSON.stringify(override));
   },
 
+  async getLastLoginSide(): Promise<'client' | 'provider' | null> {
+    const raw = await AsyncStorage.getItem(KEYS.LAST_LOGIN_SIDE);
+    if (raw === 'client' || raw === 'provider') return raw;
+    return null;
+  },
+
+  async setLastLoginSide(side: 'client' | 'provider'): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LAST_LOGIN_SIDE, side);
+  },
+
   async clear(): Promise<void> {
     await Promise.all([
       SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN),
@@ -133,5 +203,9 @@ export const tokenStorage = {
       SecureStore.deleteItemAsync(KEYS.USER_ROLE),
       SecureStore.deleteItemAsync(KEYS.USER_JSON),
     ]);
+    session.accessToken = null;
+    session.refreshToken = null;
+    session.userRole = null;
+    session.roleSet = true;
   },
 };

@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Image, Keyboard, TextInput, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, colors, fonts, fontSizes, layout, spacing } from '../../theme';
@@ -9,15 +9,50 @@ import { GermanErrorBanner } from '../../components/GermanErrorBanner';
 import { mapHttpError } from '../../utils/error-messages';
 import { tokenStorage } from '../../utils/token-storage';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { apiJson } from '@/services/apiClient';
+import { ApiError, apiJson } from '@/services/apiClient';
+import {
+  groupForRole,
+  loginRoutingDecision,
+  loginTabInitial,
+  rememberedTabResult,
+  type LoginTab,
+} from '@/utils/roleRouting';
+import { dismissAllThenReplace } from '@/utils/useGroupRoleGuard';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { role: urlRole, returnTo } = useLocalSearchParams<{ role: 'client' | 'provider'; returnTo?: string }>();
   const { lang, t } = useLanguage();
   const insets = useSafeAreaInsets();
-  const [role, setRole] = useState<'client' | 'provider'>(urlRole || 'client');
-  
+  const { tab: initialTab, urlRolePresent } = loginTabInitial(urlRole);
+  const [role, setRole] = useState<LoginTab>(initialTab);
+  const userTappedTabRef = useRef(false);
+
+  const changeRole = (next: LoginTab) => {
+    userTappedTabRef.current = true;
+    setRole(next);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    if (urlRolePresent) return;
+    void (async () => {
+      const remembered = await tokenStorage.getLastLoginSide();
+      if (!mounted) return;
+      setRole((current) =>
+        rememberedTabResult({
+          current,
+          urlRolePresent,
+          userTapped: userTappedTabRef.current,
+          remembered,
+        }),
+      );
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [urlRole, urlRolePresent]);
+
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +66,7 @@ export default function LoginScreen() {
     setErrorMessage(message);
     setErrorStatus(status);
     setErrorVisible(true);
-  }
+  };
 
   const handleLogin = async () => {
     Keyboard.dismiss();
@@ -40,55 +75,86 @@ export default function LoginScreen() {
       return;
     }
 
+    const selectedTab = role;
+    let authData: any;
+
     try {
       setIsLoading(true);
       setErrorVisible(false);
-      
-      const authData = await apiJson<any>('/auth/login', {
+
+      authData = await apiJson<any>('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
       });
       const token = authData.accessToken;
-      const role = authData.user.role;
+      const accountRole = authData.user.role;
 
-      // FIX: Use the tokenStorage utility to save tokens correctly
-      await tokenStorage.save(token, authData.refreshToken, role);
-      // Also save user info for future use if needed
+      await tokenStorage.save(token, authData.refreshToken, accountRole);
       await tokenStorage.setUser(authData.user);
 
-      if (role === 'client') {
-        const shouldReturn = typeof returnTo === 'string' && returnTo.length > 0;
-        router.replace((shouldReturn ? returnTo : '/(client)') as any);
+      const accountGroup = groupForRole(accountRole);
+      if (accountGroup) {
+        await tokenStorage.setLastLoginSide(accountGroup);
+      }
+
+      let providerStatus: any = undefined;
+      let providerStatusError: any = undefined;
+
+      if (accountGroup === 'provider') {
+        try {
+          providerStatus = await apiJson<any>('/providers/me', { auth: true });
+        } catch (err: any) {
+          providerStatusError =
+            err instanceof ApiError
+              ? { status: err.status }
+              : err ?? { status: undefined };
+        }
+      }
+
+      const decision = loginRoutingDecision({
+        accountRole,
+        selectedTab,
+        returnTo: typeof returnTo === 'string' ? returnTo : undefined,
+        providerStatus,
+        providerStatusError,
+      });
+
+      if (!decision) {
+        setIsLoading(false);
         return;
       }
 
-      if (role === 'provider') {
-        try {
-          const provider = await apiJson<any>('/providers/me', { auth: true });
-          if (provider.status?.toLowerCase() === 'approved') {
-            router.replace('/(provider)');
-          } else {
-            router.replace('/(provider)/pending');
-          }
-        } catch (err: any) {
-          if (err?.status === 404) {
-            router.replace('/(auth)/provider-register/type' as any);
-            return;
-          }
-          router.replace('/(provider)/pending');
-        }
-        return;
+      if (decision.resetHistory) {
+        dismissAllThenReplace(router, decision.destination);
+      } else {
+        router.replace(decision.destination as any);
       }
+
+      if (decision.noticeSide === 'provider') {
+        setTimeout(() => {
+          Alert.alert(t('loginNoticeProviderTitle'), t('loginNoticeProviderBody'), [
+            { text: t('loginNoticeButton') },
+          ]);
+        }, 300);
+      } else if (decision.noticeSide === 'client') {
+        setTimeout(() => {
+          Alert.alert(t('loginNoticeClientTitle'), t('loginNoticeClientBody'), [
+            { text: t('loginNoticeButton') },
+          ]);
+        }, 300);
+      }
+      return;
     } catch (err: any) {
       const status = err?.status ?? err.response?.status;
       const body = err?.body ?? err?.response?.data;
       if (body?.errorCode === 'EMAIL_NOT_VERIFIED' && typeof body?.email === 'string') {
         const targetEmail = body.email;
         const targetRole = body?.role === 'provider' ? 'provider' : 'client';
-        const screen = targetRole === 'provider'
-          ? `/(auth)/provider-verify-email?email=${encodeURIComponent(targetEmail)}`
-          : `/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}`;
+        const screen =
+          targetRole === 'provider'
+            ? `/(auth)/provider-verify-email?email=${encodeURIComponent(targetEmail)}`
+            : `/(auth)/verify-email?email=${encodeURIComponent(targetEmail)}`;
         router.replace(screen as any);
         return;
       }
@@ -131,7 +197,7 @@ export default function LoginScreen() {
           <View style={styles.roleToggleContainer}>
             <TouchableOpacity
               style={[styles.roleTogglePill, role === 'client' && styles.roleTogglePillActive]}
-              onPress={() => setRole('client')}
+              onPress={() => changeRole('client')}
               activeOpacity={0.8}
             >
               <Text style={[styles.roleToggleText, role === 'client' && styles.roleToggleTextActive]}>
@@ -140,7 +206,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.roleTogglePill, role === 'provider' && styles.roleTogglePillActive]}
-              onPress={() => setRole('provider')}
+              onPress={() => changeRole('provider')}
               activeOpacity={0.8}
             >
               <Text style={[styles.roleToggleText, role === 'provider' && styles.roleToggleTextActive]}>

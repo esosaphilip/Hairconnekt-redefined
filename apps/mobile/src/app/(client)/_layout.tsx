@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, fontSizes, layout, spacing } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { FavouritesProvider } from '../../contexts/FavouritesContext';
+import { GroupGuardGate, useGroupRoleGuard } from '../../utils/useGroupRoleGuard';
+
 
 
 // Figma confirmed: CLIENT has exactly 5 tabs
@@ -12,10 +14,12 @@ import { FavouritesProvider } from '../../contexts/FavouritesContext';
 export default function ClientLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const isChecking = useGroupRoleGuard('client');
 
   return (
-    <FavouritesProvider>
-      <Tabs
+    <GroupGuardGate isChecking={isChecking} group="client">
+      <FavouritesProvider>
+        <Tabs
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: colors.primary,
@@ -102,5 +106,6 @@ export default function ClientLayout() {
         <Tabs.Screen name="profile/reviews"                  options={{ href: null }} />
       </Tabs>
     </FavouritesProvider>
+    </GroupGuardGate>
   );
 }

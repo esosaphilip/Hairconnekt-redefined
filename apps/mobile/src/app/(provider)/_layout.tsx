@@ -3,6 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, fontSizes, layout, spacing } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { GroupGuardGate, useGroupRoleGuard } from '../../utils/useGroupRoleGuard';
 
 // Figma confirmed: PROVIDER has exactly 4 tabs
 // Startseite | Termine | Nachrichten | Profil
@@ -10,9 +11,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function ProviderLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const isChecking = useGroupRoleGuard('provider');
 
   return (
-    <Tabs
+    <GroupGuardGate isChecking={isChecking} group="provider">
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -90,5 +93,6 @@ export default function ProviderLayout() {
       <Tabs.Screen name="booking-request/[id]"   options={{ href: null }} />
       <Tabs.Screen name="appointments/[id]"      options={{ href: null }} />
     </Tabs>
+    </GroupGuardGate>
   );
 }
