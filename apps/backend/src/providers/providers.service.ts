@@ -16,6 +16,7 @@ import { Review } from '../entities/review.entity';
 import { RegisterProviderDto } from './dto/register-provider.dto';
 import { GeocodingService } from '../common/geocoding/geocoding.service';
 import { getBerlinToday, getBerlinNowMinutes } from '../common/utils/berlin-time.util';
+import { isPublicProviderStatus, toPublicProviderProfile } from './public-provider';
 
 @Injectable()
 export class ProvidersService {
@@ -602,11 +603,9 @@ export class ProvidersService {
 
   async getPublicProfile(providerId: string, queryLat?: string, queryLng?: string) {
     const provider = await this.providerRepo.findOne({ where: { id: providerId } });
-    if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
-
-    // Strip private fields per CLAUDE.md /me vs /:id contract
-    const { status, idDocumentUrl, street, houseNumber, postalCode,
-            bufferMinutes, lat: providerLat, lng: providerLng, ...publicData } = provider as any;
+    if (!provider || !isPublicProviderStatus(provider.status)) {
+      throw new NotFoundException('Anbieter nicht gefunden.');
+    }
 
     // Derive startingPrice from cheapest active service
     const cheapestService = await this.serviceRepo
@@ -615,6 +614,8 @@ export class ProvidersService {
       .orderBy('s.price', 'ASC')
       .getOne();
 
+    const providerLat = provider.lat;
+    const providerLng = provider.lng;
     const distanceKm =
       queryLat !== undefined && queryLng !== undefined
         ? this.calculateDistanceKm(
@@ -625,11 +626,9 @@ export class ProvidersService {
           )
         : null;
 
-    return {
-      ...publicData,
-      startingPrice: cheapestService ? Number(cheapestService.price) : null,
-      distanceKm,
-    };
+    const startingPrice = cheapestService ? Number(cheapestService.price) : null;
+
+    return toPublicProviderProfile(provider, { startingPrice, distanceKm });
   }
 
   async getPublicServices(providerId: string) {
@@ -788,7 +787,9 @@ export class ProvidersService {
     const provider = await this.providerRepo.findOne({
       where: { id: providerId }
     });
-    if (!provider) throw new NotFoundException('Anbieter nicht gefunden.');
+    if (!provider || !isPublicProviderStatus(provider.status)) {
+      throw new NotFoundException('Anbieter nicht gefunden.');
+    }
 
     if (!provider.isOnline) {
       return { date: dateStr, providerId, slots: [] };
