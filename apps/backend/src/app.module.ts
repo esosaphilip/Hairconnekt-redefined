@@ -20,6 +20,7 @@ import { StorageModule } from './common/storage/storage.module';
 import { AdminModule } from './admin/admin.module';
 import { PopularStylesModule } from './popular-styles/popular-styles.module';
 import { HealthModule } from './health/health.module';
+import { AppRedirectModule } from './app-redirect/app-redirect.module';
 import { getDatabaseSslConfig } from './common/database/database-ssl';
 
 @Module({
@@ -62,6 +63,7 @@ import { getDatabaseSslConfig } from './common/database/database-ssl';
     AdminModule,
     PopularStylesModule,
     HealthModule,
+    AppRedirectModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
