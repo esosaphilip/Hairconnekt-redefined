@@ -11,7 +11,9 @@ import { tokenStorage } from '../../utils/token-storage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApiError, apiJson } from '@/services/apiClient';
 import {
+  GUEST_HOME_ROUTE,
   groupForRole,
+  loginBackAction,
   loginRoutingDecision,
   loginTabInitial,
   rememberedTabResult,
@@ -171,7 +173,13 @@ export default function LoginScreen() {
       {hasReturnTo && (
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.replace('/(client)' as any)}
+          onPress={() => {
+            if (loginBackAction(router.canGoBack()) === 'pop') {
+              router.back();
+            } else {
+              router.replace(GUEST_HOME_ROUTE as any);
+            }
+          }}
           accessibilityRole="button"
           accessibilityLabel={t('back')}
         >
@@ -268,6 +276,16 @@ export default function LoginScreen() {
               {role === 'client' ? t('loginNoAccountClient') : t('loginNoAccountProvider')}
             </Text>
           </TouchableOpacity>
+          {!hasReturnTo && (
+            <TouchableOpacity
+              style={styles.footerLink}
+              onPress={() => dismissAllThenReplace(router, GUEST_HOME_ROUTE)}
+              accessibilityRole="button"
+              accessibilityLabel={t('browseContinueAsGuest')}
+            >
+              <Text style={styles.footerText}>{t('browseContinueAsGuest')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

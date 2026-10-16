@@ -10,6 +10,8 @@ import { apiFetch, apiJson } from '@/services/apiClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatReviewCount } from '@/utils/format';
 import { debugError } from '@/utils/logger';
+import { signOutDestination } from '../../../utils/roleRouting';
+import { dismissAllThenReplace } from '../../../utils/useGroupRoleGuard';
 
 type PickedImageAsset = {
   uri: string;
@@ -140,7 +142,7 @@ export default function ProviderProfileHubScreen() {
           style: 'destructive',
           onPress: async () => {
             await tokenStorage.clear();
-            router.replace('/(auth)/login');
+            dismissAllThenReplace(router, signOutDestination());
           }
         }
       ]

@@ -10,6 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { apiFetch, apiJson } from '@/services/apiClient';
 import { debugError } from '@/utils/logger';
 import { isAuthError } from '../../../utils/auth-error';
+import { GUEST_HOME_ROUTE, PROFILE_LOGIN_ROUTE, signOutDestination } from '../../../utils/roleRouting';
+import { dismissAllThenReplace } from '../../../utils/useGroupRoleGuard';
 
 export default function ClientProfileScreen() {
   const router = useRouter();
@@ -35,6 +37,7 @@ export default function ClientProfileScreen() {
       const fetchedUser = res?.data || res;
       userRef.current = fetchedUser;
       setUser(fetchedUser);
+      isRedirectingRef.current = false;
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
       const isAuthError =
@@ -47,7 +50,8 @@ export default function ClientProfileScreen() {
         setUser(null);
         if (!isRedirectingRef.current) {
           isRedirectingRef.current = true;
-          router.push('/(auth)/login?returnTo=/(client)/profile' as any);
+          router.navigate(GUEST_HOME_ROUTE as any);
+          router.push(PROFILE_LOGIN_ROUTE as any);
         }
         return;
       }
@@ -61,11 +65,7 @@ export default function ClientProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      isRedirectingRef.current = false;
       fetchUser();
-      return () => {
-        isRedirectingRef.current = false;
-      };
     }, [fetchUser])
   );
 
@@ -81,12 +81,7 @@ export default function ClientProfileScreen() {
           setAddrCountVisible(true);
         } catch (e: any) {
           if (isAuthError(e)) {
-            userRef.current = null;
-            setUser(null);
-            if (!isRedirectingRef.current) {
-              isRedirectingRef.current = true;
-              router.push('/(auth)/login?returnTo=/(client)/profile' as any);
-            }
+            setAddrCountVisible(false);
             return;
           }
           debugError('client profile addresses count load failed', e);
@@ -163,7 +158,7 @@ export default function ClientProfileScreen() {
         userRef.current = null;
         setUser(null);
         await tokenStorage.clear();
-        router.replace('/(auth)/login');
+        dismissAllThenReplace(router, signOutDestination());
       } }
     ]);
   };

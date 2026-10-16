@@ -15,6 +15,8 @@ import { debugLog } from '@/utils/logger';
 import { AuthService } from '@/services/authService';
 import { ApiError, apiFetch } from '@/services/apiClient';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { signOutDestination } from '../../utils/roleRouting';
+import { dismissAllThenReplace } from '../../utils/useGroupRoleGuard';
 
 
 export default function SharedSettingsScreen() {
@@ -51,11 +53,11 @@ export default function SharedSettingsScreen() {
           onPress: async () => {
             try {
               await AuthService.logout();
-              router.replace('/(auth)/login' as any);
+              dismissAllThenReplace(router, signOutDestination());
             } catch (error) {
               debugLog('Error logging out:', error);
               await tokenStorage.clear();
-              router.replace('/(auth)/login' as any);
+              dismissAllThenReplace(router, signOutDestination());
             }
           }
         }
@@ -95,7 +97,7 @@ export default function SharedSettingsScreen() {
 
       await tokenStorage.clear();
       setDeleteModalVisible(false);
-      router.replace('/(auth)/login' as any);
+      dismissAllThenReplace(router, signOutDestination());
 
     } catch (error) {
       const status = error instanceof ApiError ? error.status : undefined;

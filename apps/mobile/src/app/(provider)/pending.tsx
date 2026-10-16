@@ -7,6 +7,8 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { signOutDestination } from '../../utils/roleRouting';
+import { dismissAllThenReplace } from '../../utils/useGroupRoleGuard';
 
 export default function ProviderPendingScreen() {
   const router = useRouter();
@@ -78,7 +80,7 @@ export default function ProviderPendingScreen() {
 
   const handleLogout = async () => {
     await tokenStorage.clear();
-    router.replace('/(auth)/login');
+    dismissAllThenReplace(router, signOutDestination());
   };
 
   const handleSupport = () => {
