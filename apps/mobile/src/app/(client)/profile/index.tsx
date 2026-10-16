@@ -159,7 +159,7 @@ export default function ClientProfileScreen() {
         userRef.current = null;
         setUser(null);
         await tokenStorage.clear();
-        router.replace('/(auth)/login');
+        dismissAllThenReplace(router, signOutDestination());
       } }
     ]);
   };

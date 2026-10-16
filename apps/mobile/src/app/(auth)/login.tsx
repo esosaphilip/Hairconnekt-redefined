@@ -276,6 +276,16 @@ export default function LoginScreen() {
               {role === 'client' ? t('loginNoAccountClient') : t('loginNoAccountProvider')}
             </Text>
           </TouchableOpacity>
+          {!hasReturnTo && (
+            <TouchableOpacity
+              style={styles.footerLink}
+              onPress={() => dismissAllThenReplace(router, GUEST_HOME_ROUTE)}
+              accessibilityRole="button"
+              accessibilityLabel={t('browseContinueAsGuest')}
+            >
+              <Text style={styles.footerText}>{t('browseContinueAsGuest')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
