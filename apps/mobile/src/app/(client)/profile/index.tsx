@@ -81,8 +81,7 @@ export default function ClientProfileScreen() {
           setAddrCountVisible(true);
         } catch (e: any) {
           if (isAuthError(e)) {
-            userRef.current = null;
-            setUser(null);
+            setAddrCountVisible(false);
             return;
           }
           debugError('client profile addresses count load failed', e);
