@@ -1,10 +1,13 @@
-import { Tabs } from 'expo-router';
+import { useRef } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, fontSizes, layout, spacing } from '@/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { FavouritesProvider } from '../../contexts/FavouritesContext';
 import { GroupGuardGate, useGroupRoleGuard } from '../../utils/useGroupRoleGuard';
+import { tokenStorage } from '../../utils/token-storage';
+import { PROFILE_LOGIN_ROUTE, profileTabPressDecision } from '../../utils/roleRouting';
 
 
 
@@ -14,6 +17,8 @@ import { GroupGuardGate, useGroupRoleGuard } from '../../utils/useGroupRoleGuard
 export default function ClientLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const router = useRouter();
+  const profileTabPressPendingRef = useRef(false);
   const isChecking = useGroupRoleGuard('client');
 
   return (
@@ -79,6 +84,27 @@ export default function ClientLayout() {
         />
         <Tabs.Screen
           name="profile/index"
+          listeners={{
+            tabPress: (e) => {
+              // BUG-080: decide synchronously so the default tab switch is blocked
+              // before any async token read; guests go straight to the login screen.
+              e.preventDefault();
+              if (profileTabPressPendingRef.current) return;
+              profileTabPressPendingRef.current = true;
+              void (async () => {
+                try {
+                  const token = await tokenStorage.getAccessToken();
+                  if (profileTabPressDecision(Boolean(token)) === 'open-login') {
+                    router.push(PROFILE_LOGIN_ROUTE as any);
+                  } else {
+                    router.navigate('/(client)/profile' as any);
+                  }
+                } finally {
+                  profileTabPressPendingRef.current = false;
+                }
+              })();
+            },
+          }}
           options={{
             title: t('tabProfile'),
             tabBarIcon: ({ color, size }) => (

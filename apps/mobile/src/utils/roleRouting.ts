@@ -253,3 +253,21 @@ export const splashRoleDecision = (input: SplashRoleInput): SplashRoleDecision =
 
   return { route: '/(client)', saveRole };
 };
+
+// ─── BUG-080 / BUG-083 guest navigation helpers ───────────────────────────────
+
+export const GUEST_HOME_ROUTE = '/(client)';
+
+export const PROFILE_LOGIN_ROUTE = '/(auth)/login?returnTo=/(client)/profile';
+
+export type ProfileTabPressDecision = 'open-profile' | 'open-login';
+
+export const profileTabPressDecision = (hasToken: boolean): ProfileTabPressDecision =>
+  hasToken ? 'open-profile' : 'open-login';
+
+export const signOutDestination = (): string => GUEST_HOME_ROUTE;
+
+export type LoginBackAction = 'pop' | 'go-guest-home';
+
+export const loginBackAction = (canGoBack: boolean): LoginBackAction =>
+  canGoBack ? 'pop' : 'go-guest-home';
