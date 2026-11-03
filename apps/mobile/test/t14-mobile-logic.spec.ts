@@ -17,6 +17,25 @@ import { canOfferHomeVisit } from '../src/utils/home-visit';
 import { buildMailtoUrl, buildReportProfileMail } from '../src/utils/mailto';
 import { mockAsyncStorage } from './setup';
 
+// Local override so Linking/Alert are inspectable; superset of the shared mock in ./setup.
+jest.mock('react-native', () => ({
+  StyleSheet: { create: (s: any) => s },
+  ActivityIndicator: 'ActivityIndicator',
+  SafeAreaView: 'SafeAreaView',
+  View: 'View',
+  Text: 'Text',
+  TouchableOpacity: 'TouchableOpacity',
+  Platform: { OS: 'ios', select: (obj: any) => obj.ios || obj.default },
+  Alert: { alert: jest.fn() },
+  Linking: { openURL: jest.fn(), canOpenURL: jest.fn() },
+}));
+
+import { Alert, Linking } from 'react-native';
+import { openMailto, SUPPORT_EMAIL } from '../src/utils/mailto';
+
+// react-native defines __DEV__ at runtime; the node test env must provide it for logger.ts.
+(globalThis as any).__DEV__ = false;
+
 describe('T14: Mobile Business Logic & API Client Contracts', () => {
   const originalFetch = global.fetch;
 
@@ -625,6 +644,30 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       expect(buildReportProfileMail({ id: 'abc-123', businessName: null }).subject).toBe(
         'Profil melden: abc-123',
       );
+    });
+  });
+
+  describe('BUG-081: openMailto opens directly without canOpenURL', () => {
+    it('openMailto opens the mail app via openURL without asking canOpenURL first', async () => {
+      (Linking.openURL as jest.Mock).mockResolvedValueOnce(undefined);
+
+      const opened = await openMailto('mailto:support@hairconnekt.de', SUPPORT_EMAIL, (key) => key);
+
+      expect(Linking.openURL).toHaveBeenCalledWith('mailto:support@hairconnekt.de');
+      expect(Linking.canOpenURL).not.toHaveBeenCalled();
+      expect(opened).toBe(true);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it('openMailto shows the fallback address in an alert when openURL rejects', async () => {
+      (Linking.openURL as jest.Mock).mockRejectedValueOnce(new Error('no mail app registered'));
+
+      const opened = await openMailto('mailto:support@hairconnekt.de', SUPPORT_EMAIL, (key) => key);
+
+      expect(opened).toBe(false);
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      const alertMessage = (Alert.alert as jest.Mock).mock.calls[0][1] as string;
+      expect(alertMessage).toContain('support@hairconnekt.de');
     });
   });
 });

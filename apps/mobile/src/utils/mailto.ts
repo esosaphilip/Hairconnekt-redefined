@@ -27,15 +27,11 @@ export async function openMailto(
   t: (key: string) => string,
 ): Promise<boolean> {
   try {
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      await Linking.openURL(url);
-      return true;
-    }
+    await Linking.openURL(url);
+    return true;
   } catch (err) {
     debugError('openMailto failed', err);
+    Alert.alert(t('error'), `${t('mailUnavailable')} ${fallbackAddress}`);
+    return false;
   }
-
-  Alert.alert(t('error'), `${t('mailUnavailable')} ${fallbackAddress}`);
-  return false;
 }
