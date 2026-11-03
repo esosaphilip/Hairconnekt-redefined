@@ -43,6 +43,7 @@ export default function RegisterStep1Screen() {
   const [password, setPassword] = useState(form.password || '');
   const [confirmPassword, setConfirmPassword] = useState(form.password || '');
   const [acceptedTerms, setAcceptedTerms] = useState(form.acceptedTerms || false);
+  const [ageConfirmed, setAgeConfirmed] = useState(form.ageConfirmed || false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,6 +73,7 @@ export default function RegisterStep1Screen() {
     if (password !== confirmPassword) newErrors.confirmPassword = t('passwordsDontMatch');
 
     if (!acceptedTerms) newErrors.acceptedTerms = t('providerRegisterAcceptTermsRequired');
+    if (!ageConfirmed) newErrors.ageConfirmed = t('providerRegisterConfirmAgeRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,6 +89,7 @@ export default function RegisterStep1Screen() {
         phone: sanitizePhoneNumber(dialCode, phoneNumber),
         password,
         acceptedTerms: true,
+        ageConfirmed: true,
       });
       router.push('/(auth)/provider-register/step2' as any);
     }
@@ -285,6 +288,16 @@ export default function RegisterStep1Screen() {
             </Text>
           </View>
           {errors.acceptedTerms && <Text style={styles.errorText}>{errors.acceptedTerms}</Text>}
+
+          <View style={styles.termsContainer}>
+            <Switch
+              value={ageConfirmed}
+              onValueChange={(val) => { setAgeConfirmed(val); setErrors(prev => ({...prev, ageConfirmed: ''})); }}
+              trackColor={{ true: colors.coral, false: colors.border }}
+            />
+            <Text style={styles.termsText}>{t('providerRegisterConfirmAgeLabel')}</Text>
+          </View>
+          {errors.ageConfirmed && <Text style={styles.errorText}>{errors.ageConfirmed}</Text>}
 
           {/* Grace Period Notice */}
           <View style={styles.gracePill}>

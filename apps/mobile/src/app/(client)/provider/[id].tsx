@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
+import { IdentityVerifiedBadge } from '../../../components/IdentityVerifiedBadge';
+import { buildMailtoUrl, buildReportProfileMail, openMailto, SUPPORT_EMAIL } from '../../../utils/mailto';
 import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
@@ -306,6 +308,11 @@ export default function ProviderProfile() {
         {/* PROVIDER INFO */}
         <View style={styles.infoSection}>
           <Text style={styles.businessName}>{provider.businessName}</Text>
+          {provider.isVerified === true && (
+            <View style={styles.verifiedBadgeRow}>
+              <IdentityVerifiedBadge size="md" />
+            </View>
+          )}
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
             <Text style={styles.statsText}>{avgRating} ({formatReviewCount(totalReviews, lang)})</Text>
@@ -359,12 +366,6 @@ export default function ProviderProfile() {
                 <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
-              {provider.isVerified && (
-                <View style={styles.infoRow}>
-                  <Feather name="check-circle" size={fontSizes.md} color={colors.teal} />
-                  <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
-                </View>
-              )}
 
               <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
               <Text style={styles.policyText}>{t('freeCancellationUntil').replace('{hours}', String(cancellationWindowHours(provider.cancellationPolicy)))}</Text>
@@ -468,6 +469,21 @@ export default function ProviderProfile() {
             </View>
           )}
         </View>
+
+        <TouchableOpacity
+          style={styles.reportLink}
+          onPress={() => {
+            const { subject, body } = buildReportProfileMail({
+              id: providerId,
+              businessName: provider?.businessName,
+            });
+            void openMailto(buildMailtoUrl(SUPPORT_EMAIL, subject, body), SUPPORT_EMAIL, t);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('reportProfile')}
+        >
+          <Text style={styles.reportLinkText}>{t('reportProfile')}</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* STICKY BOTTOM BAR */}
@@ -540,6 +556,7 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
   
   infoSection: { alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
+  verifiedBadgeRow: { marginBottom: spacing.xs },
   businessName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
@@ -562,6 +579,8 @@ const styles = StyleSheet.create({
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
   infoText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
+  reportLink: { alignItems: 'center', paddingVertical: spacing.lg, paddingHorizontal: spacing.lg },
+  reportLinkText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, textDecorationLine: 'underline' },
 
   serviceCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   serviceInfo: { flex: 1 },

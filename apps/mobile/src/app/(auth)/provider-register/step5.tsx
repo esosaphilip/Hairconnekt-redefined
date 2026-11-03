@@ -73,7 +73,7 @@ export default function RegisterStep5Screen() {
   };
 
   const createImageFormData = (
-    fieldName: 'avatar' | 'idDocument' | 'portfolio',
+    fieldName: 'avatar' | 'portfolio',
     uri: string,
     fallbackFilename: string,
   ): FormData => {
@@ -141,6 +141,7 @@ export default function RegisterStep5Screen() {
           cancellationPolicy: form.cancellationPolicy,
           bio: form.bio || '',
           portfolioMarketingConsent: form.portfolioMarketingConsent,
+          ageConfirmed: true,
         }),
       });
 
@@ -148,21 +149,7 @@ export default function RegisterStep5Screen() {
         throw new Error(t('providerRegisterProfileCreateFailed'));
       }
 
-      // STEP 4: Upload ID document (BUG 9: requires provider record to exist)
-      setProgressText(t('providerRegisterUploadingId'));
-      if (form.idDocumentUri) {
-        const fd = createImageFormData('idDocument', form.idDocumentUri, 'id-doc.jpg');
-        const idRes = await apiFetch('/providers/me/id-document', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${onboardingToken}` },
-          body: fd,
-        });
-        if (!idRes.ok) {
-          throw new Error(`${t('errorUnknown')} (${idRes.status})`);
-        }
-      }
-
-      // STEP 5: Upload portfolio images
+      // STEP 4: Upload portfolio images
       setProgressText(t('providerRegisterUploadingPortfolio'));
       for (const uri of form.portfolioUris) {
         const fd = createImageFormData('portfolio', uri, 'portfolio.jpg');
@@ -294,9 +281,6 @@ export default function RegisterStep5Screen() {
             {form.profilePhotoUri ? t('providerRegisterSummaryProfilePhotoOk') : t('providerRegisterSummaryProfilePhotoMissing')}
           </Text>
           <Text style={styles.cardValueSub}>{t('providerRegisterSummaryPortfolioPhotos').replace('{count}', String(form.portfolioUris.length))}</Text>
-          <Text style={[styles.cardValueSub, form.idDocumentUri ? styles.greenText : styles.redText]}>
-            {form.idDocumentUri ? t('providerRegisterSummaryIdOk') : t('providerRegisterSummaryIdMissing')}
-          </Text>
         </View>
 
         <Text style={styles.sectionTitle}>{t('providerRegisterNextStepsTitle')}</Text>

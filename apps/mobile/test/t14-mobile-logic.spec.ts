@@ -7,12 +7,34 @@ import {
   saveRegistrationDraft,
   loadRegistrationDraft,
   clearRegistrationDraft,
+  sanitizeRegistrationDraft,
   RegistrationForm,
   DEFAULTS,
 } from '../src/contexts/RegistrationContext';
 import { TRANSLATIONS } from '../src/contexts/LanguageContext';
 import { tokenStorage } from '../src/utils/token-storage';
+import { canOfferHomeVisit } from '../src/utils/home-visit';
+import { buildMailtoUrl, buildReportProfileMail } from '../src/utils/mailto';
 import { mockAsyncStorage } from './setup';
+
+// Local override so Linking/Alert are inspectable; superset of the shared mock in ./setup.
+jest.mock('react-native', () => ({
+  StyleSheet: { create: (s: any) => s },
+  ActivityIndicator: 'ActivityIndicator',
+  SafeAreaView: 'SafeAreaView',
+  View: 'View',
+  Text: 'Text',
+  TouchableOpacity: 'TouchableOpacity',
+  Platform: { OS: 'ios', select: (obj: any) => obj.ios || obj.default },
+  Alert: { alert: jest.fn() },
+  Linking: { openURL: jest.fn(), canOpenURL: jest.fn() },
+}));
+
+import { Alert, Linking } from 'react-native';
+import { openMailto, SUPPORT_EMAIL } from '../src/utils/mailto';
+
+// react-native defines __DEV__ at runtime; the node test env must provide it for logger.ts.
+(globalThis as any).__DEV__ = false;
 
 describe('T14: Mobile Business Logic & API Client Contracts', () => {
   const originalFetch = global.fetch;
@@ -169,7 +191,7 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
         cancellationPolicy: '24h',
         bio: 'Professional braider',
         profilePhotoUri: 'file:///avatar.jpg',
-        idDocumentUri: 'file:///id.jpg',
+        ageConfirmed: true,
         portfolioUris: [],
         portfolioMarketingConsent: true,
       };
@@ -204,6 +226,41 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       expect(loaded).toBeDefined();
       expect(loaded?.password).toBe('');
       expect(loaded?.email).toBe('jane@example.com');
+    });
+
+    it('drops a legacy idDocumentUri when rehydrating a draft from storage', async () => {
+      await mockAsyncStorage.setItem(
+        'hc_provider_registration_draft',
+        JSON.stringify({
+          firstName: 'Jane',
+          idDocumentUri: 'file:///legacy-id.jpg',
+          ageConfirmed: true,
+        }),
+      );
+
+      const loaded = await loadRegistrationDraft();
+      expect(loaded).not.toBeNull();
+      expect(loaded).not.toHaveProperty('idDocumentUri');
+      expect(loaded?.ageConfirmed).toBe(true);
+      expect(loaded?.firstName).toBe('Jane');
+    });
+
+    it('sanitizeRegistrationDraft removes a legacy idDocumentUri and keeps valid fields', () => {
+      const sanitized = sanitizeRegistrationDraft({
+        firstName: 'Jane',
+        idDocumentUri: 'file:///legacy-id.jpg',
+        ageConfirmed: true,
+      });
+
+      expect(sanitized).not.toBeNull();
+      expect(sanitized).not.toHaveProperty('idDocumentUri');
+      expect(sanitized?.firstName).toBe('Jane');
+      expect(sanitized?.ageConfirmed).toBe(true);
+    });
+
+    it('sanitizeRegistrationDraft returns null for non-object input', () => {
+      expect(sanitizeRegistrationDraft(null)).toBeNull();
+      expect(sanitizeRegistrationDraft('not-an-object')).toBeNull();
     });
 
     it('clears registration draft cleanly from storage', async () => {
@@ -529,6 +586,88 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       }
 
       expect(violatingFiles).toEqual([]);
+    });
+  });
+
+  describe('BUG-092: Home visits require an identity-verified provider', () => {
+    it('canOfferHomeVisit returns true when isVerified is true', () => {
+      expect(canOfferHomeVisit({ isVerified: true })).toBe(true);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is false', () => {
+      expect(canOfferHomeVisit({ isVerified: false })).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is missing', () => {
+      expect(canOfferHomeVisit({})).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is null', () => {
+      expect(canOfferHomeVisit({ isVerified: null })).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false for null and undefined providers', () => {
+      expect(canOfferHomeVisit(null)).toBe(false);
+      expect(canOfferHomeVisit(undefined)).toBe(false);
+    });
+
+    it('static audit: details.tsx gates the mobile switch behind canOfferHomeVisit and the verified-only note', () => {
+      const detailsPath = path.resolve(__dirname, '../src/app/(client)/booking/details.tsx');
+      const content = fs.readFileSync(detailsPath, 'utf8');
+
+      expect(content).toContain('canOfferHomeVisit');
+      expect(content).toContain("t('bookingMobileVerifiedOnly')");
+    });
+  });
+
+  describe('BUG-081: Help & contact mail building', () => {
+    it('buildMailtoUrl percent-encodes the subject and body query parameters', () => {
+      expect(
+        buildMailtoUrl('support@hairconnekt.de', 'Profil melden: Jane', 'Provider-ID: 123\n\nGrund:'),
+      ).toBe(
+        'mailto:support@hairconnekt.de?subject=Profil%20melden%3A%20Jane&body=Provider-ID%3A%20123%0A%0AGrund%3A',
+      );
+    });
+
+    it('buildMailtoUrl returns a bare mailto address when no subject or body is given', () => {
+      expect(buildMailtoUrl('support@hairconnekt.de')).toBe('mailto:support@hairconnekt.de');
+    });
+
+    it('buildReportProfileMail names the provider in the subject and puts the id and reason in the body', () => {
+      expect(buildReportProfileMail({ id: 'abc-123', businessName: 'Jane Braids' })).toEqual({
+        subject: 'Profil melden: Jane Braids',
+        body: 'Provider-ID: abc-123\n\nGrund:',
+      });
+    });
+
+    it('buildReportProfileMail falls back to the provider id when businessName is missing', () => {
+      expect(buildReportProfileMail({ id: 'abc-123', businessName: null }).subject).toBe(
+        'Profil melden: abc-123',
+      );
+    });
+  });
+
+  describe('BUG-081: openMailto opens directly without canOpenURL', () => {
+    it('openMailto opens the mail app via openURL without asking canOpenURL first', async () => {
+      (Linking.openURL as jest.Mock).mockResolvedValueOnce(undefined);
+
+      const opened = await openMailto('mailto:support@hairconnekt.de', SUPPORT_EMAIL, (key) => key);
+
+      expect(Linking.openURL).toHaveBeenCalledWith('mailto:support@hairconnekt.de');
+      expect(Linking.canOpenURL).not.toHaveBeenCalled();
+      expect(opened).toBe(true);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it('openMailto shows the fallback address in an alert when openURL rejects', async () => {
+      (Linking.openURL as jest.Mock).mockRejectedValueOnce(new Error('no mail app registered'));
+
+      const opened = await openMailto('mailto:support@hairconnekt.de', SUPPORT_EMAIL, (key) => key);
+
+      expect(opened).toBe(false);
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      const alertMessage = (Alert.alert as jest.Mock).mock.calls[0][1] as string;
+      expect(alertMessage).toContain('support@hairconnekt.de');
     });
   });
 });

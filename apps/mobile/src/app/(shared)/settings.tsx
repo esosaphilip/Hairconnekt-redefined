@@ -154,6 +154,10 @@ export default function SharedSettingsScreen() {
           {renderRow("bell", t('settingsNotifications'), handleNotificationSettings)}
         </View>
 
+        <View style={styles.cardGroup}>
+          {renderRow("help-circle", t('settingsHelp'), () => router.push('/(shared)/help' as any))}
+        </View>
+
         <Text style={styles.sectionTitle}>{t('settingsLegal')}</Text>
         <View style={styles.cardGroup}>
           {renderRow("shield", t('settingsPrivacy'), () => openLegal(LEGAL_URLS.privacy, t('settingsPrivacy')))}

@@ -4,6 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../theme';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount, formatRating } from '@/utils/format';
+import { IdentityVerifiedBadge } from './IdentityVerifiedBadge';
 
 export interface ProviderProps {
   id: string;
@@ -16,6 +17,7 @@ export interface ProviderProps {
   isAvailableToday: boolean;
   specialisationTags?: string[];
   isFavourited: boolean;
+  isVerified?: boolean;
 }
 
 interface Props {
@@ -54,6 +56,11 @@ export function ProviderCard({ provider, onPress, onFavourite }: Props) {
         </View>
         <View style={styles.headerText}>
           <Text style={styles.name} numberOfLines={1}>{provider.businessName}</Text>
+          {provider.isVerified === true && (
+            <View style={styles.verifiedBadgeRow}>
+              <IdentityVerifiedBadge size="sm" />
+            </View>
+          )}
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={12} color={colors.gold} />
             <Text style={styles.ratingText}>{avgRating} ({provider.totalReviews || 0})</Text>
@@ -101,6 +108,7 @@ const styles = StyleSheet.create({
   placeholderText: { fontFamily: fonts.heading, fontSize: fontSizes.lg, color: colors.primary },
   headerText: { flex: 1, marginLeft: spacing.md },
   name: { fontFamily: fonts.bodyBold, fontSize: fontSizes.lg, color: colors.textPrimary, marginBottom: spacing.xxxs },
+  verifiedBadgeRow: { marginBottom: spacing.xxxs },
   statsRow: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.xxs },
   distanceText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary },
