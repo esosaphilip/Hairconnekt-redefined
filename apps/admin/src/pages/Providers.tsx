@@ -3,9 +3,12 @@ import { ShieldAlert, UserCheck, UserMinus, UserX } from 'lucide-react';
 import {
   approveProvider,
   getAdminProviderIdDocumentUrl,
+  getProviderById,
   getProviders,
   rejectProvider,
+  revokeProviderIdentity,
   suspendProvider,
+  verifyProviderIdentity,
   type AdminProvider,
   type ProviderStatus,
 } from '../api';
@@ -19,6 +22,7 @@ import {
   useToasts,
 } from '../components/ui';
 import { formatApiError } from '../utils/apiError';
+import { formatDeDate, identityMethodLabel } from '../utils/identity';
 
 type ConfirmKind = 'approve' | null;
 
@@ -34,6 +38,7 @@ export default function Providers() {
   const [promptReject, setPromptReject] = useState<string | null>(null);
   const [promptSuspend, setPromptSuspend] = useState<string | null>(null);
   const [alertError, setAlertError] = useState<{ title: string; message: string } | null>(null);
+  const [identityBusy, setIdentityBusy] = useState(false);
 
   const providerDetailsRef = useRef<HTMLDivElement | null>(null);
   useDialogLifecycle(selectedProvider !== null, () => setSelectedProvider(null), providerDetailsRef);
@@ -154,6 +159,53 @@ export default function Providers() {
     } catch (err: unknown) {
       const detail = formatApiError(err);
       setAlertError({ title: 'Sperrung fehlgeschlagen', message: detail });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Identity verification (BUG-090): mark as verified / revoke the badge
+  // ---------------------------------------------------------------------------
+  const refreshSelectedProvider = async (id: string) => {
+    const fresh = await getProviderById(id);
+    setSelectedProvider(fresh);
+  };
+
+  const handleVerifyIdentity = async (
+    id: string,
+    method: 'video_call' | 'id_upload',
+  ) => {
+    if (!window.confirm('Identität dieser Anbieterin als geprüft markieren?')) {
+      return;
+    }
+    setIdentityBusy(true);
+    try {
+      await verifyProviderIdentity(id, method);
+      toast.success('Identität wurde als geprüft markiert.');
+      await refreshSelectedProvider(id);
+      await refreshAfterMutation();
+    } catch (err: unknown) {
+      const detail = formatApiError(err);
+      setAlertError({ title: 'Verifizierung fehlgeschlagen', message: detail });
+    } finally {
+      setIdentityBusy(false);
+    }
+  };
+
+  const handleRevokeIdentity = async (id: string) => {
+    if (!window.confirm('Badge wirklich entfernen?')) {
+      return;
+    }
+    setIdentityBusy(true);
+    try {
+      await revokeProviderIdentity(id);
+      toast.success('Identitätsprüfung wurde zurückgenommen.');
+      await refreshSelectedProvider(id);
+      await refreshAfterMutation();
+    } catch (err: unknown) {
+      const detail = formatApiError(err);
+      setAlertError({ title: 'Zurücknahme fehlgeschlagen', message: detail });
+    } finally {
+      setIdentityBusy(false);
     }
   };
 
@@ -487,6 +539,83 @@ export default function Providers() {
                   </div>
                 </div>
               )}
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <h3
+                  style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Identität
+                </h3>
+                {selectedProvider.identityVerifiedAt ? (
+                  <div
+                    style={{
+                      background: '#E8F5E9',
+                      color: '#2E7D32',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>✓ Identität geprüft</p>
+                    <p>
+                      <strong>Methode:</strong>{' '}
+                      {identityMethodLabel(selectedProvider.identityVerificationMethod)}
+                    </p>
+                    <p>
+                      <strong>Geprüft am:</strong>{' '}
+                      {formatDeDate(selectedProvider.identityVerifiedAt)}
+                    </p>
+                    <button
+                      className="btn btn-outline"
+                      style={{ marginTop: '0.5rem' }}
+                      onClick={() => void handleRevokeIdentity(selectedProvider.id)}
+                      disabled={identityBusy}
+                    >
+                      Prüfung zurücknehmen
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: 'var(--bg-color)',
+                      border: '1px solid var(--border)',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <p style={{ marginBottom: '0.5rem' }}>Identität nicht geprüft</p>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn btn-success"
+                        onClick={() =>
+                          void handleVerifyIdentity(selectedProvider.id, 'video_call')
+                        }
+                        disabled={identityBusy}
+                      >
+                        Geprüft per Videocall
+                      </button>
+                      <button
+                        className="btn btn-success"
+                        onClick={() =>
+                          void handleVerifyIdentity(selectedProvider.id, 'id_upload')
+                        }
+                        disabled={identityBusy}
+                      >
+                        Geprüft per Ausweis
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}>
+                  {selectedProvider.ageConfirmedAt
+                    ? `18+ bestätigt: Ja (${formatDeDate(selectedProvider.ageConfirmedAt)})`
+                    : '18+ bestätigt: Nein (ältere App-Version oder nicht angehakt)'}
+                </p>
+              </div>
             </div>
 
             <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
