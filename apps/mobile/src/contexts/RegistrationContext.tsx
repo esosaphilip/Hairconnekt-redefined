@@ -9,22 +9,23 @@ export interface RegistrationForm {
   firstName: string; lastName: string;
   email: string; phone: string; password: string;
   acceptedTerms: boolean;
+  ageConfirmed: boolean;
   businessName: string; street: string; houseNumber: string;
   city: string; postalCode: string; serviceRadius: number;
   serviceIds: string[]; experienceYears: number;
   languages: string[]; cancellationPolicy: '24h' | '48h' | '72h'; bio: string;
-  profilePhotoUri: string; idDocumentUri: string;
+  profilePhotoUri: string;
   portfolioUris: string[];
   portfolioMarketingConsent: boolean;
 }
 
 export const DEFAULTS: RegistrationForm = {
   providerType: '', firstName: '', lastName: '',
-  email: '', phone: '', password: '', acceptedTerms: false,
+  email: '', phone: '', password: '', acceptedTerms: false, ageConfirmed: false,
   businessName: '', street: '', houseNumber: '', city: '',
   postalCode: '', serviceRadius: 10, serviceIds: [],
   experienceYears: 1, languages: ['de'], cancellationPolicy: '24h',
-  bio: '', profilePhotoUri: '', idDocumentUri: '', portfolioUris: [],
+  bio: '', profilePhotoUri: '', portfolioUris: [],
   portfolioMarketingConsent: false,
 };
 
@@ -39,17 +40,25 @@ export async function saveRegistrationDraft(draft: RegistrationForm): Promise<vo
   }
 }
 
+export function sanitizeRegistrationDraft(raw: unknown): RegistrationForm | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const draft = raw as Record<string, unknown>;
+  // Only known registration fields are rehydrated. Anything else — including fields
+  // removed in a later version — is dropped instead of spread back into the form.
+  const sanitized: Record<string, unknown> = { ...DEFAULTS };
+  for (const key of Object.keys(DEFAULTS) as (keyof RegistrationForm)[]) {
+    if (key !== 'password' && key in draft) {
+      sanitized[key] = draft[key];
+    }
+  }
+  return { ...sanitized, password: '' } as RegistrationForm;
+}
+
 export async function loadRegistrationDraft(): Promise<RegistrationForm | null> {
   try {
     const raw = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    return {
-      ...DEFAULTS,
-      ...parsed,
-      password: '',
-    };
+    return sanitizeRegistrationDraft(JSON.parse(raw));
   } catch (err) {
     debugError('Failed to load provider registration draft', err);
     return null;

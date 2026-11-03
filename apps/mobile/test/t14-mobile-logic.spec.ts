@@ -7,6 +7,7 @@ import {
   saveRegistrationDraft,
   loadRegistrationDraft,
   clearRegistrationDraft,
+  sanitizeRegistrationDraft,
   RegistrationForm,
   DEFAULTS,
 } from '../src/contexts/RegistrationContext';
@@ -169,7 +170,7 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
         cancellationPolicy: '24h',
         bio: 'Professional braider',
         profilePhotoUri: 'file:///avatar.jpg',
-        idDocumentUri: 'file:///id.jpg',
+        ageConfirmed: true,
         portfolioUris: [],
         portfolioMarketingConsent: true,
       };
@@ -204,6 +205,41 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       expect(loaded).toBeDefined();
       expect(loaded?.password).toBe('');
       expect(loaded?.email).toBe('jane@example.com');
+    });
+
+    it('drops a legacy idDocumentUri when rehydrating a draft from storage', async () => {
+      await mockAsyncStorage.setItem(
+        'hc_provider_registration_draft',
+        JSON.stringify({
+          firstName: 'Jane',
+          idDocumentUri: 'file:///legacy-id.jpg',
+          ageConfirmed: true,
+        }),
+      );
+
+      const loaded = await loadRegistrationDraft();
+      expect(loaded).not.toBeNull();
+      expect(loaded).not.toHaveProperty('idDocumentUri');
+      expect(loaded?.ageConfirmed).toBe(true);
+      expect(loaded?.firstName).toBe('Jane');
+    });
+
+    it('sanitizeRegistrationDraft removes a legacy idDocumentUri and keeps valid fields', () => {
+      const sanitized = sanitizeRegistrationDraft({
+        firstName: 'Jane',
+        idDocumentUri: 'file:///legacy-id.jpg',
+        ageConfirmed: true,
+      });
+
+      expect(sanitized).not.toBeNull();
+      expect(sanitized).not.toHaveProperty('idDocumentUri');
+      expect(sanitized?.firstName).toBe('Jane');
+      expect(sanitized?.ageConfirmed).toBe(true);
+    });
+
+    it('sanitizeRegistrationDraft returns null for non-object input', () => {
+      expect(sanitizeRegistrationDraft(null)).toBeNull();
+      expect(sanitizeRegistrationDraft('not-an-object')).toBeNull();
     });
 
     it('clears registration draft cleanly from storage', async () => {

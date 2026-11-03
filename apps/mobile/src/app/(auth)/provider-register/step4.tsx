@@ -27,17 +27,6 @@ export default function RegisterStep4Screen() {
     }
   };
 
-  const handlePickIdDocument = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-      exif: false,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      update({ idDocumentUri: result.assets[0].uri });
-    }
-  };
-
   const handlePickPortfolio = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -61,7 +50,7 @@ export default function RegisterStep4Screen() {
     router.push('/(auth)/provider-register/step5' as any);
   };
 
-  const isFormValid = form.profilePhotoUri !== '' && form.idDocumentUri !== '' && form.portfolioUris.length > 0;
+  const isFormValid = form.profilePhotoUri !== '' && form.portfolioUris.length > 0;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -108,28 +97,6 @@ export default function RegisterStep4Screen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* SECTION 2: Ausweis */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('providerRegisterStep4IdTitle')}</Text>
-          <TouchableOpacity style={styles.documentCard} onPress={handlePickIdDocument}>
-            {form.idDocumentUri ? (
-              <View style={styles.documentFilled}>
-                <Feather name="check-circle" size={fontSizes.xxl} color={colors.green} style={{ marginRight: spacing.sm }} />
-                <Text style={styles.documentSuccessText}>{t('providerRegisterStep4IdUploaded')}</Text>
-                <TouchableOpacity onPress={handlePickIdDocument} style={styles.changeDocBtn}>
-                  <Text style={styles.changeDocText}>{t('providerRegisterStep4Change')}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.documentEmpty}>
-                <Feather name="file-text" size={fontSizes.xxl} color={colors.textSecondary} style={{ marginBottom: spacing.xs }} />
-                <Text style={styles.documentEmptyTitle}>{t('providerRegisterStep4UploadId')}</Text>
-                <Text style={styles.documentEmptySub}>{t('providerRegisterStep4IdSubtitle')}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
 
         {/* SECTION 3: Portfolio */}

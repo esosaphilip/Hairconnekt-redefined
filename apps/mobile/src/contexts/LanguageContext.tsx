@@ -197,6 +197,8 @@ export const TRANSLATIONS = {
   providerRegisterPasswordRequired: { de: 'Passwort ist erforderlich', en: 'Password is required' },
   providerRegisterPasswordTooShort: { de: 'Passwort muss mindestens 8 Zeichen lang sein', en: 'Password must be at least 8 characters' },
   providerRegisterAcceptTermsRequired: { de: 'Bitte akzeptiere die AGB.', en: 'Please accept the terms.' },
+  providerRegisterConfirmAgeLabel: { de: 'Ich bin mindestens 18 Jahre alt.', en: 'I am at least 18 years old.' },
+  providerRegisterConfirmAgeRequired: { de: 'Bitte bestätige, dass du mindestens 18 Jahre alt bist.', en: 'Please confirm that you are at least 18 years old.' },
   providerRegisterPortfolioConsentLabel: {
     de: 'Ich bin damit einverstanden, dass HairConnekt meine Portfolio-Fotos für Marketing- und Werbezwecke verwenden darf. Mein Name / Business-Name wird dabei genannt.',
     en: 'I agree that HairConnekt may use my portfolio photos for marketing and promotional purposes, with credit given to my name / business name.',
@@ -229,11 +231,6 @@ export const TRANSLATIONS = {
 
   providerRegisterStep4ProfilePhotoTitle: { de: 'Profilbild', en: 'Profile photo' },
   providerRegisterStep4AddPhoto: { de: 'Foto hinzufügen', en: 'Add photo' },
-  providerRegisterStep4IdTitle: { de: 'Ausweis / Reisepass', en: 'ID / Passport' },
-  providerRegisterStep4IdUploaded: { de: 'Ausweis hochgeladen', en: 'ID uploaded' },
-  providerRegisterStep4Change: { de: 'Ändern', en: 'Change' },
-  providerRegisterStep4UploadId: { de: 'Ausweis hochladen', en: 'Upload ID' },
-  providerRegisterStep4IdSubtitle: { de: 'Personalausweis oder Reisepass', en: 'National ID or passport' },
   providerRegisterStep4PortfolioTitle: { de: 'Portfolio (mind. 1 Foto)', en: 'Portfolio (min. 1 photo)' },
 
   providerRegisterSummaryTitle: { de: 'Zusammenfassung', en: 'Summary' },
@@ -245,12 +242,10 @@ export const TRANSLATIONS = {
   providerRegisterSummaryProfilePhotoOk: { de: '✓ Profilbild', en: '✓ Profile photo' },
   providerRegisterSummaryProfilePhotoMissing: { de: '✗ Profilbild fehlt', en: '✗ Missing profile photo' },
   providerRegisterSummaryPortfolioPhotos: { de: '{count} Portfolio-Fotos', en: '{count} portfolio photos' },
-  providerRegisterSummaryIdOk: { de: '✓ Ausweis', en: '✓ ID' },
-  providerRegisterSummaryIdMissing: { de: '✗ Ausweis fehlt', en: '✗ Missing ID' },
 
   providerRegisterNextStepsTitle: { de: 'WAS PASSIERT JETZT?', en: "WHAT'S NEXT?" },
   providerRegisterNextStep1Title: { de: 'Prüfung deiner Angaben', en: 'Reviewing your details' },
-  providerRegisterNextStep2Title: { de: 'Verifizierung deines Ausweises', en: 'Verifying your ID' },
+  providerRegisterNextStep2Title: { de: 'Prüfung deines Profils durch unser Team', en: 'Our team reviews your profile' },
   providerRegisterNextStep3Title: { de: 'Freischaltung deines Profils', en: 'Activating your profile' },
   providerRegisterNextStep4Title: { de: 'Bestätigungs-E-Mail', en: 'Confirmation email' },
   providerRegisterNextStepTime24h: { de: '~24 Stunden', en: '~24 hours' },
@@ -267,7 +262,6 @@ export const TRANSLATIONS = {
     de: 'Profil konnte nicht erstellt werden. Bitte überprüfe deine Angaben und versuche es erneut.',
     en: 'Profile could not be created. Please check your details and try again.',
   },
-  providerRegisterUploadingId: { de: 'Ausweis wird hochgeladen...', en: 'Uploading ID...' },
   providerRegisterUploadingPortfolio: { de: 'Portfolio wird hochgeladen...', en: 'Uploading portfolio...' },
 
   error: { de: 'Fehler', en: 'Error' },
