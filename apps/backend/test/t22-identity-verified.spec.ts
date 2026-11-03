@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestAdmin, generateTestEmail, TEST_PASSWORD } from './test-factories';
+import { createTestClient, createTestProvider, createTestAdmin, generateTestEmail, TEST_PASSWORD, futureDate } from './test-factories';
 import { ProviderStatus } from '../src/entities/provider.entity';
 import { ServiceCategory } from '../src/entities/service-category.entity';
 
@@ -244,7 +244,7 @@ describe('T22: Identity verification, 18+ confirmation and home-visit gating (BU
   });
 
   describe('home visits require an identity-verified provider (BUG-092)', () => {
-    const FUTURE_DATE = '2026-12-15';
+    const FUTURE_DATE = futureDate(7);
 
     const createClientAddress = async (clientToken: string): Promise<string> => {
       const res = await request(ctx.app.getHttpServer())

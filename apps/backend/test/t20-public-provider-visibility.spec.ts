@@ -6,7 +6,7 @@ import {
   isDatabaseAvailable,
   TestAppContext,
 } from './test-bootstrap';
-import { createTestProvider } from './test-factories';
+import { createTestProvider, futureDate } from './test-factories';
 import { ProviderStatus } from '../src/entities/provider.entity';
 import {
   isPublicProviderStatus,
@@ -164,7 +164,7 @@ describe('T20: Public provider visibility (BUG-058, BUG-059 phase 1)', () => {
       };
     };
 
-    const FUTURE_DATE = '2026-12-01';
+    const FUTURE_DATE = futureDate(7);
 
     describe('GET /providers/:id', () => {
       it('returns 200 for an approved provider', runTest(async () => {

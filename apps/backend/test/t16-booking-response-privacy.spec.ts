@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestBooking, createTestAdmin } from './test-factories';
+import { createTestClient, createTestProvider, createTestBooking, createTestAdmin, futureDate } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { ProviderStatus } from '../src/entities/provider.entity';
 import { Gender } from '../src/entities/user.entity';
@@ -375,7 +375,7 @@ describe('T16: Booking Response Privacy & Allowed Field Serialization (BUG-045)'
       provider,
       services,
       status: BookingStatus.PENDING,
-      scheduledDate: '2026-10-25',
+      scheduledDate: futureDate(8),
       scheduledTime: '12:00',
     });
 
@@ -464,7 +464,7 @@ describe('T16: Booking Response Privacy & Allowed Field Serialization (BUG-045)'
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-10-28',
+        scheduledDate: futureDate(7),
         scheduledTime: '13:00',
         isMobile: true,
         addressId: mobileAddress.id,

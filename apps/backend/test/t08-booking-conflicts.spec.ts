@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider } from './test-factories';
+import { createTestClient, createTestProvider, futureDate, futureDateOnWeekday } from './test-factories';
 
 describe('T08: Booking Creation and Conflicts', () => {
   let ctx: TestAppContext;
@@ -40,7 +40,7 @@ describe('T08: Booking Creation and Conflicts', () => {
     const { token: clientToken } = await createTestClient(ctx.dataSource);
     const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource, { serviceCount: 2 });
 
-    const scheduledDate = '2026-11-18'; // Wednesday
+    const scheduledDate = futureDateOnWeekday(3); // Wednesday (open day)
     const scheduledTime = '11:00';
     const expectedPrice = services.reduce((sum, s) => sum + Number(s.price), 0);
 
@@ -91,7 +91,7 @@ describe('T08: Booking Creation and Conflicts', () => {
       .expect(400);
 
     // 4. Booking on a blocked time is rejected: asserts HTTP 409 Conflict
-    const blockDate = '2026-11-20';
+    const blockDate = futureDate(9);
     await request(ctx.app.getHttpServer())
       .post('/api/v1/providers/me/blocks')
       .set('Authorization', `Bearer ${providerToken}`)
@@ -140,6 +140,8 @@ describe('T08: Booking Creation and Conflicts', () => {
     const { token: clientToken } = await createTestClient(ctx.dataSource);
     const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
 
+    const wednesday = futureDateOnWeekday(3);
+
     // 1. Outside opening hours: provider is open 08:00 - 20:00; booking at 22:00: asserts HTTP 400 Bad Request
     const outOfHoursRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/bookings')
@@ -147,7 +149,7 @@ describe('T08: Booking Creation and Conflicts', () => {
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-18', // Wednesday (open day)
+        scheduledDate: wednesday, // Wednesday (open day)
         scheduledTime: '22:00',
         isMobile: false,
       })
@@ -172,14 +174,14 @@ describe('T08: Booking Creation and Conflicts', () => {
       })
       .expect(200);
 
-    // Attempt booking on Sunday (2026-11-22): asserts HTTP 400 Bad Request
+    // Attempt booking on Sunday (next Sunday, closed day): asserts HTTP 400 Bad Request
     const closedDayRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/bookings')
       .set('Authorization', `Bearer ${clientToken}`)
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-22', // Sunday
+        scheduledDate: futureDateOnWeekday(0), // Sunday
         scheduledTime: '12:00',
         isMobile: false,
       })
@@ -192,7 +194,8 @@ describe('T08: Booking Creation and Conflicts', () => {
     const { token: clientToken } = await createTestClient(ctx.dataSource);
     const { provider, services } = await createTestProvider(ctx.dataSource);
 
-    const testDate = '2026-11-19';
+    const testDate = futureDate(8);
+    const compactTestDate = testDate.replace(/-/g, '');
 
     // 1. First booking on testDate at 10:00
     const res1 = await request(ctx.app.getHttpServer())
@@ -208,7 +211,7 @@ describe('T08: Booking Creation and Conflicts', () => {
       .expect(201);
 
     const bookingNum1 = (res1.body.booking || res1.body).bookingNumber;
-    expect(bookingNum1).toMatch(/^HC-20261119-\d{4}$/);
+    expect(bookingNum1).toMatch(new RegExp(`^HC-${compactTestDate}-\\d{4}$`));
 
     // 2. Second booking on same day at 14:00 (non-overlapping slot)
     const { token: client2Token } = await createTestClient(ctx.dataSource);
@@ -225,7 +228,7 @@ describe('T08: Booking Creation and Conflicts', () => {
       .expect(201);
 
     const bookingNum2 = (res2.body.booking || res2.body).bookingNumber;
-    expect(bookingNum2).toMatch(/^HC-20261119-\d{4}$/);
+    expect(bookingNum2).toMatch(new RegExp(`^HC-${compactTestDate}-\\d{4}$`));
 
     // 3. Counter assertion: second booking counter is exactly first booking counter + 1
     const counter1 = parseInt(bookingNum1.split('-')[2], 10);
@@ -288,7 +291,7 @@ describe('T08: Booking Creation and Conflicts', () => {
         .send({
           providerId: provider.id,
           serviceIds: [services[0].id],
-          scheduledDate: '2026-11-25',
+          scheduledDate: futureDate(10),
           scheduledTime: '15:00',
           isMobile: true,
           addressId,
@@ -330,7 +333,7 @@ describe('T08: Booking Creation and Conflicts', () => {
         .send({
           providerId: provider.id,
           serviceIds: [services[0].id],
-          scheduledDate: '2026-11-26',
+          scheduledDate: futureDate(11),
           scheduledTime: '11:00',
           isMobile: true,
         })
@@ -350,7 +353,7 @@ describe('T08: Booking Creation and Conflicts', () => {
         .send({
           providerId: provider.id,
           serviceIds: [services[0].id],
-          scheduledDate: '2026-11-27',
+          scheduledDate: futureDate(12),
           scheduledTime: '11:00',
           isMobile: false,
         })

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
+import { createTestClient, createTestProvider, createTestBooking, futureDate } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { freezeClock, unfreezeClock } from './test-time';
 
@@ -119,7 +119,7 @@ describe('T09: Booking Lifecycle and Permissions', () => {
       provider,
       services,
       status: BookingStatus.PENDING,
-      scheduledDate: '2026-10-16',
+      scheduledDate: futureDate(8),
       scheduledTime: '11:00',
     });
 
@@ -150,9 +150,9 @@ describe('T09: Booking Lifecycle and Permissions', () => {
     const { provider, services, token: providerToken } = await createTestProvider(ctx.dataSource);
     const { user: otherClient, token: otherClientToken } = await createTestClient(ctx.dataSource);
 
-    const originalDate = '2026-11-20';
+    const originalDate = futureDate(7);
     const originalTime = '10:00';
-    const rescheduledDate = '2026-11-20';
+    const rescheduledDate = futureDate(7);
     const rescheduledTime = '14:00';
 
     // 1. Create a confirmed booking for client at originalDate / originalTime

@@ -19,6 +19,41 @@ export function generateTestEmail(prefix = 'user'): string {
   return `${prefix}-${uuidv4().slice(0, 8)}@example.test`;
 }
 
+function berlinDateString(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/**
+ * BUG-094: booking/slot/availability tests must not hard-code calendar dates — a
+ * fixed "future" date silently becomes a past date and the backend rejects it.
+ * Returns the Europe/Berlin calendar date (YYYY-MM-DD) `daysAhead` days from now.
+ */
+export function futureDate(daysAhead: number): string {
+  return berlinDateString(new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000));
+}
+
+/**
+ * BUG-094: Europe/Berlin calendar date (YYYY-MM-DD) at least `minDaysAhead` days
+ * from now that falls on `weekday` (0 = Sunday ... 6 = Saturday), for tests that
+ * depend on a specific weekday (e.g. a closed Sunday).
+ */
+export function futureDateOnWeekday(weekday: number, minDaysAhead = 7): string {
+  for (let daysAhead = minDaysAhead; daysAhead <= minDaysAhead + 6; daysAhead++) {
+    const candidate = futureDate(daysAhead);
+    if (new Date(`${candidate}T00:00:00Z`).getUTCDay() === weekday) {
+      return candidate;
+    }
+  }
+  throw new Error(`Could not find a future date for weekday ${weekday}`);
+}
+
 export function signTestToken(
   user: { id: string; email: string; role: string },
   expiresIn = '1h',
@@ -207,7 +242,7 @@ export async function createTestBooking(
   },
 ): Promise<Booking> {
   const bookingRepo = dataSource.getRepository(Booking);
-  const dateStr = options.scheduledDate ?? '2026-10-15';
+  const dateStr = options.scheduledDate ?? futureDate(7);
   const timeStr = options.scheduledTime ?? '10:00';
   const compactDate = dateStr.replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);

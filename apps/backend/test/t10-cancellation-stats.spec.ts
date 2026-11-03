@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
+import { createTestClient, createTestProvider, createTestBooking, futureDate } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { freezeClock, unfreezeClock } from './test-time';
 
@@ -46,7 +46,7 @@ describe('T10: Cancellation, Policy Windows and Stats', () => {
     const { user: client, token: clientToken } = await createTestClient(ctx.dataSource);
     const { provider, services } = await createTestProvider(ctx.dataSource);
 
-    const scheduledDate = '2026-11-25';
+    const scheduledDate = futureDate(7);
     const scheduledTime = '14:00';
 
     const booking = await createTestBooking(ctx.dataSource, {

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
+import { createTestClient, createTestProvider, createTestBooking, futureDate } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { Address } from '../src/entities/address.entity';
 import { freezeClock, unfreezeClock } from './test-time';
@@ -90,7 +90,7 @@ describe('T18: Booking Location Privacy & Default Address Rules (BUG-041 & BUG-0
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-10',
+        scheduledDate: futureDate(7),
         scheduledTime: '10:00',
         isMobile: true,
         addressId: savedAddress.id,
@@ -157,7 +157,7 @@ describe('T18: Booking Location Privacy & Default Address Rules (BUG-041 & BUG-0
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-12',
+        scheduledDate: futureDate(8),
         scheduledTime: '11:00',
         isMobile: true,
         addressId: savedAddress.id,
@@ -243,7 +243,7 @@ describe('T18: Booking Location Privacy & Default Address Rules (BUG-041 & BUG-0
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-15',
+        scheduledDate: futureDate(9),
         scheduledTime: '14:00',
         isMobile: true,
         addressId: savedAddress.id,
@@ -321,7 +321,7 @@ describe('T18: Booking Location Privacy & Default Address Rules (BUG-041 & BUG-0
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-18',
+        scheduledDate: futureDate(10),
         scheduledTime: '15:00',
         isMobile: false,
       })
@@ -562,7 +562,7 @@ describe('T18: Booking Location Privacy & Default Address Rules (BUG-041 & BUG-0
       .send({
         providerId: provider.id,
         serviceIds: [services[0].id],
-        scheduledDate: '2026-11-25',
+        scheduledDate: futureDate(11),
         scheduledTime: '16:00',
         isMobile: true,
         addressId: addressRes.body.id,
