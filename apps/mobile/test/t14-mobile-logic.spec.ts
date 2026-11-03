@@ -13,6 +13,7 @@ import {
 } from '../src/contexts/RegistrationContext';
 import { TRANSLATIONS } from '../src/contexts/LanguageContext';
 import { tokenStorage } from '../src/utils/token-storage';
+import { canOfferHomeVisit } from '../src/utils/home-visit';
 import { mockAsyncStorage } from './setup';
 
 describe('T14: Mobile Business Logic & API Client Contracts', () => {
@@ -565,6 +566,37 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
       }
 
       expect(violatingFiles).toEqual([]);
+    });
+  });
+
+  describe('BUG-092: Home visits require an identity-verified provider', () => {
+    it('canOfferHomeVisit returns true when isVerified is true', () => {
+      expect(canOfferHomeVisit({ isVerified: true })).toBe(true);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is false', () => {
+      expect(canOfferHomeVisit({ isVerified: false })).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is missing', () => {
+      expect(canOfferHomeVisit({})).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false when isVerified is null', () => {
+      expect(canOfferHomeVisit({ isVerified: null })).toBe(false);
+    });
+
+    it('canOfferHomeVisit returns false for null and undefined providers', () => {
+      expect(canOfferHomeVisit(null)).toBe(false);
+      expect(canOfferHomeVisit(undefined)).toBe(false);
+    });
+
+    it('static audit: details.tsx gates the mobile switch behind canOfferHomeVisit and the verified-only note', () => {
+      const detailsPath = path.resolve(__dirname, '../src/app/(client)/booking/details.tsx');
+      const content = fs.readFileSync(detailsPath, 'utf8');
+
+      expect(content).toContain('canOfferHomeVisit');
+      expect(content).toContain("t('bookingMobileVerifiedOnly')");
     });
   });
 });

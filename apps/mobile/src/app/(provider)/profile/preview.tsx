@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, lineHeights, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
+import { IdentityVerifiedBadge } from '../../../components/IdentityVerifiedBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiJson } from '@/services/apiClient';
 import { formatRating, formatReviewCount, formatReviewDate } from '@/utils/format';
@@ -171,6 +172,12 @@ export default function ProfilePreviewScreen() {
         {/* PROVIDER INFO */}
         <View style={styles.infoSection}>
           <Text style={styles.businessName}>{provider.businessName || t('providerGeneric')}</Text>
+          {/* /providers/me returns the provider entity, so verification is derived from the timestamp. */}
+          {provider.identityVerifiedAt != null && (
+            <View style={styles.verifiedBadgeRow}>
+              <IdentityVerifiedBadge size="md" />
+            </View>
+          )}
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
             <Text style={styles.statsText}>{avgRating} ({formatReviewCount(provider.totalReviews || 0, lang)})</Text>
@@ -227,12 +234,6 @@ export default function ProfilePreviewScreen() {
                 <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
-              {provider.isVerified && (
-                <View style={styles.infoRow}>
-                  <Feather name="check-circle" size={fontSizes.md} color={colors.teal} />
-                  <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
-                </View>
-              )}
 
               <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
               <Text style={styles.policyText}>{t('freeCancellationUntil').replace('{hours}', String(cancellationWindowHours(provider.cancellationPolicy)))}</Text>
@@ -351,6 +352,7 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
   
   infoSection: { alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
+  verifiedBadgeRow: { marginBottom: spacing.xs },
   businessName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },

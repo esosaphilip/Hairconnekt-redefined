@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
+import { IdentityVerifiedBadge } from '../../../components/IdentityVerifiedBadge';
 import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
@@ -306,6 +307,11 @@ export default function ProviderProfile() {
         {/* PROVIDER INFO */}
         <View style={styles.infoSection}>
           <Text style={styles.businessName}>{provider.businessName}</Text>
+          {provider.isVerified === true && (
+            <View style={styles.verifiedBadgeRow}>
+              <IdentityVerifiedBadge size="md" />
+            </View>
+          )}
           <View style={styles.statsRow}>
             <FontAwesome5 name="star" solid size={fontSizes.sm} color={colors.gold} />
             <Text style={styles.statsText}>{avgRating} ({formatReviewCount(totalReviews, lang)})</Text>
@@ -359,12 +365,6 @@ export default function ProviderProfile() {
                 <Feather name="clock" size={fontSizes.md} color={colors.textSecondary} />
                 <Text style={styles.infoText}>{t('profileResponseTime')} {provider.responseTime || t('responseTimeDefault')}</Text>
               </View>
-              {provider.isVerified && (
-                <View style={styles.infoRow}>
-                  <Feather name="check-circle" size={fontSizes.md} color={colors.teal} />
-                  <Text style={[styles.infoText, { color: colors.teal }]}>{t('profileVerified')}</Text>
-                </View>
-              )}
 
               <Text style={[styles.sectionHeader, { marginTop: spacing.xl }]}>{t('profileCancellation')}</Text>
               <Text style={styles.policyText}>{t('freeCancellationUntil').replace('{hours}', String(cancellationWindowHours(provider.cancellationPolicy)))}</Text>
@@ -540,6 +540,7 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: fonts.heading, fontSize: fontSizes.hero, color: colors.primary },
   
   infoSection: { alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.lg },
+  verifiedBadgeRow: { marginBottom: spacing.xs },
   businessName: { fontFamily: fonts.heading, fontSize: fontSizes.xxl, color: colors.primary, marginBottom: spacing.xs, textAlign: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   statsText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },

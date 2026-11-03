@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { mapHttpError } from '../../../utils/error-messages';
+import { canOfferHomeVisit } from '../../../utils/home-visit';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatAmount } from '@/utils/format';
 import { ApiError, apiJson } from '@/services/apiClient';
@@ -22,6 +23,7 @@ type SavedAddress = {
 
 type ProviderProfile = {
   businessName?: string | null;
+  isVerified?: boolean | null;
   user?: {
     firstName?: string | null;
     lastName?: string | null;
@@ -102,6 +104,7 @@ export default function BookingDetails() {
   
   const [ids, setIds] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isProviderVerified, setIsProviderVerified] = useState(false);
   const [clientNotes, setClientNotes] = useState('');
   
   const [providerName, setProviderName] = useState('');
@@ -194,6 +197,11 @@ export default function BookingDetails() {
 
         const provData = extractProvider(providerPayload);
         const servData = extractServices(servicesPayload);
+
+        // Home visits are only offered by identity-verified providers (BUG-092).
+        const verified = canOfferHomeVisit(provData);
+        setIsProviderVerified(verified);
+        if (!verified) setIsMobile(false);
         
         if (provData?.businessName) {
           setProviderName(provData.businessName);
@@ -449,18 +457,25 @@ export default function BookingDetails() {
           </View>
 
           <View style={styles.card}>
-            <View style={styles.toggleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
-                <Text style={styles.toggleSubtitle}>{t('bookingMobileSub')}</Text>
+            {isProviderVerified ? (
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
+                  <Text style={styles.toggleSubtitle}>{t('bookingMobileSub')}</Text>
+                </View>
+                <Switch
+                  value={isMobile}
+                  onValueChange={handleToggleMobile}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.surface}
+                />
               </View>
-              <Switch
-                value={isMobile}
-                onValueChange={handleToggleMobile}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={colors.surface}
-              />
-            </View>
+            ) : (
+              <View>
+                <Text style={styles.toggleTitle}>{t('bookingMobileService')}</Text>
+                <Text style={styles.mobileUnavailableNote}>{t('bookingMobileVerifiedOnly')}</Text>
+              </View>
+            )}
 
             {isMobile && (
               <>
@@ -729,6 +744,7 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   toggleTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary },
   toggleSubtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: spacing.xxxs },
+  mobileUnavailableNote: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, marginTop: spacing.xxxs },
   
   notesContainer: { marginBottom: spacing.lg },
   inputLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.md, color: colors.textPrimary, marginBottom: spacing.sm },
