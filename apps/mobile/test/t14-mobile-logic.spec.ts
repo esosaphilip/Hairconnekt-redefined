@@ -14,6 +14,7 @@ import {
 import { TRANSLATIONS } from '../src/contexts/LanguageContext';
 import { tokenStorage } from '../src/utils/token-storage';
 import { canOfferHomeVisit } from '../src/utils/home-visit';
+import { buildMailtoUrl, buildReportProfileMail } from '../src/utils/mailto';
 import { mockAsyncStorage } from './setup';
 
 describe('T14: Mobile Business Logic & API Client Contracts', () => {
@@ -597,6 +598,33 @@ describe('T14: Mobile Business Logic & API Client Contracts', () => {
 
       expect(content).toContain('canOfferHomeVisit');
       expect(content).toContain("t('bookingMobileVerifiedOnly')");
+    });
+  });
+
+  describe('BUG-081: Help & contact mail building', () => {
+    it('buildMailtoUrl percent-encodes the subject and body query parameters', () => {
+      expect(
+        buildMailtoUrl('support@hairconnekt.de', 'Profil melden: Jane', 'Provider-ID: 123\n\nGrund:'),
+      ).toBe(
+        'mailto:support@hairconnekt.de?subject=Profil%20melden%3A%20Jane&body=Provider-ID%3A%20123%0A%0AGrund%3A',
+      );
+    });
+
+    it('buildMailtoUrl returns a bare mailto address when no subject or body is given', () => {
+      expect(buildMailtoUrl('support@hairconnekt.de')).toBe('mailto:support@hairconnekt.de');
+    });
+
+    it('buildReportProfileMail names the provider in the subject and puts the id and reason in the body', () => {
+      expect(buildReportProfileMail({ id: 'abc-123', businessName: 'Jane Braids' })).toEqual({
+        subject: 'Profil melden: Jane Braids',
+        body: 'Provider-ID: abc-123\n\nGrund:',
+      });
+    });
+
+    it('buildReportProfileMail falls back to the provider id when businessName is missing', () => {
+      expect(buildReportProfileMail({ id: 'abc-123', businessName: null }).subject).toBe(
+        'Profil melden: abc-123',
+      );
     });
   });
 });

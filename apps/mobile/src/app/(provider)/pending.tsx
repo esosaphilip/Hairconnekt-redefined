@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout, lineHeights } from '../../theme';
@@ -7,6 +7,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { tokenStorage } from '../../utils/token-storage';
 import { API } from '../../utils/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { buildMailtoUrl, openMailto, SUPPORT_EMAIL } from '../../utils/mailto';
 import { signOutDestination } from '../../utils/roleRouting';
 import { dismissAllThenReplace } from '../../utils/useGroupRoleGuard';
 
@@ -84,7 +85,7 @@ export default function ProviderPendingScreen() {
   };
 
   const handleSupport = () => {
-    Linking.openURL('mailto:support@hairconnekt.de');
+    void openMailto(buildMailtoUrl(SUPPORT_EMAIL), SUPPORT_EMAIL, t);
   };
 
   const handleRetry = () => {

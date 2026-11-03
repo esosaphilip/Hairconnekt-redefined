@@ -5,6 +5,7 @@ import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, layout } from '../../../theme';
 import { GermanErrorBanner } from '../../../components/GermanErrorBanner';
 import { IdentityVerifiedBadge } from '../../../components/IdentityVerifiedBadge';
+import { buildMailtoUrl, buildReportProfileMail, openMailto, SUPPORT_EMAIL } from '../../../utils/mailto';
 import { mapHttpError } from '../../../utils/error-messages';
 import { useFavourites } from '../../../contexts/FavouritesContext';
 import { getDiscoveryCoordinates } from '../../../utils/discovery-location';
@@ -468,6 +469,21 @@ export default function ProviderProfile() {
             </View>
           )}
         </View>
+
+        <TouchableOpacity
+          style={styles.reportLink}
+          onPress={() => {
+            const { subject, body } = buildReportProfileMail({
+              id: providerId,
+              businessName: provider?.businessName,
+            });
+            void openMailto(buildMailtoUrl(SUPPORT_EMAIL, subject, body), SUPPORT_EMAIL, t);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('reportProfile')}
+        >
+          <Text style={styles.reportLinkText}>{t('reportProfile')}</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* STICKY BOTTOM BAR */}
@@ -563,6 +579,8 @@ const styles = StyleSheet.create({
   policyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.xl },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, paddingLeft: spacing.xs },
   infoText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textSecondary, marginLeft: spacing.sm },
+  reportLink: { alignItems: 'center', paddingVertical: spacing.lg, paddingHorizontal: spacing.lg },
+  reportLinkText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.textTertiary, textDecorationLine: 'underline' },
 
   serviceCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.lg, borderRadius: borderRadius.md, marginBottom: spacing.md, ...shadows.card },
   serviceInfo: { flex: 1 },
