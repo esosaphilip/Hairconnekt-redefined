@@ -211,6 +211,9 @@ export type AdminProvider = {
   businessName?: string | null;
   avatarUrl?: string | null;
   hasIdDocument?: boolean;
+  identityVerifiedAt?: string | null;
+  identityVerificationMethod?: 'video_call' | 'id_upload' | null;
+  ageConfirmedAt?: string | null;
   user?: AdminUserSummary | null;
 };
 
@@ -335,6 +338,21 @@ export async function rejectProvider(id: string, reason?: string) {
 
 export async function suspendProvider(id: string, reason?: string) {
   const res = await api.patch(`/admin/providers/${id}/suspend`, { reason });
+  return res.data;
+}
+
+export async function verifyProviderIdentity(
+  id: string,
+  method: 'video_call' | 'id_upload',
+) {
+  const res = await api.patch(`/admin/providers/${id}/identity-verification`, {
+    method,
+  });
+  return res.data;
+}
+
+export async function revokeProviderIdentity(id: string) {
+  const res = await api.delete(`/admin/providers/${id}/identity-verification`);
   return res.data;
 }
 
