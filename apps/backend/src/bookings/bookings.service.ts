@@ -381,11 +381,18 @@ export class BookingsService {
 
     const providerData = await this.providerRepo.findOne({
       where: { id: providerId },
-      select: ['id', 'bufferMinutes'],
+      select: ['id', 'bufferMinutes', 'identityVerifiedAt'],
     });
     if (!providerData) {
       throw new NotFoundException('Anbieter nicht gefunden.');
     }
+
+    if (isMobile && providerData.identityVerifiedAt == null) {
+      throw new BadRequestException(
+        'Hausbesuche sind nur bei Anbieterinnen mit geprüfter Identität möglich.',
+      );
+    }
+
     const bufferMin = providerData.bufferMinutes ?? 0;
     const serviceDurationMin = this.sumServiceDurationMin(services);
     const newStartMinutes = this.timeToMinutes(scheduledTime);

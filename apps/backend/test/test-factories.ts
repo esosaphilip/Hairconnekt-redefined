@@ -143,6 +143,10 @@ export async function createTestProvider(
       status: ProviderStatus.APPROVED,
       isOnline: true,
       experienceYears: 5,
+      // BUG-090: a generic, fully set-up test provider is identity-verified so
+      // that existing mobile-booking flows (which predate the BUG-092 gate)
+      // keep working. Tests that need an unverified provider override this.
+      identityVerifiedAt: new Date(),
       ...options.providerOverrides,
     }),
   );
