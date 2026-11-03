@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestClient, createTestProvider, createTestBooking } from './test-factories';
+import { createTestClient, createTestProvider, createTestBooking, futureDate } from './test-factories';
 import { BookingStatus } from '../src/entities/booking.entity';
 import { Provider } from '../src/entities/provider.entity';
 
@@ -64,7 +64,7 @@ describe('T12: Reviews and Ratings', () => {
       provider,
       services,
       status: BookingStatus.COMPLETED,
-      scheduledDate: '2026-10-16',
+      scheduledDate: futureDate(8),
       scheduledTime: '11:00',
     });
 

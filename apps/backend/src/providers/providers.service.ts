@@ -345,6 +345,7 @@ export class ProvidersService {
         distanceKm,
         specialisationTags: tagMap.get(p.id) ?? [],
         isFavourited: favouriteIds.has(p.id),
+        isVerified: p.identityVerifiedAt != null,
       };
     });
 
@@ -401,6 +402,7 @@ export class ProvidersService {
       isOnline: false,
       portfolioMarketingConsent: dto.portfolioMarketingConsent ?? false,
       portfolioMarketingConsentAt: dto.portfolioMarketingConsent ? new Date() : null,
+      ageConfirmedAt: dto.ageConfirmed === true ? new Date() : null,
     });
     await this.syncProviderCoordinates(provider, true);
     return this.providerRepo.save(provider);

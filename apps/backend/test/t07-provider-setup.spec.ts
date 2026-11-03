@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, closeTestApp, truncateAllTables, isDatabaseAvailable, TestAppContext } from './test-bootstrap';
-import { createTestProvider } from './test-factories';
+import { createTestProvider, futureDate } from './test-factories';
 import { ServiceCategory } from '../src/entities/service-category.entity';
 
 describe('T07: Provider Setup', () => {
@@ -106,12 +106,13 @@ describe('T07: Provider Setup', () => {
     expect(toggleRes.body.isOnline).toBe(false);
 
     // 7. Create a time block and DELETE it via DELETE /api/v1/providers/me/blocks/:id (backend half of BUG-020)
+    const blockDate = futureDate(7);
     const blockCreateRes = await request(ctx.app.getHttpServer())
       .post('/api/v1/providers/me/blocks')
       .set('Authorization', `Bearer ${providerToken}`)
       .send({
-        startDate: '2026-10-20',
-        endDate: '2026-10-20',
+        startDate: blockDate,
+        endDate: blockDate,
         isAllDay: true,
         reason: 'Dentist appointment',
       })

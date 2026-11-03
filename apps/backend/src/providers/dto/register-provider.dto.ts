@@ -28,4 +28,8 @@ export class RegisterProviderDto {
   @IsOptional()
   @IsBoolean()
   portfolioMarketingConsent?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  ageConfirmed?: boolean;
 }

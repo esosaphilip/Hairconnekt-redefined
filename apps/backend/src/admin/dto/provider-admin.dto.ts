@@ -8,6 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { ProviderStatus, ProviderType } from '../../entities/provider.entity';
+import type { IdentityVerificationMethod } from './provider-identity-verification.dto';
 
 export class ProviderAdminUserDto {
   @IsString()
@@ -47,6 +48,15 @@ export class ProviderAdminDto {
   hasIdDocument: boolean;
 
   @IsOptional()
+  identityVerifiedAt: Date | null;
+
+  @IsOptional()
+  identityVerificationMethod: IdentityVerificationMethod | null;
+
+  @IsOptional()
+  ageConfirmedAt: Date | null;
+
+  @IsOptional()
   @IsString()
   avatarUrl: string | null;
 
@@ -70,6 +80,9 @@ export class ProviderAdminDto {
     dto.status = row.status;
     dto.city = row.city;
     dto.hasIdDocument = Boolean(row.idDocumentUrl);
+    dto.identityVerifiedAt = row.identityVerifiedAt ? new Date(row.identityVerifiedAt) : null;
+    dto.identityVerificationMethod = row.identityVerificationMethod ?? null;
+    dto.ageConfirmedAt = row.ageConfirmedAt ? new Date(row.ageConfirmedAt) : null;
     dto.avatarUrl = row.avatarUrl ?? null;
     dto.isEmailVerified = Boolean(row.userIsEmailVerified);
     dto.servicesCount = Number(row.servicesCount ?? 0);

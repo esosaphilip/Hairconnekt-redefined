@@ -21,6 +21,7 @@ export const PUBLIC_PROVIDER_PROFILE_KEYS = [
   'avatarUrl',
   'startingPrice',
   'distanceKm',
+  'isVerified',
 ] as const;
 
 export function toPublicProviderProfile(
@@ -45,5 +46,6 @@ export function toPublicProviderProfile(
     avatarUrl: provider.avatarUrl,
     startingPrice: computed.startingPrice,
     distanceKm: computed.distanceKm,
+    isVerified: provider.identityVerifiedAt != null,
   };
 }

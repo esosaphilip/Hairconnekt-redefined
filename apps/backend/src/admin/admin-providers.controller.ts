@@ -17,6 +17,7 @@ import { User } from '../entities/user.entity';
 import { Service } from '../entities/service.entity';
 import { ProviderAdminDto } from './dto/provider-admin.dto';
 import { ProviderStatusReasonDto } from './dto/provider-status-reason.dto';
+import { ProviderIdentityVerificationDto } from './dto/provider-identity-verification.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { Request, Response } from 'express';
 import { R2Service } from '../common/storage/r2.service';
@@ -77,6 +78,9 @@ export class AdminProvidersController {
       .addSelect('provider.status', 'status')
       .addSelect('provider.city', 'city')
       .addSelect('provider.idDocumentUrl', 'idDocumentUrl')
+      .addSelect('provider.identityVerifiedAt', 'identityVerifiedAt')
+      .addSelect('provider.identityVerificationMethod', 'identityVerificationMethod')
+      .addSelect('provider.ageConfirmedAt', 'ageConfirmedAt')
       .addSelect('provider.avatarUrl', 'avatarUrl')
       .addSelect('provider.createdAt', 'createdAt')
       .addSelect('user.firstName', 'userFirstName')
@@ -158,6 +162,9 @@ export class AdminProvidersController {
       .addSelect('provider.status', 'status')
       .addSelect('provider.city', 'city')
       .addSelect('provider.idDocumentUrl', 'idDocumentUrl')
+      .addSelect('provider.identityVerifiedAt', 'identityVerifiedAt')
+      .addSelect('provider.identityVerificationMethod', 'identityVerificationMethod')
+      .addSelect('provider.ageConfirmedAt', 'ageConfirmedAt')
       .addSelect('provider.avatarUrl', 'avatarUrl')
       .addSelect('provider.createdAt', 'createdAt')
       .addSelect('user.firstName', 'userFirstName')
@@ -277,6 +284,121 @@ export class AdminProvidersController {
         actorUserId: admin.id,
         actorRole: admin.role,
         action: 'admin.provider.approve',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        beforeState,
+        afterState: null,
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
+  }
+
+  @Patch(':id/identity-verification')
+  async verifyIdentity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: AuthRequest,
+    @Body() body: ProviderIdentityVerificationDto,
+  ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'identityVerifiedAt', 'identityVerificationMethod'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const beforeState = {
+      identityVerifiedAt: provider.identityVerifiedAt ?? null,
+      identityVerificationMethod: provider.identityVerificationMethod ?? null,
+    };
+
+    try {
+      const res = await this.providerRepo.update(id, {
+        identityVerifiedAt: new Date(),
+        identityVerificationMethod: body.method,
+      });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.identity_verified',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        beforeState,
+        afterState: { verified: true },
+        metadata: {
+          method: body.method,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.identity_verified',
+        targetType: 'provider',
+        targetId: provider.id,
+        outcome: 'failure',
+        request: req,
+        beforeState,
+        afterState: null,
+        metadata: {
+          method: body.method,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
+  }
+
+  @Delete(':id/identity-verification')
+  async revokeIdentityVerification(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: User,
+    @Req() req: AuthRequest,
+  ) {
+    const provider = await this.providerRepo.findOne({
+      where: { id },
+      select: ['id', 'identityVerifiedAt', 'identityVerificationMethod'],
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const beforeState = {
+      identityVerifiedAt: provider.identityVerifiedAt ?? null,
+      identityVerificationMethod: provider.identityVerificationMethod ?? null,
+    };
+
+    try {
+      const res = await this.providerRepo.update(id, {
+        identityVerifiedAt: null,
+        identityVerificationMethod: null,
+      });
+      if (!res.affected) throw new NotFoundException('Provider not found');
+
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.identity_revoked',
+        targetType: 'provider',
+        targetId: provider.id,
+        request: req,
+        beforeState,
+        afterState: { verified: false },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.auditService.record({
+        actorUserId: admin.id,
+        actorRole: admin.role,
+        action: 'admin.provider.identity_revoked',
         targetType: 'provider',
         targetId: provider.id,
         outcome: 'failure',

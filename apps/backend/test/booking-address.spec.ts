@@ -1,13 +1,14 @@
 import { validateSync } from 'class-validator';
 import { CreateBookingDto } from '../src/bookings/dto/create-booking.dto';
 import { Booking } from '../src/entities/booking.entity';
+import { futureDate } from './test-factories';
 
 describe('BUG-033: Mobile Booking Address Contract & Serialization', () => {
   describe('CreateBookingDto Validation', () => {
     const validBasePayload = {
       providerId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       serviceIds: ['b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'],
-      scheduledDate: '2026-11-20',
+      scheduledDate: futureDate(7),
       scheduledTime: '14:00',
     };
 

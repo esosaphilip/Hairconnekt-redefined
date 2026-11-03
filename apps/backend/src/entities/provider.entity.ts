@@ -86,6 +86,15 @@ export class Provider {
   @Column({ type: 'timestamp', nullable: true })
   portfolioMarketingConsentAt: Date | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  identityVerifiedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  identityVerificationMethod: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  ageConfirmedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
